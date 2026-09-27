@@ -2,6 +2,7 @@ using PaGetto.Authentication;
 using PaGetto.Core;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
+using PaGetto.Core.Entities;
 using PaGetto.Web.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -150,6 +151,13 @@ internal static partial class ServiceCollectionExtensions
                         identity.RemoveClaim(existing);
                     identity.AddClaim(new Claim(AuthenticationConstants.IsAdminClaim, user.IsAdmin ? "true" : "false"));
 
+                    // A renamed local account shows its new name right away.
+                    if (user.AuthProvider == AuthProvider.Local)
+                    {
+                        ReplaceClaim(identity, ClaimTypes.Name, user.Username);
+                        ReplaceClaim(identity, "DisplayName", user.DisplayName ?? user.Username);
+                    }
+
                     var mustChange = identity.FindFirst(AuthenticationConstants.MustChangePasswordClaim);
                     if (mustChange != null)
                         identity.RemoveClaim(mustChange);
@@ -208,6 +216,14 @@ internal static partial class ServiceCollectionExtensions
         app.Services.AddScoped<EntraRoleSyncService>();
 
         return app;
+    }
+
+    private static void ReplaceClaim(ClaimsIdentity identity, string type, string value)
+    {
+        var existing = identity.FindFirst(type);
+        if (existing != null)
+            identity.RemoveClaim(existing);
+        identity.AddClaim(new Claim(type, value));
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Entra authentication remote failure.")]

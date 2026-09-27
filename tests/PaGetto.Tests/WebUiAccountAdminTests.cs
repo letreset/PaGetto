@@ -223,6 +223,87 @@ public class WebUiAccountAdminTests
         }
     }
 
+    public class Edit : FactsBase
+    {
+        public Edit(ITestOutputHelper output) : base(output)
+        {
+        }
+
+        private static Dictionary<string, string> Form(Guid userId, string username, string displayName = "", string email = "")
+        {
+            return new Dictionary<string, string>
+            {
+                { "userId", userId.ToString() },
+                { "username", username },
+                { "displayName", displayName },
+                { "email", email },
+            };
+        }
+
+        [Fact]
+        public async Task RenamesAccount()
+        {
+            await WebUiSession.SeedLocalUserAsync(_app, "admin", Password, isAdmin: true);
+            var bob = await WebUiSession.SeedLocalUserAsync(_app, "bob", Password);
+
+            using var admin = await WebUiSession.SignInAsync(_app, "admin", Password);
+            Assert.Contains("handler=Edit", await admin.GetStringAsync("/Admin/Accounts"));
+
+            using var response = await admin.PostFormAsync(
+                "/Admin/Accounts", "Edit", Form(bob.Id, "robert", "Robert Smith", "robert@example.com"));
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+
+            using var scope = _app.Services.CreateScope();
+            var updated = await scope.ServiceProvider.GetRequiredService<IUserService>().FindByIdAsync(bob.Id, CancellationToken.None);
+            Assert.Equal("robert", updated.Username);
+            Assert.Equal("Robert Smith", updated.DisplayName);
+            Assert.Equal("robert@example.com", updated.Email);
+
+            using var robert = await WebUiSession.SignInAsync(_app, "robert", Password);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => WebUiSession.SignInAsync(_app, "bob", Password));
+        }
+
+        [Fact]
+        public async Task RejectsTakenUsername()
+        {
+            await WebUiSession.SeedLocalUserAsync(_app, "admin", Password, isAdmin: true);
+            var bob = await WebUiSession.SeedLocalUserAsync(_app, "bob", Password);
+            await WebUiSession.SeedLocalUserAsync(_app, "alice", Password);
+
+            using var admin = await WebUiSession.SignInAsync(_app, "admin", Password);
+            using var response = await admin.PostFormAsync("/Admin/Accounts", "Edit", Form(bob.Id, "ALICE"));
+
+            Assert.Contains("already exists", await response.Content.ReadAsStringAsync());
+            using var bobSession = await WebUiSession.SignInAsync(_app, "bob", Password);
+        }
+
+        [Fact]
+        public async Task ChangesOnlyTheCaseOfTheUsername()
+        {
+            await WebUiSession.SeedLocalUserAsync(_app, "admin", Password, isAdmin: true);
+            var bob = await WebUiSession.SeedLocalUserAsync(_app, "bob", Password);
+
+            using var admin = await WebUiSession.SignInAsync(_app, "admin", Password);
+            using var response = await admin.PostFormAsync("/Admin/Accounts", "Edit", Form(bob.Id, "Bob"));
+
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("", "", "Username is required.")]
+        [InlineData("bob", "not-an-email", "Enter a valid email address.")]
+        public async Task RejectsInvalidValues(string username, string email, string message)
+        {
+            await WebUiSession.SeedLocalUserAsync(_app, "admin", Password, isAdmin: true);
+            var bob = await WebUiSession.SeedLocalUserAsync(_app, "bob", Password);
+
+            using var admin = await WebUiSession.SignInAsync(_app, "admin", Password);
+            using var response = await admin.PostFormAsync("/Admin/Accounts", "Edit", Form(bob.Id, username, email: email));
+
+            Assert.Contains(message, await response.Content.ReadAsStringAsync());
+        }
+    }
+
     public class ResetPassword : FactsBase
     {
         public ResetPassword(ITestOutputHelper output) : base(output)

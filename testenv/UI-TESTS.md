@@ -136,6 +136,7 @@ For every page you open, the browser console should show no errors.
 | A5 | `admin` | Look at the `admin` row and its ⋯ menu | An **Admin** label; the menu only has **Reset password…** and **New token…** on the signed-in admin's own row |
 | A5a | `admin` | `alice` > ⋯ > **Make admin**, sign in as `alice` and open Admin > Accounts; then **Remove admin role** as `admin` | `alice` can open the page while she is an admin |
 | A5b | `admin` | After S7 (`bob` locked), open Admin > Accounts and **Unlock** `bob` | A "Locked until" label before; `bob` can sign in right away after |
+| A5c | `admin` | `carol` > ⋯ > **Edit account…**, rename her to `caroline` with a new display name, then sign in as `caroline` | The dialog opens filled with her current values; the list shows the new name, and `caroline` signs in with her old password while `carol` no longer works |
 | A6 | `admin` | `bob` > ⋯ > **Reset password…** with a 12+ character password (**Set password** stays disabled below 12), then sign in as `bob` with it | "Password of 'bob' reset successfully.", and the sign-in works (also right after S7's lockout) |
 | A7 | `admin` | Look at the account list | Column headers on a desktop screen; each row has the avatar, groups, an Enabled/Disabled and a "Web + API"/"API only" label, the date and a ⋯ button whose menu isn't cut off, also on the last row |
 | A8 | `admin` | Open ⋯ > **New token…** on `build-agent` (the last row), press Esc, open it again, type a name and press Enter | A dialog with the cursor in the name field; Esc closes it; Enter creates the token |

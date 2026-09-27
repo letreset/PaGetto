@@ -126,7 +126,7 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 
 ![Admin > Accounts with five local accounts](./assets/web-ui/admin-accounts.png)
 
-**New account** opens the form for a local account. The other actions are in the **Actions** menu (⋮) at the end of each row; **Reset password…**, **New token…** and **Delete account…** open a dialog. Entra accounts only have the enable, web sign-in and delete actions. See [Local accounts](authentication.md#local-accounts).
+**New account** opens the form for a local account. The other actions are in the **Actions** menu (⋮) at the end of each row; **Edit account…**, **Reset password…**, **New token…** and **Delete account…** open a dialog. Entra accounts only have the enable, web sign-in and delete actions. See [Local accounts](authentication.md#local-accounts).
 
 ### Groups & permissions
 

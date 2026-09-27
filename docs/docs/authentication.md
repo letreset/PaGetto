@@ -164,11 +164,12 @@ When `Mode` is `Local` or `Hybrid`, administrators manage local accounts on **Ad
 - **Allow web sign-in** or **Disable web sign-in** (**Can sign in to web UI** when creating the account). Turn it off for build agents that should only use NuGet clients; the row then shows **API only** instead of **Web + API**.
 - **Make admin** or **Remove admin role** for a local account. Entra accounts are administrators through the `Admin` app role instead. An **Admin** label marks administrators.
 - **Unlock** an account that is [locked](#account-lockout) after too many failed sign-ins; a **Locked until** label shows when the lock ends.
+- **Edit account**: change the username, display name and email in a dialog. After a rename the user signs in with the new username. Personal access tokens stay valid, but a `nuget.config` that sends the old username together with a token has to be updated.
 - **Reset password**: set a new password (at least 12 characters) in a dialog. This also ends a [lockout](#account-lockout).
 - **New token**: create a [personal access token](#personal-access-tokens-pats) for the account in a dialog.
 - **Delete account**. The action only appears after the account has been disabled.
 
-Entra users who have signed in are listed on the same page, marked **Entra**. For them only **Disable account** (or **Enable account**), **Disable web sign-in** (or **Allow web sign-in**) and, once disabled, **Delete account** are available; **Reset password**, **New token** and **Make admin** are for local accounts only. A deleted Entra account is created again the next time that user signs in.
+Entra users who have signed in are listed on the same page, marked **Entra**. For them only **Disable account** (or **Enable account**), **Disable web sign-in** (or **Allow web sign-in**) and, once disabled, **Delete account** are available; **Edit account**, **Reset password**, **New token** and **Make admin** are for local accounts only. A deleted Entra account is created again the next time that user signs in.
 
 Your own row has no **Disable account**, **Disable web sign-in** or **Remove admin role** action, and PaGetto refuses to take those away from the last enabled administrator with web sign-in, so administration can't be locked out by accident.
 
