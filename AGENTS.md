@@ -42,6 +42,8 @@ This repo is **letreset/PaGetto**. Its main features:
 ## Branches, versions, releases
 
 - `main` is the only long-lived branch. Work happens on `feature/*` branches.
+- Always do your work on a new branch in its own git worktree (e.g. `git worktree add ../PaGetto-<topic> -b feature/<topic> origin/main`), never directly in the main checkout. Every task gets its own worktree and branch.
+- Once the branch's PR is merged, clean up: remove the worktree (`git worktree remove <path>`), delete the local branch (`git branch -D feature/<topic>`, since rebase merges leave it looking unmerged) and prune stale references (`git worktree prune`, `git fetch --prune`).
 - `main` is protected by a repository ruleset: no direct pushes, no merge commits (linear history), and changes land only through a pull request in letreset/PaGetto. The PR needs the required checks to pass (Build & test on ubuntu and windows, Docker build, Helm lint, CodeQL) and its review threads resolved; no approval is required.
 - To ship a branch: rebase it on `origin/main`, push it, open a PR against `main`, and merge it with **Rebase and merge**, so each Conventional Commit stays separate for the git-cliff changelog. Use squash only for a branch that is really one change. Pushing `main` directly, or a `--no-ff` merge, is rejected.
 - Versioning is semver starting at **1.0.0**.
