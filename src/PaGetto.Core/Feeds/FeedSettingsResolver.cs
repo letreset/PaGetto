@@ -32,9 +32,9 @@ public class FeedSettingsResolver : IFeedSettingsResolver
         return feed?.IsReadOnlyMode ?? _options.Value.IsReadOnlyMode;
     }
 
-    public uint GetMaxPackageSizeGiB(Feed feed)
+    public uint GetMaxPackageSizeMiB(Feed feed)
     {
-        return feed?.MaxPackageSizeGiB ?? _options.Value.MaxPackageSizeGiB;
+        return feed?.MaxPackageSizeMiB ?? _options.Value.EffectiveMaxPackageSizeMiB;
     }
 
     public RetentionOptions GetRetentionOptions(Feed feed)

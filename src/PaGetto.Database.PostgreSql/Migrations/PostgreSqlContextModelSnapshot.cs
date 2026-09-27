@@ -42,7 +42,7 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<bool?>("IsReadOnlyMode")
                         .HasColumnType("boolean");
 
-                    b.Property<long?>("MaxPackageSizeGiB")
+                    b.Property<long?>("MaxPackageSizeMiB")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")

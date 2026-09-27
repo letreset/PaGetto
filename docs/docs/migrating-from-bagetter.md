@@ -56,7 +56,7 @@ These settings can be set per feed. The values in configuration become the **def
 - `AllowPackageOverwrites`
 - `PackageDeletionBehavior`
 - `IsReadOnlyMode`
-- `MaxPackageSizeGiB`
+- `MaxPackageSizeMiB` (BaGetter's `MaxPackageSizeGiB` is still read and converted)
 - `Retention` (max major, minor, patch and prerelease versions)
 
 Nothing changes until you override a setting on a feed. See [Feed settings](feeds.md#feed-settings).

@@ -42,6 +42,14 @@ public static class RazorExtensions
     }
 
     /// <summary>
+    /// Formats a size limit given in MiB with the same units as <see cref="ToFileSize"/>, e.g. "500 MB", "8 GB".
+    /// </summary>
+    public static string ToSizeLimit(this uint mebibytes)
+    {
+        return ((long)mebibytes * 1024 * 1024).ToFileSize();
+    }
+
+    /// <summary>
     /// The two letters shown on a package tile: the start of the last dot segment, e.g. "CO" for "Contoso.Core".
     /// </summary>
     public static string ToPackageInitials(this string packageId)

@@ -57,6 +57,8 @@ public partial class Program
 
         app.OnExecuteAsync(async cancellationToken =>
         {
+            WarnAboutObsoleteSettings(host.Services);
+
             await host.RunMigrationsAsync(cancellationToken);
 
             using (var scope = host.Services.CreateScope())
@@ -216,6 +218,21 @@ public partial class Program
 
         config.Sources.Insert(index, source);
     }
+
+    private static void WarnAboutObsoleteSettings(IServiceProvider provider)
+    {
+        var options = provider.GetRequiredService<IOptions<PaGettoOptions>>().Value;
+
+#pragma warning disable CS0618 // Reads the legacy setting only to warn about it.
+        if (options.MaxPackageSizeGiB.HasValue && !options.MaxPackageSizeMiB.HasValue)
+        {
+            LogObsoleteMaxPackageSizeGiB(provider.GetRequiredService<ILogger<Program>>(), options.EffectiveMaxPackageSizeMiB);
+        }
+#pragma warning restore CS0618
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MaxPackageSizeGiB is obsolete; use MaxPackageSizeMiB instead (currently {MaxPackageSizeMiB} MiB).")]
+    private static partial void LogObsoleteMaxPackageSizeGiB(ILogger logger, uint maxPackageSizeMiB);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Default feed not found during mirror config migration; skipping.")]
     private static partial void LogDefaultFeedNotFound(ILogger logger);

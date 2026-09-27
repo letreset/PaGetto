@@ -170,9 +170,9 @@ public class FeedSettingsMirrorTests : IDisposable
     }
 
     [Theory]
-    [InlineData("UseGlobalMaxSize", "MaxPackageSizeGiB", "-1", "The max package size must be at least 1 GiB.")]
-    [InlineData("UseGlobalMaxSize", "MaxPackageSizeGiB", "0", "The max package size must be at least 1 GiB.")]
-    [InlineData("UseGlobalMaxSize", "MaxPackageSizeGiB", "abc", "The value &#x27;abc&#x27; is not valid")]
+    [InlineData("UseGlobalMaxSize", "MaxPackageSizeMiB", "-1", "The max package size must be at least 1 MiB.")]
+    [InlineData("UseGlobalMaxSize", "MaxPackageSizeMiB", "0", "The max package size must be at least 1 MiB.")]
+    [InlineData("UseGlobalMaxSize", "MaxPackageSizeMiB", "abc", "The value &#x27;abc&#x27; is not valid")]
     [InlineData("UseGlobalRetentionMajor", "RetentionMaxMajorVersions", "-3", "The number of major versions to keep must be 0 or more.")]
     [InlineData("UseGlobalRetentionPrerelease", "RetentionMaxPrereleaseVersions", "x", "The value &#x27;x&#x27; is not valid")]
     public async Task PostWithInvalidNumberIsRejectedAndNothingIsSaved(
@@ -193,7 +193,7 @@ public class FeedSettingsMirrorTests : IDisposable
         Assert.DoesNotContain("Settings saved.", body);
         var feed = await GetDefaultFeedAsync();
         Assert.NotEqual("Renamed", feed.Name);
-        Assert.Null(feed.MaxPackageSizeGiB);
+        Assert.Null(feed.MaxPackageSizeMiB);
         Assert.Null(feed.RetentionMaxMajorVersions);
     }
 
@@ -221,14 +221,14 @@ public class FeedSettingsMirrorTests : IDisposable
 
         var form = await BaseFormAsync(client);
         form.RemoveAll(f => f.Key is "UseGlobalMaxSize" or "UseGlobalRetentionMajor");
-        form.Add(new("MaxPackageSizeGiB", "2"));
+        form.Add(new("MaxPackageSizeMiB", "2"));
         form.Add(new("RetentionMaxMajorVersions", "3"));
 
         using var response = await client.PostAsync(SettingsUrl, new FormUrlEncodedContent(form));
 
         Assert.Contains("Settings saved.", await response.Content.ReadAsStringAsync());
         var feed = await GetDefaultFeedAsync();
-        Assert.Equal(2u, feed.MaxPackageSizeGiB);
+        Assert.Equal(2u, feed.MaxPackageSizeMiB);
         Assert.Equal(3, feed.RetentionMaxMajorVersions);
     }
 

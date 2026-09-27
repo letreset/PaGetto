@@ -56,8 +56,8 @@ public class ConfigurePaGettoServer
 
     public void Configure(FormOptions options)
     {
-        // Allow packages up to ~8GiB in size
-        options.MultipartBodyLengthLimit = (long) _paGettoOptions.MaxPackageSizeGiB * int.MaxValue / 2;
+        // Allow packages up to the configured size (8 GiB by default)
+        options.MultipartBodyLengthLimit = (long)_paGettoOptions.EffectiveMaxPackageSizeMiB * 1024 * 1024;
     }
 
     public void Configure(ForwardedHeadersOptions options)
@@ -71,7 +71,7 @@ public class ConfigurePaGettoServer
 
     public void Configure(IISServerOptions options)
     {
-        options.MaxRequestBodySize = (long)_paGettoOptions.MaxPackageSizeGiB * int.MaxValue / 2;
+        options.MaxRequestBodySize = (long)_paGettoOptions.EffectiveMaxPackageSizeMiB * 1024 * 1024;
     }
 
     public void Configure(RateLimiterOptions options)

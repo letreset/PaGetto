@@ -506,7 +506,7 @@ IIS Server options can be configured under the `IISServerOptions` key. The avail
 
 :::note
 
-If not specified, PaGetto sets `MaxRequestBodySize` from [`MaxPackageSizeGiB`](#maximum-package-size) (about 8 GiB by default), rather than using the ASP.NET Core default of 30MB. You only need `IISServerOptions` to set a lower cap, as in the example below (250MB).
+If not specified, PaGetto sets `MaxRequestBodySize` from [`MaxPackageSizeMiB`](#maximum-package-size) (8 GiB by default), rather than using the ASP.NET Core default of 30MB. You only need `IISServerOptions` to set a lower cap, as in the example below (250MB).
 
 :::
 
@@ -555,14 +555,14 @@ The path and the name of the "Status" property are configurable. `Path` is requi
 
 ## Maximum package size
 
-The max package size default to 8GiB and can be configured using the `MaxPackageSizeGiB` setting. The NuGet gallery currently has a 250MB limit, which is enough for most packages.
+The max package size defaults to 8192 MiB (8 GiB) and can be configured in MiB with the `MaxPackageSizeMiB` setting. The NuGet gallery currently has a 250 MB limit, which is enough for most packages. The older `MaxPackageSizeGiB` setting is still read when `MaxPackageSizeMiB` isn't set, with a warning at startup.
 This can be useful if you are hosting a private feed and need to host large packages that include chocolatey installers, machine learning models, etc.
 
 ```json
 {
     ...
 
-    "MaxPackageSizeGiB": 8,
+    "MaxPackageSizeMiB": 8192,
 
     ...
 }

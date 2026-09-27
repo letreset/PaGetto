@@ -43,7 +43,7 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Property<bool?>("IsReadOnlyMode")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<uint?>("MaxPackageSizeGiB")
+                    b.Property<uint?>("MaxPackageSizeMiB")
                         .HasColumnType("int unsigned");
 
                     b.Property<string>("Name")

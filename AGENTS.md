@@ -136,7 +136,7 @@ Main keys:
 - `Database`, `Storage`, `Search`: each has a `Type`. `Database:ServerVersion` (MySQL only, optional) skips server version detection, which otherwise runs once per connection string (`MySqlServerVersionResolver`).
 - `Authentication`: `Mode`, `Entra`, token and lockout limits. In `Local`/`Hybrid`, `InitialAdminSeeder` creates the local admin `admin`/`admin` at startup, after migrations, while no admin exists; `User.MustChangePassword` keeps it on `/Account/ChangePassword` (`MustChangePasswordMiddleware`) and out of basic auth until the password is changed.
 - `Email`, `PatExpiryNotification`.
-- `MaxPackageSizeGiB`, `RegistrationPageSize`, `UpstreamListingCacheSeconds` (default 300, per-feed override), `Cors` (`AllowedOrigins`, `AllowCredentials`), `SecurityHeaders` (`Enabled`, `EnableHsts`, `HstsMaxAgeDays`), `RequestRateLimit` (`Enabled`, `PermitLimit`, `WindowSeconds`, `QueueLimit`; off by default).
+- `MaxPackageSizeMiB` (default 8192; the legacy `MaxPackageSizeGiB` is still read via `PaGettoOptions.EffectiveMaxPackageSizeMiB`), `RegistrationPageSize`, `UpstreamListingCacheSeconds` (default 300, per-feed override), `Cors` (`AllowedOrigins`, `AllowCredentials`), `SecurityHeaders` (`Enabled`, `EnableHsts`, `HstsMaxAgeDays`), `RequestRateLimit` (`Enabled`, `PermitLimit`, `WindowSeconds`, `QueueLimit`; off by default).
 - `HealthCheck`, `Statistics`.
 - `Mirror`, `AllowPackageOverwrites`, `PackageDeletionBehavior` and `Retention` are only **defaults and seeds**. Per-feed values in the DB override them. The global `Mirror` block is `[Obsolete]` and is only read once, to seed the default feed.
 

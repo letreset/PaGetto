@@ -212,14 +212,14 @@
                 </div>
             </div>
             <div class="bgt-setting">
-                <div class="bgt-setting-label"><label asp-for="MaxPackageSizeGiB">Max package size</label></div>
+                <div class="bgt-setting-label"><label asp-for="MaxPackageSizeMiB">Max package size</label></div>
                 <div class="bgt-setting-control">
                     <div class="bgt-with-unit">
-                        <input asp-for="MaxPackageSizeGiB" type="number" min="1" class="form-control bgt-num" placeholder="@global.MaxPackageSizeGiB" />
-                        <span class="bgt-unit">GiB</span>
+                        <input asp-for="MaxPackageSizeMiB" type="number" min="1" class="form-control bgt-num" placeholder="@global.EffectiveMaxPackageSizeMiB" />
+                        <span class="bgt-unit">MiB</span>
                     </div>
-                    <span asp-validation-for="MaxPackageSizeGiB" class="text-danger"></span>
-                    @{ Inherit(nameof(Model.UseGlobalMaxSize), Model.UseGlobalMaxSize, nameof(Model.MaxPackageSizeGiB), global.MaxPackageSizeGiB + " GiB"); }
+                    <span asp-validation-for="MaxPackageSizeMiB" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalMaxSize), Model.UseGlobalMaxSize, nameof(Model.MaxPackageSizeMiB), global.EffectiveMaxPackageSizeMiB + " MiB"); }
                 </div>
             </div>
         </section>

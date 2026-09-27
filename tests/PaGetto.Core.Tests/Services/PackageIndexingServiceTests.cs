@@ -45,8 +45,8 @@ public class PackageIndexingServiceTests
             .Returns(() => _mockOptions.AllowPackageOverwrites);
         feedSettings.Setup(r => r.GetIsReadOnlyMode(It.IsAny<Feed>()))
             .Returns(() => _mockOptions.IsReadOnlyMode);
-        feedSettings.Setup(r => r.GetMaxPackageSizeGiB(It.IsAny<Feed>()))
-            .Returns(() => _mockOptions.MaxPackageSizeGiB);
+        feedSettings.Setup(r => r.GetMaxPackageSizeMiB(It.IsAny<Feed>()))
+            .Returns(() => _mockOptions.EffectiveMaxPackageSizeMiB);
         feedSettings.Setup(r => r.GetRetentionOptions(It.IsAny<Feed>()))
             .Returns(() => _mockOptions.Retention ?? new RetentionOptions());
 

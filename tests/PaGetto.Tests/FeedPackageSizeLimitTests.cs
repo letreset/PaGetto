@@ -53,12 +53,12 @@ public class FeedPackageSizeLimitTests : IDisposable
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, await PushAsync("feeds/small/api/v2/symbol", TestResources.SymbolPackage));
     }
 
-    private async Task SetMaxPackageSizeAsync(string slug, uint gib)
+    private async Task SetMaxPackageSizeAsync(string slug, uint mib)
     {
         using var scope = _app.Services.CreateScope();
         var feeds = scope.ServiceProvider.GetRequiredService<IFeedService>();
         var feed = await feeds.GetFeedBySlugAsync(slug, CancellationToken.None);
-        feed.MaxPackageSizeGiB = gib;
+        feed.MaxPackageSizeMiB = mib;
         await feeds.UpdateFeedAsync(feed, CancellationToken.None);
     }
 

@@ -21,7 +21,7 @@ public class FeedSettingsResolverTests
             AllowPackageOverwrites = PackageOverwriteAllowed.False,
             PackageDeletionBehavior = PackageDeletionBehavior.Unlist,
             IsReadOnlyMode = false,
-            MaxPackageSizeGiB = 8,
+            MaxPackageSizeMiB = 8192,
             Retention = new RetentionOptions
             {
                 MaxMajorVersions = 5,
@@ -43,6 +43,43 @@ public class FeedSettingsResolverTests
         Slug = Feed.DefaultSlug,
         Name = "Default",
     };
+
+    public class GetMaxPackageSizeMiB : FeedSettingsResolverTests
+    {
+        [Fact]
+        public void ReturnsGlobalWhenFeedHasNoOverride()
+        {
+            Assert.Equal(8192u, _target.GetMaxPackageSizeMiB(DefaultFeed()));
+        }
+
+        [Fact]
+        public void ReturnsFeedOverride()
+        {
+            var feed = DefaultFeed();
+            feed.MaxPackageSizeMiB = 500;
+
+            Assert.Equal(500u, _target.GetMaxPackageSizeMiB(feed));
+        }
+
+        [Fact]
+        public void ConvertsTheLegacyGiBSetting()
+        {
+            _globalOptions.MaxPackageSizeMiB = null;
+#pragma warning disable CS0618 // The legacy setting is still honored.
+            _globalOptions.MaxPackageSizeGiB = 2;
+#pragma warning restore CS0618
+
+            Assert.Equal(2048u, _target.GetMaxPackageSizeMiB(DefaultFeed()));
+        }
+
+        [Fact]
+        public void DefaultsTo8GiB()
+        {
+            _globalOptions.MaxPackageSizeMiB = null;
+
+            Assert.Equal(PaGettoOptions.DefaultMaxPackageSizeMiB, _target.GetMaxPackageSizeMiB(DefaultFeed()));
+        }
+    }
 
     public class GetAllowPackageOverwrites : FeedSettingsResolverTests
     {

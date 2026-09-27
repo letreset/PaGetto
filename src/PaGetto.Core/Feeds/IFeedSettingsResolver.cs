@@ -10,7 +10,7 @@ public interface IFeedSettingsResolver
     PackageOverwriteAllowed GetAllowPackageOverwrites(Feed feed);
     PackageDeletionBehavior GetPackageDeletionBehavior(Feed feed);
     bool GetIsReadOnlyMode(Feed feed);
-    uint GetMaxPackageSizeGiB(Feed feed);
+    uint GetMaxPackageSizeMiB(Feed feed);
     RetentionOptions GetRetentionOptions(Feed feed);
 
     /// <summary>

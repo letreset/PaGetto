@@ -21,7 +21,7 @@ namespace PaGetto.Web.Controllers;
 
 public partial class PackagePublishController : Controller
 {
-    private const long BytesPerGiB = 1024L * 1024 * 1024;
+    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IAuthenticationService _authentication;
     private readonly IFeedAuthenticationService _feedAuthentication;
@@ -93,7 +93,7 @@ public partial class PackagePublishController : Controller
             var packageVersion = identity?.Version?.ToNormalizedString();
 
             // The server-wide request limit applies before the feed is known; a feed can only lower it.
-            var maxBytes = (long)_feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed) * BytesPerGiB;
+            var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
             if (uploadStream.Length > maxBytes)
             {
                 LogAudit(LogLevel.Warning, "package_upload_too_large", packageId, packageVersion, actor);
