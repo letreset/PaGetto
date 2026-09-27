@@ -25,7 +25,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
+        # A push to main re-runs what its pull request already passed, and the ruleset doesn't
+        # require branches to be up to date, so ubuntu alone is enough as a post-merge check.
+        os: ${{ github.event_name == 'push' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -53,6 +55,8 @@ jobs:
 
   helm:
     name: Helm lint
+    # Already checked on the pull request, and nothing on main depends on it.
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -79,4 +83,6 @@ jobs:
           context: .
           push: false
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Only main writes the cache: pull requests read main's cache but not each other's,
+          # so their writes would only evict main's entries from the 10 GB limit.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max' || '' }}
