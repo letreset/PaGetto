@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Net;
 using System.Threading.RateLimiting;
 using PaGetto.Core.Configuration;
 using Microsoft.AspNetCore.Builder;
@@ -64,9 +65,24 @@ public class ConfigurePaGettoServer
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
 
-        // Do not restrict to local network/proxy
+        // Without configured proxies every client is trusted, so PaGetto works behind any reverse proxy.
+        // Otherwise only the configured ones are (the lists replace ASP.NET Core's localhost default).
         options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
+
+        var trust = _paGettoOptions.ForwardedHeaders ?? new ProxyTrustOptions();
+        if (trust.TrustsAllProxies)
+            return;
+
+        foreach (var proxy in trust.KnownProxies ?? [])
+        {
+            options.KnownProxies.Add(IPAddress.Parse(proxy));
+        }
+
+        foreach (var network in trust.KnownNetworks ?? [])
+        {
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+        }
     }
 
     public void Configure(IISServerOptions options)
