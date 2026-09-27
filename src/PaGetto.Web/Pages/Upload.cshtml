@@ -37,8 +37,104 @@
 <div class="bgt-narrow bgt-stack">
     <div>
         <h1>Upload</h1>
-        <p class="bgt-lead">You can push packages using the service index below.</p>
+        <p class="bgt-lead">Upload a package from your browser, or push it with a client using the service index below.</p>
     </div>
+
+    @if (Model.IsReadOnly)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">Read-only feed</div>
+                <div class="bgt-callout-body"><p>@FeedContext.CurrentFeed.Name doesn't accept new packages.</p></div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @Html.AntiForgeryToken()
+        <div class="bgt-card bgt-upload" id="browser-upload"
+             data-check-url="@Url.Page("/Upload", "Check")"
+             data-package-url="@Url.Page("/Upload", "Package")"
+             data-symbol-url="@Url.Page("/Upload", "Symbol")"
+             data-max-bytes="@((Model.MaxPackageSizeGiB * 1024L * 1024 * 1024).ToString(System.Globalization.CultureInfo.InvariantCulture))"
+             data-max-gib="@Model.MaxPackageSizeGiB.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+             data-api-key-required="@(Model.ApiKeyRequired ? "true" : "false")"
+             x-data="pagettoUploader($el)">
+            <h2 class="bgt-card-head m-0">Upload from browser</h2>
+            <div class="bgt-card-body bgt-stack">
+                <label class="bgt-drop" x-bind:class="{ 'bgt-drop-active': dragging }"
+                       @@dragover.prevent="dragging = true" @@dragleave.prevent="dragging = false" @@drop.prevent="drop($event)">
+                    <input type="file" class="visually-hidden" accept=".nupkg,.snupkg" multiple @@change="pick($event)" />
+                    <icon name="arrow-up" size="20" />
+                    <span>Drop .nupkg or .snupkg files here, or <span class="bgt-drop-link">browse</span></span>
+                    <span class="bgt-drop-hint">Up to @Model.MaxPackageSizeGiB.ToString(System.Globalization.CultureInfo.InvariantCulture) GiB per file</span>
+                </label>
+
+                @if (Model.ApiKeyRequired)
+                {
+                    <div>
+                        <label class="form-label" for="upload-api-key">API key</label>
+                        <input id="upload-api-key" type="password" class="form-control" autocomplete="off" x-model="apiKey" />
+                    </div>
+                }
+
+                <template x-for="item in items" :key="item.key">
+                    <div class="bgt-upload-item">
+                        <div class="bgt-upload-item-head">
+                            <div class="bgt-upload-item-title">
+                                <template x-if="item.metadata">
+                                    <span><strong x-text="item.metadata.id"></strong> <span class="bgt-version" x-text="item.metadata.version"></span></span>
+                                </template>
+                                <template x-if="!item.metadata"><strong x-text="item.name"></strong></template>
+                                <span class="bgt-pill" x-show="item.kind === 'symbol'">Symbols</span>
+                            </div>
+                            <button type="button" class="bgt-upload-remove" title="Remove" aria-label="Remove" x-show="item.state !== 'uploading'" @@click="remove(item)">
+                                <icon name="x" size="13" />
+                            </button>
+                        </div>
+                        <div class="bgt-upload-file" x-text="item.name + ' · ' + item.size"></div>
+
+                        <template x-if="item.metadata && item.state !== 'published'">
+                            <dl class="bgt-upload-meta">
+                                <template x-if="item.metadata.authors"><div><dt>Authors</dt><dd x-text="item.metadata.authors"></dd></div></template>
+                                <template x-if="item.metadata.license"><div><dt>License</dt><dd x-text="item.metadata.license"></dd></div></template>
+                                <template x-if="item.metadata.description"><div><dt>Description</dt><dd class="bgt-upload-clamp" x-text="item.metadata.description"></dd></div></template>
+                                <template x-if="item.metadata.dependencyGroups.length > 0">
+                                    <div>
+                                        <dt>Dependencies</dt>
+                                        <dd>
+                                            <template x-for="group in item.metadata.dependencyGroups" :key="group.framework">
+                                                <div class="bgt-upload-deps">
+                                                    <span class="bgt-fw" x-text="group.framework"></span>
+                                                    <span x-text="group.items.length === 0 ? 'No dependencies' : group.items.map(d => d.id + (d.range ? ' ' + d.range : '')).join(', ')"></span>
+                                                </div>
+                                            </template>
+                                        </dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </template>
+
+                        <div class="bgt-bar bgt-upload-progress" x-show="item.state === 'uploading'">
+                            <div x-bind:style="'width: ' + item.progress + '%'"></div>
+                        </div>
+                        <div class="bgt-upload-note" x-show="item.note" x-bind:class="'bgt-upload-note-' + item.noteLevel">
+                            <span x-text="item.note"></span>
+                            <template x-if="item.url"><a x-bind:href="item.url">View package</a></template>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="bgt-form-actions" x-show="items.length > 0">
+                    <button type="button" class="btn btn-primary" x-bind:disabled="!canUpload" @@click="upload()">
+                        <span x-text="busy ? 'Uploading…' : 'Upload'"></span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" x-show="hasFinished && !busy" @@click="clearFinished()">Clear finished</button>
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="bgt-card bgt-card-body" style="padding: 16px">
         <div class="form-label" style="margin-bottom: 8px">Service index · @FeedContext.CurrentFeed.Name</div>
@@ -127,3 +223,7 @@
         },
     ];
 </script>
+
+@section Scripts {
+    <script src="~/_content/PaGetto.Web/js/upload.js" asp-append-version="true"></script>
+}

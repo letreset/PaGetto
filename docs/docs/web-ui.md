@@ -15,7 +15,7 @@ The top bar shows these items for the current feed:
 | Feed switcher | The user can pull from more than one feed | Jumps to another feed. Feeds are listed in the order set on **Admin > Feeds**, each with its description |
 | Packages | Always | The package list and search |
 | Connect | The user can pull from the feed | The feed's service index URL and how to authenticate |
-| Upload | The user can push to the feed | Commands to publish packages |
+| Upload | The user can push to the feed | Upload from the browser, and commands to publish packages |
 | Statistics | The page is [enabled](configuration.md#statistics) and the user can pull from the feed | Counts, downloads, stored size and the most downloaded and recently published packages |
 
 A **Docs** link opens this documentation. Signed-in users also get a user menu with **My Tokens** and **Sign out**, and administrators find the **Accounts**, **Groups** and **Feeds** admin pages there.
@@ -84,7 +84,19 @@ The **Connect** tab shows the feed's service index URL with a copy button, and e
 
 ## Upload
 
-The **Upload** tab shows the commands to publish a package to the current feed with the .NET CLI, the NuGet CLI, Paket and PowerShellGet. It only appears for users who can push to the feed, and opening it directly without push permission returns 404. PaGetto doesn't accept uploads through the browser: use one of the commands.
+The **Upload** tab publishes packages to the current feed. It only appears for users who can push to the feed, and opening it directly without push permission returns 404.
+
+**Upload from browser** takes `.nupkg` and `.snupkg` files, several at a time: pick them with **browse** or drop them on the card. Before anything is sent, each file shows a preview read from its `.nuspec`: id, version, authors, license, description and the dependencies per target framework. The preview also warns when:
+
+- the version already exists in the feed, or will replace the existing one if the feed [allows overwrites](configuration.md#enable-package-overwrites)
+- the package of a symbol package isn't in the feed yet
+- a file is larger than the feed's [size limit](configuration.md#maximum-package-size)
+
+**Upload** then sends the files one at a time, packages before symbol packages, and shows a progress bar, the result and a link to the published package for each.
+
+Browser uploads follow the same rules as `dotnet nuget push`: the push permission, the feed's [read-only mode](configuration.md#read-only-mode), its size limit and duplicate versions. They also write the same [audit](configuration.md#audit-log) lines. In the `Config` [authentication mode](authentication.md#authentication-modes), the card asks for the API key when one is configured. On a read-only feed, a note replaces the card.
+
+Below the card, the tab shows the commands to publish with the .NET CLI, the NuGet CLI, Paket and PowerShellGet.
 
 ## Statistics
 

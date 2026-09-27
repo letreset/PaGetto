@@ -93,7 +93,12 @@ For every page you open, the browser console should show no errors.
 | C1 | `carol` | Internal > **Connect** | Service index `http://localhost:5000/feeds/internal/v3/index.json`, copy button, tabs for .NET CLI, NuGet, nuget.config, Paket |
 | C2 | `carol` | Read the authentication text, then open **My Tokens** in the user menu | The text points to My Tokens; the page opens, and a new token is shown once and can be revoked |
 | C2a | `admin` | Admin > Accounts > `build-agent` > ⋯ > **New token…** | After **Create token**, a dialog shows the token once with a **Copy** button |
-| C3 | `carol` | Experimental > **Upload** | Push commands for the Experimental service index |
+| C3 | `carol` | Experimental > **Upload** | An **Upload from browser** card ("Up to 8 GiB per file"), then push commands for the Experimental service index |
+| C3a | `carol` | Experimental > Upload, pick `tests/PaGetto.Tests/TestData/TestData.1.2.3.nupkg` and `.snupkg`, check the preview, then **Upload** | Preview shows TestData 1.2.3 (the `.snupkg` with a **Symbols** pill), authors, description and `net5.0` dependencies; after Upload both show "Published." with a **View package** link, and the log has `AUDIT package_upload_succeeded` and `symbol_upload_succeeded` lines with `actor=carol` |
+| C3b | `carol` | Experimental > Upload, pick `testenv/packages/Contoso.Preview.Ai.0.1.0-alpha.1.nupkg` | "This version already exists in the feed." before anything is sent; with no other file, **Upload** stays disabled |
+| C3c | `carol` | Experimental > Upload, pick `testenv/packages/Contoso.Logging.2.0.0.snupkg`, then **Upload** | The preview warns that the package isn't in the feed yet; after Upload: "Upload the package before its symbols." |
+| C3d | `admin` | Archive > **Upload** | A "Read-only feed" note instead of the upload card; the push commands are still shown |
+| C3e | `carol` | Experimental > Upload, pick a file that isn't a package (e.g. `testenv/README.md`) | "Only .nupkg and .snupkg files can be uploaded." |
 | C4 | `carol` | Open `/feeds/internal/Upload` directly (pull only on Internal) | 404; the feed name and service index are not shown |
 | C5 | `bob` | After `admin` clears Pull on Internal for Developers (as in G4), open `/feeds/internal/Upload` | 404; restore the permission afterwards |
 
