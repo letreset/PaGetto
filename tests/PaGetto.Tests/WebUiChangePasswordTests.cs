@@ -88,7 +88,7 @@ public class WebUiChangePasswordTests
             using var response = await session.Client.GetAsync(path);
 
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-            Assert.StartsWith("/Account/ChangePassword", response.Headers.Location?.OriginalString);
+            Assert.Equal("/Account/ChangePassword", response.Headers.Location?.OriginalString);
         }
 
         [Fact]

@@ -33,10 +33,8 @@ public class MustChangePasswordMiddleware
         {
             if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
             {
-                var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
-                var target = FeedResolutionMiddleware.GetRootPathBase(context) + ChangePasswordPath
-                    + QueryString.Create("returnUrl", returnUrl);
-                context.Response.Redirect(target);
+                // A fixed target: nothing from the request goes into the redirect.
+                context.Response.Redirect(FeedResolutionMiddleware.GetRootPathBase(context) + ChangePasswordPath);
             }
             else
             {
