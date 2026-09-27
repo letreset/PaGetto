@@ -234,6 +234,34 @@ public class ValidatePaGettoOptionsTests
         }
     }
 
+    public class ValidateDataProtection
+    {
+        private static bool HasFailure(KeyProtectionOptions keyProtection)
+        {
+            var options = new PaGettoOptions { DataProtection = keyProtection };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed && result.Failures.Any(f => f.Contains(nameof(PaGettoOptions.DataProtection)));
+        }
+
+        [Fact]
+        public void AcceptsNoCertificate()
+        {
+            Assert.False(HasFailure(new KeyProtectionOptions()));
+        }
+
+        [Fact]
+        public void RejectsMissingFile()
+        {
+            Assert.True(HasFailure(new KeyProtectionOptions { CertificatePath = "does-not-exist.pfx" }));
+        }
+
+        [Fact]
+        public void RejectsPathAndThumbprint()
+        {
+            Assert.True(HasFailure(new KeyProtectionOptions { CertificatePath = "a.pfx", CertificateThumbprint = "ABC" }));
+        }
+    }
+
     public class ValidateRemovedApiKey
     {
         [Fact]

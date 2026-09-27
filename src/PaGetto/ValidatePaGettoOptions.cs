@@ -75,6 +75,7 @@ public class ValidatePaGettoOptions
 
         ValidateRequestRateLimit(options, failures);
         ValidateForwardedHeaders(options, failures);
+        ValidateDataProtection(options, failures);
 
         if (string.Equals(options.Database?.Type, "AzureTable", StringComparison.OrdinalIgnoreCase))
         {
@@ -143,6 +144,17 @@ public class ValidatePaGettoOptions
                 $"The '{nameof(PaGettoOptions.Email)}:{nameof(EmailOptions.Type)}' config is invalid. " +
                 $"Allowed values: {string.Join(", ", _validEmailTypes)} (or omit to disable email)");
         }
+    }
+
+    private static void ValidateDataProtection(PaGettoOptions options, List<string> failures)
+    {
+        const string section = nameof(PaGettoOptions.DataProtection);
+        var keyProtection = options.DataProtection;
+
+        if (!string.IsNullOrEmpty(keyProtection?.CertificatePath) && !string.IsNullOrEmpty(keyProtection.CertificateThumbprint))
+            failures.Add($"Set either '{section}:{nameof(KeyProtectionOptions.CertificatePath)}' or '{section}:{nameof(KeyProtectionOptions.CertificateThumbprint)}', not both");
+        else if (!string.IsNullOrEmpty(keyProtection?.CertificatePath) && !System.IO.File.Exists(keyProtection.CertificatePath))
+            failures.Add($"The '{section}:{nameof(KeyProtectionOptions.CertificatePath)}' file '{keyProtection.CertificatePath}' doesn't exist");
     }
 
     private static void ValidateForwardedHeaders(PaGettoOptions options, List<string> failures)
