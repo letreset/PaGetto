@@ -19,7 +19,7 @@ dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.
 
 Change the default `admin` password right after the first start, before others can reach the server.
 
-To run without accounts, like BaGetter, set `Authentication__Mode=Legacy` and `ApiKey` to a long random value. Without `ApiKey`, anyone who can reach the server can push packages.
+To run without accounts, like BaGetter, set `Authentication__Mode=Legacy` and `Authentication__ApiKeys__0__Key` to a long random value. Without an API key, anyone who can reach the server can push packages.
 
 :::
 
@@ -87,7 +87,7 @@ services:
       Authentication__Mode: Legacy
     secrets:
       - source: pagetto_api_key
-        target: ApiKey
+        target: Authentication__ApiKeys__0__Key
     volumes:
       - pagetto-data:/data
     depends_on:

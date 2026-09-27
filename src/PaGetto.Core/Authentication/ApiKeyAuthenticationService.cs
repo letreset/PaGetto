@@ -9,14 +9,12 @@ namespace PaGetto.Core.Authentication;
 
 public class ApiKeyAuthenticationService : IAuthenticationService
 {
-    private readonly string _apiKey;
     private readonly ApiKey[] _apiKeys;
 
     public ApiKeyAuthenticationService(IOptionsSnapshot<PaGettoOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        _apiKey = string.IsNullOrEmpty(options.Value.ApiKey) ? null : options.Value.ApiKey;
         _apiKeys = options.Value.Authentication?.ApiKeys ?? [];
     }
 
@@ -26,8 +24,8 @@ public class ApiKeyAuthenticationService : IAuthenticationService
     private bool Authenticate(string apiKey)
     {
         // No authentication is necessary if there is no required API key.
-        if (_apiKey == null && (_apiKeys.Length == 0)) return true;
+        if (_apiKeys.Length == 0) return true;
 
-        return _apiKey == apiKey || _apiKeys.Any(x => x.Key.Equals(apiKey));
+        return _apiKeys.Any(x => x.Key.Equals(apiKey));
     }
 }

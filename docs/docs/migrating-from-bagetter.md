@@ -1,6 +1,6 @@
 # Migrating from BaGetter
 
-PaGetto can take over an existing BaGetter installation in place: point PaGetto at your BaGetter database and package storage, and your packages, API keys and client URLs keep working. On the first start PaGetto migrates the database to its own schema.
+PaGetto can take over an existing BaGetter installation in place: point PaGetto at your BaGetter database and package storage, and your packages and client URLs keep working. A few settings need a change first; see [What has a new name](#what-has-a-new-name). On the first start PaGetto migrates the database to its own schema.
 
 ## Before you start
 
@@ -16,12 +16,12 @@ If you use Azure Table Storage as the database (`Database:Type` = `AzureTable`),
    - **Zip / IIS:** download `pagetto-<version>.zip` from the [releases page](https://github.com/letreset/PaGetto/releases), extract it into a new folder, copy your `appsettings.json` over, and run `dotnet PaGetto.dll` instead of `dotnet BaGetter.dll`.
    - **Kubernetes:** install the [PaGetto chart](Installation/kubernetes.md) and point it at your existing volume and database.
 3. Check the names that changed (next section). The one that most often matters is the SQLite file name.
-4. Start PaGetto and watch the log for migration errors, and for `Copying global Mirror configuration to default feed` if you use a mirror.
+4. Start PaGetto and watch the log for migration errors and configuration warnings. If BaGetter mirrored nuget.org, add the mirror to the default feed on **Admin > Feeds** (see [Mirrors move to the feed](#mirrors-move-to-the-feed)).
 5. Browse to the site, sign in again, and restore and push a package to confirm everything works.
 
 ## What has a new name
 
-Configuration keys (`Database`, `Storage`, `Search`, `Mirror`, `ApiKey`, …) are the same as in BaGetter, so your `appsettings.json` and `Section__Key` environment variables keep working. Only these names changed:
+Most configuration keys (`Database`, `Storage`, `Search`, `Retention`, …) are the same as in BaGetter, so your `appsettings.json` and `Section__Key` environment variables keep working. These changed:
 
 | BaGetter | PaGetto | What to do |
 |---|---|---|
@@ -30,6 +30,10 @@ Configuration keys (`Database`, `Storage`, `Search`, `Mirror`, `ApiKey`, …) ar
 | Default SQLite file `bagetter.db` (Docker: `/data/db/bagetter.db`) | `pagetto.db` (Docker: `/data/db/pagetto.db`) | If you relied on the default, either rename the file or set `Database__ConnectionString=Data Source=/data/db/bagetter.db` |
 | `BAGET_CONFIG_ROOT` environment variable | `PAGETTO_CONFIG_ROOT` | Rename the variable if you use it |
 | Sign-in cookie | `PaGetto.Auth` | Nothing: everyone signs in again once |
+| `Authentication:Mode` optional | `Authentication:Mode` required | Set `"Mode": "Legacy"` to keep BaGetter's behavior; see [Authentication](#authentication) |
+| `ApiKey` | `Authentication:ApiKeys` | Move the key to `Authentication:ApiKeys:0:Key` (`Authentication__ApiKeys__0__Key`). PaGetto doesn't start while `ApiKey` is set |
+| `Mirror` | A mirror per feed | Add it on **Admin > Feeds**; the `Mirror` section is ignored with a warning |
+| `MaxPackageSizeGiB` | `MaxPackageSizeMiB` | Optional: the old key is still read and converted |
 
 Package storage paths are not renamed, so the files stay where they are.
 
@@ -41,11 +45,9 @@ Every package now belongs to a [feed](feeds.md). On the first start PaGetto crea
 - New feeds live under `/feeds/{slug}/`, for example `https://your-server/feeds/internal/v3/index.json`.
 - New packages in the default feed are stored under `packages/default/…`. Packages pushed by BaGetter stay at their old path (`packages/{id}/…`) and are still found, so you don't need to move files.
 
-## Mirror settings move to the feed
+## Mirrors move to the feed
 
-The global `Mirror` section is **obsolete**. On the first start, if it is enabled, PaGetto copies it (source, legacy flag, timeout and upstream authentication) to the default feed as its first mirror. From then on each feed's own mirror settings, edited in **Admin > Feeds**, apply, and changing `Mirror` in `appsettings.json` has no effect.
-
-The `Mirror` section is optional. Once the copy has happened, remove it or set `Mirror:Enabled` to `false`. Otherwise PaGetto copies it to the default feed again whenever that feed has no mirrors left, for example after you remove its mirror on purpose.
+PaGetto doesn't read the global `Mirror` section. Mirrors belong to a feed: after the first start, open **Admin > Feeds**, open the default feed's settings and add the mirror there (source, v2/v3, download timeout and upstream authentication). Until the section is removed, PaGetto logs a warning at startup.
 
 A feed can have [several mirrors](feeds.md#multiple-mirrors). Mirrored feeds keep upstream version lists in memory for 5 minutes by default, so a version newly published upstream can take up to 5 minutes to appear; set `UpstreamListingCacheSeconds` to `0` to turn this off. See [Upstream listing cache](feeds.md#upstream-listing-cache).
 
@@ -65,7 +67,7 @@ Retention now runs as soon as any of the four limits is set, not only `MaxMajorV
 
 ## Authentication
 
-`Authentication:Mode` selects how people sign in and must be set. `Legacy` works like BaGetter: `ApiKey`/`ApiKeys` protect pushes and `Credentials` protect reads. Set `"Mode": "Legacy"` to keep authentication working as before (`Config`, the old name, is still accepted).
+`Authentication:Mode` selects how people sign in and must be set. `Legacy` works like BaGetter: `Authentication:ApiKeys` protect pushes and `Credentials` protect reads. Set `"Mode": "Legacy"` to keep authentication working as before (`Config`, the old name, is still accepted).
 
 | Mode | Use it when |
 |---|---|
@@ -74,7 +76,7 @@ Retention now runs as soon as any of the four limits is set, not only `MaxMajorV
 | `Entra` | Everyone signs in with Microsoft Entra ID |
 | `Hybrid` | You want Entra ID for people and local accounts for build agents or external users |
 
-Switching away from `Legacy` turns off anonymous access, `ApiKey` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`.
+Switching away from `Legacy` turns off anonymous access, `ApiKeys` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`.
 
 ## Data Protection keys
 

@@ -1,11 +1,9 @@
 using System;
 using System.IO;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
-using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Upstream;
 using PaGetto.Web.Extensions;
@@ -65,7 +63,6 @@ public partial class Program
             {
                 var feedService = scope.ServiceProvider.GetRequiredService<IFeedService>();
                 await feedService.EnsureDefaultFeedExistsAsync(cancellationToken);
-                await MigrateGlobalMirrorConfigToDefaultFeedAsync(scope.ServiceProvider, cancellationToken);
             }
 
             using (var scope = host.Services.CreateScope())
@@ -78,71 +75,6 @@ public partial class Program
         });
 
         await app.ExecuteAsync(args);
-    }
-
-    /// <summary>
-    /// One-time upgrade helper: if the global Mirror config has Enabled=true and the default
-    /// feed has no mirrors yet, copy it as the default feed's first mirror. The guard checks for
-    /// any mirror row, enabled or not, so an admin who later disables the mirror on the default
-    /// feed won't have it silently re-enabled on the next startup.
-    /// </summary>
-    private static async Task MigrateGlobalMirrorConfigToDefaultFeedAsync(
-        IServiceProvider provider,
-        CancellationToken cancellationToken)
-    {
-        var mirrorOptions = provider.GetRequiredService<IOptions<MirrorOptions>>().Value;
-
-        if (!mirrorOptions.Enabled || mirrorOptions.PackageSource == null)
-            return;
-
-        var feedService = provider.GetRequiredService<IFeedService>();
-        var logger = provider.GetRequiredService<ILogger<Program>>();
-
-        var defaultFeed = await feedService.GetDefaultFeedAsync(cancellationToken);
-        if (defaultFeed == null)
-        {
-            LogDefaultFeedNotFound(logger);
-            return;
-        }
-
-        // Guard: already migrated. Any mirror row counts, including a disabled one; otherwise an
-        // admin who intentionally disabled mirroring would see it re-enabled on every startup
-        // as long as the obsolete global Mirror config still exists in appsettings.
-        if (defaultFeed.Mirrors.Count > 0)
-        {
-            LogMirrorAlreadyMigrated(logger);
-            return;
-        }
-
-        LogMirrorMigrationStarting(logger);
-
-        var mirror = new FeedMirror
-        {
-            SortOrder = 0,
-            Enabled = true,
-            PackageSource = mirrorOptions.PackageSource.ToString(),
-            Legacy = mirrorOptions.Legacy,
-            DownloadTimeoutSeconds = mirrorOptions.PackageDownloadTimeoutSeconds,
-        };
-
-        if (mirrorOptions.Authentication is { Type: not MirrorAuthenticationType.None } auth)
-        {
-            mirror.AuthType = auth.Type;
-            mirror.AuthUsername = auth.Username;
-            mirror.AuthPassword = auth.Password;
-            mirror.AuthToken = auth.Token;
-
-            if (auth.CustomHeaders is { Count: > 0 })
-            {
-                mirror.AuthCustomHeaders =
-                    JsonSerializer.Serialize(auth.CustomHeaders);
-            }
-        }
-
-        defaultFeed.Mirrors.Add(mirror);
-        await feedService.UpdateFeedAsync(defaultFeed, cancellationToken);
-
-        LogMirrorMigrated(logger, mirror.PackageSource);
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args)
@@ -229,20 +161,16 @@ public partial class Program
             LogObsoleteMaxPackageSizeGiB(provider.GetRequiredService<ILogger<Program>>(), options.EffectiveMaxPackageSizeMiB);
         }
 #pragma warning restore CS0618
+
+        if (provider.GetRequiredService<IConfiguration>().GetSection("Mirror").Exists())
+        {
+            LogGlobalMirrorIgnored(provider.GetRequiredService<ILogger<Program>>());
+        }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The global Mirror section is no longer read. Configure mirrors per feed on Admin > Feeds and remove the section.")]
+    private static partial void LogGlobalMirrorIgnored(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "MaxPackageSizeGiB is obsolete; use MaxPackageSizeMiB instead (currently {MaxPackageSizeMiB} MiB).")]
     private static partial void LogObsoleteMaxPackageSizeGiB(ILogger logger, uint maxPackageSizeMiB);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Default feed not found during mirror config migration; skipping.")]
-    private static partial void LogDefaultFeedNotFound(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Default feed already has mirror settings; skipping migration.")]
-    private static partial void LogMirrorAlreadyMigrated(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Copying global Mirror configuration to default feed (one-time upgrade).")]
-    private static partial void LogMirrorMigrationStarting(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Global Mirror configuration copied to default feed (source: {PackageSource}).")]
-    private static partial void LogMirrorMigrated(ILogger logger, string packageSource);
 }

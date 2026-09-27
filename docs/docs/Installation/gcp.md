@@ -120,7 +120,7 @@ env_variables:
   Storage__Type: "GoogleCloud"
   Storage__BucketName: "BUCKETNAME"
   Authentication__Mode: "Legacy"
-  ApiKey: "APIKEY"
+  Authentication__ApiKeys__0__Key: "APIKEY"
 ```
 
 The container listens on port 8080, which is the port App Engine expects. To publish the application, run `gcloud app deploy`.

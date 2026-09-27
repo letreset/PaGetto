@@ -1,5 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
 
 # Configuration
 
@@ -36,25 +34,16 @@ Make sure the account PaGetto runs as can read the file.
 
 :::note
 
-`ApiKey`, `ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
+`ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
 
 :::
 
-You can require that users provide a password, called an API key, to publish packages.
-To do so, you can insert the desired API key in the `ApiKey` field.
-
-```json
-{
-    "ApiKey": "NUGET-SERVER-API-KEY",
-    ...
-}
-```
-
-You can also use the `ApiKeys` array in order to manage multiple API keys for multiple teams/developers.
+You can require that users provide a password, called an API key, to publish packages. Put one or more keys, for example one per team, in the `Authentication:ApiKeys` array:
 
 ```json
 {
     "Authentication": {
+        "Mode": "Legacy",
         "ApiKeys": [
             {
                 "Key" : "NUGET-SERVER-API-KEY-1"
@@ -69,7 +58,7 @@ You can also use the `ApiKeys` array in order to manage multiple API keys for mu
 }
 ```
 
-Both `ApiKey` and `ApiKeys` work in conjunction additively eg.: `or` `||` logical operator.
+Any of the keys is accepted. The top-level `ApiKey` setting of older versions and of BaGetter was removed: PaGetto refuses to start while it is set, so move the key into `ApiKeys` (as the environment variable `Authentication__ApiKeys__0__Key`).
 
 Users will now have to provide the API key to push packages:
 
@@ -97,113 +86,9 @@ caching to:
 1. Speed up your builds if restores from [nuget.org](https://nuget.org) are slow
 2. Enable package restores in offline scenarios
 
-:::warning Mirrors are configured per feed
+Mirrors are configured per [feed](feeds.md) on **Admin > Feeds > Settings**, not in configuration: a feed can mirror one or more upstream sources (nuget.org, another v3 or v2 feed), with optional upstream authentication and a download timeout. See [Mirror (read-through cache)](feeds.md#mirror-read-through-cache).
 
-Each [feed](feeds.md) has its own mirror, set on **Admin > Feeds > Settings**. See [Mirror (read-through cache)](feeds.md#mirror-read-through-cache).
-
-The global `Mirror` section below is **obsolete** and only seeds the default feed: on startup, if it is enabled and the default feed has no mirrors yet, PaGetto copies it to the default feed once. After that, changes to `Mirror` in configuration are ignored. Use it for a first run or an automated setup, not for day-to-day changes.
-
-:::
-
-The following `Mirror` setting seeds the default feed with a mirror of [nuget.org](https://nuget.org):
-
-<Tabs>
-  <TabItem value="None" label="No Authentication" default>
-    ```json
-    {
-        ...
-
-        "Mirror": {
-            "Enabled":  true,
-            "PackageSource": "https://api.nuget.org/v3/index.json"
-        },
-
-        ...
-    }
-    ```
-  </TabItem>
-
-  <TabItem value="Basic" label="Basic Authentication">
-    For basic authentication, set `Type` to `Basic` and provide a `Username` and `Password`:
-
-    ```json
-    {
-        ...
-
-        "Mirror": {
-            "Enabled":  true,
-            "PackageSource": "https://api.nuget.org/v3/index.json",
-            "Authentication": {
-                "Type": "Basic",
-                "Username": "username",
-                "Password": "password"
-            }
-        },
-
-        ...
-    }
-    ```
-  </TabItem>
-
-  <TabItem value="Bearer" label="Bearer Token">
-    For bearer authentication, set `Type` to `Bearer` and provide a `Token`:
-
-    ```json
-    {
-        ...
-
-        "Mirror": {
-            "Enabled":  true,
-            "PackageSource": "https://api.nuget.org/v3/index.json",
-            "Authentication": {
-                "Type": "Bearer",
-                "Token": "your-token"
-            }
-        },
-
-        ...
-    }
-    ```
-  </TabItem>
-
-  <TabItem value="Custom" label="Custom Authentication">
-    With the custom authentication type, you can provide any key-value pairs which will be set as headers in the request:
-
-    ```json
-    {
-        ...
-
-        "Mirror": {
-            "Enabled":  true,
-            "PackageSource": "https://api.nuget.org/v3/index.json",
-            "Authentication": {
-                "Type": "Custom",
-                "CustomHeaders": {
-                    "My-Auth": "your-value",
-                    "Other-Header": "value"
-                }
-            }
-        },
-
-        ...
-    }
-    ```
-  </TabItem>
-</Tabs>
-
-
-:::info
-
-`PackageSource` is the value of the [NuGet service index](https://docs.microsoft.com/nuget/api/service-index).
-
-:::
-
-The `Mirror` section also takes these settings:
-
-- **Legacy**: set to `true` if `PackageSource` is a NuGet v2 feed. Default `false`. Legacy feeds only support basic authentication.
-- **PackageDownloadTimeoutSeconds**: how long a package download from the upstream can take. Default `600`.
-
-The `Mirror` section is optional and only used for that one-time copy. The shipped `appsettings.json` leaves it out.
+The global `Mirror` section of older versions and of BaGetter is no longer read. PaGetto logs a warning at startup while it is present; add the mirror to the feed instead and remove the section.
 
 ## Enable package hard deletions
 
@@ -248,7 +133,7 @@ Packages deleted are always the oldest based on version numbers. The version tha
 }
 ```
 
-The older top-level `MaxVersionsPerPackage` setting is obsolete. PaGetto ignores it, and logs an error when it indexes a package while the setting is present; use the `Retention` settings instead.
+`MaxVersionsPerPackage`, a retention setting of older versions, is no longer read; use the `Retention` settings instead.
 
 ## Enable package overwrites
 
@@ -885,14 +770,14 @@ services:
     image: letreset/pagetto:latest
     volumes:
       # Single file mounted for API key
-      - ./secrets/api-key.txt:/run/secrets/ApiKey:ro
+      - ./secrets/api-key.txt:/run/secrets/Authentication__ApiKeys__0__Key:ro
       - ./data:/srv/pagetto
     ports:
       - "5000:8080"
     environment:
       - Database__ConnectionString=Data Source=/srv/pagetto/pagetto.db
       - Database__Type=Sqlite
-      - Mirror__Enabled=false
+      - Authentication__Mode=Legacy
       - Storage__Type=FileSystem
       - Storage__Path=/srv/pagetto/packages
 ```

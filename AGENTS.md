@@ -108,7 +108,7 @@ Storage, database, search and email use `IProvider<T>`. Every implementation is 
 - Upstream clients come from `UpstreamClientFactory.CreateForFeed(feed)`: one enabled mirror gives a plain V2/V3 client, several give a `FallbackUpstreamClient` (merged version lists, download from the first mirror that has the package, failing mirrors skipped). Unless the feed's `UpstreamListingCacheSeconds` is 0, that client is wrapped in `CachingUpstreamClient`, which keeps non-empty version/metadata listings in the singleton `UpstreamListingCache`, keyed by feed id, `Feed.UpdatedAtUtc` (so saving the feed invalidates) and lowercased package id. Concurrent misses for a key share one upstream call, which runs with `CancellationToken.None` so one caller leaving doesn't cancel it for the others. `PackageService.MirrorAsync` serializes concurrent mirroring of the same `(feed, id, version)` through the singleton `PackageMirrorLock`.
 
 ### Authentication & authorization
-- `Authentication:Mode` is required (startup fails without it) and is one of `Legacy` (config-file `ApiKey`/`Credentials`, formerly `Config`, which is still accepted), `Local`, `Entra` or `Hybrid`.
+- `Authentication:Mode` is required (startup fails without it) and is one of `Legacy` (config-file `Authentication:ApiKeys`/`Credentials`, formerly `Config`, which is still accepted; the old top-level `ApiKey` fails validation), `Local`, `Entra` or `Hybrid`.
 - The `NugetBasicAuth` scheme is the default. It forwards to the cookie scheme (`PaGetto.Auth`, 60-minute sliding expiry) when a cookie is present without an `Authorization` header, which separates browsers from client tools.
 - `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash.
 - `FeedPermissionHandler` enforces per-feed permissions (pull/push/delete) for the current feed. User permissions come from groups via `PermissionService`, and `EntraRoleSyncService` syncs Entra app roles into local groups.
@@ -138,7 +138,7 @@ Main keys:
 - `Email`, `PatExpiryNotification`.
 - `MaxPackageSizeMiB` (default 8192; the legacy `MaxPackageSizeGiB` is still read via `PaGettoOptions.EffectiveMaxPackageSizeMiB`), `RegistrationPageSize`, `UpstreamListingCacheSeconds` (default 300, per-feed override), `Cors` (`AllowedOrigins`, `AllowCredentials`), `SecurityHeaders` (`Enabled`, `EnableHsts`, `HstsMaxAgeDays`), `RequestRateLimit` (`Enabled`, `PermitLimit`, `WindowSeconds`, `QueueLimit`; off by default).
 - `HealthCheck`, `Statistics`.
-- `Mirror`, `AllowPackageOverwrites`, `PackageDeletionBehavior` and `Retention` are only **defaults and seeds**. Per-feed values in the DB override them. The global `Mirror` block is `[Obsolete]` and is only read once, to seed the default feed.
+- `AllowPackageOverwrites`, `PackageDeletionBehavior`, `IsReadOnlyMode`, `MaxPackageSizeMiB` and `Retention` are only **defaults**. Per-feed values in the DB override them. Mirrors exist only per feed (`Feed.Mirrors`); the old global `Mirror` section is ignored with a startup warning.
 
 Docker defaults (`Dockerfile`): the `/data` volume holds packages, symbols and the SQLite DB (`Data Source=/data/db/pagetto.db`).
 

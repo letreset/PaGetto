@@ -149,8 +149,8 @@ Run the [`letreset/pagetto`](https://hub.docker.com/r/letreset/pagetto) image on
    | `Storage__Container` | `my-container` |
    | `Storage__ConnectionString` | `https://<account>.blob.core.windows.net` |
    | `Storage__UseAzureDefaultCredential` | `true` |
-   | `Authentication__Mode` | `Local` (user accounts, see [Authentication](../authentication.md)), or `Legacy` with `ApiKey` |
-   | `ApiKey` | `Legacy` mode only: a long random value |
+   | `Authentication__Mode` | `Local` (user accounts, see [Authentication](../authentication.md)), or `Legacy` with an API key |
+   | `Authentication__ApiKeys__0__Key` | `Legacy` mode only: a long random value |
 
 5. Set **Health check** to `/health`, see [Health endpoint](../configuration.md#health-endpoint).
 

@@ -33,7 +33,7 @@ configMaps:
 
 :::warning
 
-**Change `ApiKey`.** The default is `ChangeMe`. Better, remove it from the ConfigMap and pass it from a Secret, as shown below.
+**Change the default `admin` password** right after the first start: sign in as `admin` / `admin` and PaGetto asks for a new one.
 
 :::
 
@@ -41,11 +41,10 @@ Any setting from [Configuration](../configuration.md) can be added the same way,
 
 ### Secrets
 
-Keep secrets such as the API key, database passwords and the Entra client secret in a Kubernetes Secret, and add it to the container's `envFrom`:
+Keep secrets such as database passwords and the Entra client secret in a Kubernetes Secret, and add it to the container's `envFrom`:
 
 ```shell
 kubectl create secret generic pagetto-secrets \
-  --from-literal=ApiKey='a-long-random-value' \
   --from-literal=Database__ConnectionString='Host=postgres;Database=pagetto;Username=pagetto;Password=...'
 ```
 

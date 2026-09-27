@@ -17,8 +17,8 @@ configMaps:
       # admin/admin is created on startup while no admin exists; it has to change the password on the
       # first sign-in.
       Authentication__Mode: "Local"
-      # -- Legacy mode only: the NuGet API key for pushes
-      #ApiKey: "ChangeMe"
+      # -- Legacy mode only: the NuGet API key for pushes (better from a Secret)
+      #Authentication__ApiKeys__0__Key: "ChangeMe"
       # -- Set database and storage settings
       Storage__Type: "FileSystem"
       Storage__Path: "/data"
@@ -28,8 +28,6 @@ configMaps:
       # Do not use WAL on network volumes (NFS, SMB, many RWX volumes) shared by pods on different nodes.
       #Database__JournalMode: "WAL"
       # -- Additional settings. See [PaGetto configuration](https://letreset.github.io/PaGetto/docs/configuration)
-      #Mirror__Enabled: "true"
-      #Mirror__PackageSource: "https://api.nuget.org/v3/index.json"
       #PackageDeletionBehavior: "HardDelete"
 
 # -- Configures containers for the chart.

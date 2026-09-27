@@ -5,9 +5,10 @@ namespace PaGetto.Core.Configuration;
 public class PaGettoOptions
 {
     /// <summary>
-    /// The API Key required to authenticate package
-    /// operations. If <see cref="ApiKey"/> is not set, package operations do not require authentication.
+    /// The removed top-level API key. Only bound so that startup validation can reject it:
+    /// use <c>Authentication:ApiKeys</c> instead.
     /// </summary>
+    [Obsolete("Use Authentication:ApiKeys.")]
     public string ApiKey { get; set; }
 
     /// <summary>
@@ -36,12 +37,6 @@ public class PaGettoOptions
     /// If true, disables package pushing, deleting, and re-listing.
     /// </summary>
     public bool IsReadOnlyMode { get; set; } = false;
-
-    /// <summary>
-    /// The URLs the PaGetto server will use.
-    /// As per documentation <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host?view=aspnetcore-3.1#server-urls">here (Server URLs)</a>.
-    /// </summary>
-    public string Urls { get; set; }
 
     public const uint DefaultMaxPackageSizeMiB = 8192;
 
@@ -79,14 +74,6 @@ public class PaGettoOptions
     /// </summary>
     public int UpstreamListingCacheSeconds { get; set; } = 300;
 
-    /// <summary>
-    /// If this is set to a value, it will limit the number of versions that can be pushed for a package.
-    /// the older versions will be deleted.
-    /// This setting is not used anymore and is deprecated.
-    /// </summary>
-    [Obsolete("MaxVersionsPerPackage is deprecated. Please configure RetentionOptions parameters instead.")]
-    public uint? MaxVersionsPerPackage { get; set; } = null;
-
     public RetentionOptions Retention { get; set; }
 
     public DatabaseOptions Database { get; set; }
@@ -94,14 +81,6 @@ public class PaGettoOptions
     public StorageOptions Storage { get; set; }
 
     public SearchOptions Search { get; set; }
-
-    /// <summary>
-    /// Global mirror configuration. Kept for backward compatibility: on first startup after
-    /// upgrading to multi-feed support, these settings are copied to the default feed and are
-    /// no longer read at runtime. Configure mirroring per-feed via the admin UI instead.
-    /// </summary>
-    [Obsolete("Mirror config is now per-feed. This property is only read once at upgrade time to seed the default feed; configure mirroring via the admin UI or FeedSettings.")]
-    public MirrorOptions Mirror { get; set; }
 
     public HealthCheckOptions HealthCheck { get; set; } = new();
 

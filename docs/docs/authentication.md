@@ -23,7 +23,7 @@ The `Authentication:Mode` setting controls which mechanisms are active:
 
 :::info
 
-`Authentication:Mode` is required: PaGetto refuses to start without it. When `Mode` is `Legacy` (formerly `Config`, still accepted), PaGetto uses `ApiKey`, `ApiKeys` and `Credentials` from configuration.
+`Authentication:Mode` is required: PaGetto refuses to start without it. When `Mode` is `Legacy` (formerly `Config`, still accepted), PaGetto uses `Authentication:ApiKeys` and `Authentication:Credentials` from configuration.
 
 In every other mode those settings are ignored: there is no anonymous access, every request needs a signed-in user, a local account password or a personal access token, and what a user can do is decided by [feed permissions](#feed-permissions).
 
@@ -296,7 +296,7 @@ NuGet clients send a username and password (HTTP Basic) for restores, and an API
 
 | Mode | Restore (username / password) | Push (`-k` API key) |
 |---|---|---|
-| `Legacy` | A `Credentials` entry, if any are configured | An `ApiKey`/`ApiKeys` value |
+| `Legacy` | A `Credentials` entry, if any are configured | An `ApiKeys` value |
 | `Local` | Your username and a PAT (recommended), or your account password | A PAT |
 | `Entra` | Your username and a PAT as the password | A PAT |
 | `Hybrid` | Your username and a PAT, or a local account's password | A PAT |
