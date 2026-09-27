@@ -109,7 +109,7 @@ Storage, database, search and email use `IProvider<T>`. Every implementation is 
 
 ### Authentication & authorization
 - `Authentication:Mode` is required (startup fails without it) and is one of `Legacy` (config-file `Authentication:ApiKeys`/`Credentials`, formerly `Config`, which is still accepted; the old top-level `ApiKey` fails validation), `Local`, `Entra` or `Hybrid`.
-- The `NugetBasicAuth` scheme is the default. It forwards to the cookie scheme (`PaGetto.Auth`, 60-minute sliding expiry) when a cookie is present without an `Authorization` header, which separates browsers from client tools.
+- The `NugetBasicAuth` scheme is the default. It forwards to the cookie scheme (`PaGetto.Auth`, sliding expiry of `Authentication:SessionTimeoutMinutes`, default 60) when a cookie is present without an `Authorization` header, which separates browsers from client tools.
 - `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash.
 - `FeedPermissionHandler` enforces per-feed permissions (pull/push/delete) for the current feed. User permissions come from groups via `PermissionService`, and `EntraRoleSyncService` syncs Entra app roles into local groups.
 
@@ -134,7 +134,7 @@ ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware
 
 Main keys:
 - `Database`, `Storage`, `Search`: each has a `Type`. `Database:ServerVersion` (MySQL only, optional) skips server version detection, which otherwise runs once per connection string (`MySqlServerVersionResolver`).
-- `Authentication`: `Mode`, `Entra`, token and lockout limits. In `Local`/`Hybrid`, `InitialAdminSeeder` creates the local admin `admin`/`admin` at startup, after migrations, while no admin exists; `User.MustChangePassword` keeps it on `/Account/ChangePassword` (`MustChangePasswordMiddleware`) and out of basic auth until the password is changed.
+- `Authentication`: `Mode`, `Entra`, token and lockout limits, `SessionTimeoutMinutes` (cookie, default 60) and `MinPasswordLength` (default 12, 8 to 72). In `Local`/`Hybrid`, `InitialAdminSeeder` creates the local admin `admin`/`admin` at startup, after migrations, while no admin exists; `User.MustChangePassword` keeps it on `/Account/ChangePassword` (`MustChangePasswordMiddleware`) and out of basic auth until the password is changed.
 - `Email`, `PatExpiryNotification`.
 - `MaxPackageSizeMiB` (default 8192; the legacy `MaxPackageSizeGiB` is still read via `PaGettoOptions.EffectiveMaxPackageSizeMiB`), `ForwardedHeaders` (`KnownProxies`, `KnownNetworks`; empty trusts every client), `DataProtection` (`CertificatePath`+`CertificatePassword` or `CertificateThumbprint`; encrypts the key ring), `RegistrationPageSize`, `UpstreamListingCacheSeconds` (default 300, per-feed override), `Cors` (`AllowedOrigins`, `AllowCredentials`), `SecurityHeaders` (`Enabled`, `EnableHsts`, `HstsMaxAgeDays`), `RequestRateLimit` (`Enabled`, `PermitLimit`, `WindowSeconds`, `QueueLimit`; off by default).
 - `HealthCheck`, `Statistics`.

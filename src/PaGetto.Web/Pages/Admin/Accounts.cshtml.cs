@@ -60,12 +60,13 @@ public class AccountsModel : PageModel
 
     [BindProperty]
     [Required(ErrorMessage = "Password is required.")]
-    [MinLength(PasswordPolicy.MinPasswordLength, ErrorMessage = "Password must be at least {1} characters.")]
     [DataType(DataType.Password)]
     public string NewPassword { get; set; }
 
     [BindProperty]
     public bool NewCanLoginToUI { get; set; }
+
+    public int MinPasswordLength => _authOptions.Value.MinPasswordLength;
 
     public string SuccessMessage { get; set; }
 
@@ -168,6 +169,9 @@ public class AccountsModel : PageModel
     {
         if (!await IsCurrentUserAdminAsync(cancellationToken))
             return RedirectToPage("/Index");
+
+        if (NewPassword?.Length < MinPasswordLength)
+            ModelState.AddModelError(nameof(NewPassword), $"Password must be at least {MinPasswordLength} characters.");
 
         if (!ModelState.IsValid)
         {
@@ -355,9 +359,9 @@ public class AccountsModel : PageModel
         if (!await IsCurrentUserAdminAsync(cancellationToken))
             return RedirectToPage("/Index");
 
-        if (string.IsNullOrEmpty(newPassword) || newPassword.Length < PasswordPolicy.MinPasswordLength)
+        if (string.IsNullOrEmpty(newPassword) || newPassword.Length < MinPasswordLength)
         {
-            ErrorMessage = $"Password must be at least {PasswordPolicy.MinPasswordLength} characters.";
+            ErrorMessage = $"Password must be at least {MinPasswordLength} characters.";
             await LoadUsersAndGroupsAsync(cancellationToken);
             return Page();
         }

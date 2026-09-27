@@ -4,10 +4,12 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 
 namespace PaGetto.Web.Pages.Account;
 
@@ -15,11 +17,15 @@ namespace PaGetto.Web.Pages.Account;
 public class ChangePasswordModel : PageModel
 {
     private readonly IUserService _userService;
+    private readonly IOptionsSnapshot<NugetAuthenticationOptions> _authOptions;
 
-    public ChangePasswordModel(IUserService userService)
+    public ChangePasswordModel(IUserService userService, IOptionsSnapshot<NugetAuthenticationOptions> authOptions)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
     }
+
+    public int MinPasswordLength => _authOptions.Value.MinPasswordLength;
 
     [BindProperty]
     [Required(ErrorMessage = "Current password is required.")]
@@ -29,7 +35,6 @@ public class ChangePasswordModel : PageModel
 
     [BindProperty]
     [Required(ErrorMessage = "New password is required.")]
-    [MinLength(PasswordPolicy.MinPasswordLength, ErrorMessage = "Password must be at least {1} characters.")]
     [DataType(DataType.Password)]
     [Display(Name = "New password")]
     public string NewPassword { get; set; }
@@ -69,6 +74,9 @@ public class ChangePasswordModel : PageModel
 
         Load(user);
         if (!IsLocalAccount) return Page();
+
+        if (NewPassword?.Length < MinPasswordLength)
+            ModelState.AddModelError(nameof(NewPassword), $"Password must be at least {MinPasswordLength} characters.");
 
         if (!ModelState.IsValid) return Page();
 

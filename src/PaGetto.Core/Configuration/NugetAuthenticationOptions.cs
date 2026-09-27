@@ -29,6 +29,16 @@ public sealed class NugetAuthenticationOptions
     public int LockoutMinutes { get; set; } = 15;
 
     /// <summary>
+    /// How long a web sign-in lasts without activity, in minutes. Each request extends it.
+    /// </summary>
+    public int SessionTimeoutMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// The minimum length of local account passwords, set by an administrator or by the user.
+    /// </summary>
+    public int MinPasswordLength { get; set; } = 12;
+
+    /// <summary>
     /// Username and password credentials for downloading packages (used when Mode is Config).
     /// </summary>
     public NugetCredentials[] Credentials { get; set; }
