@@ -65,16 +65,16 @@ Retention now runs as soon as any of the four limits is set, not only `MaxMajorV
 
 ## Authentication
 
-`Authentication:Mode` selects how people sign in. The default is `Config`, which works like BaGetter: `ApiKey`/`ApiKeys` protect pushes and `Credentials` protect reads. If you do nothing, authentication works as before.
+`Authentication:Mode` selects how people sign in and must be set. `Legacy` works like BaGetter: `ApiKey`/`ApiKeys` protect pushes and `Credentials` protect reads. Set `"Mode": "Legacy"` to keep authentication working as before (`Config`, the old name, is still accepted).
 
 | Mode | Use it when |
 |---|---|
-| `Config` | You want BaGetter's behavior (the default) |
+| `Legacy` | You want BaGetter's behavior |
 | `Local` | You want user accounts, groups and per-feed permissions stored in PaGetto |
 | `Entra` | Everyone signs in with Microsoft Entra ID |
 | `Hybrid` | You want Entra ID for people and local accounts for build agents or external users |
 
-Switching away from `Config` turns off anonymous access, `ApiKey` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`.
+Switching away from `Legacy` turns off anonymous access, `ApiKey` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`.
 
 ## Data Protection keys
 

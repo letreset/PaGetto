@@ -100,7 +100,7 @@ public class ReadOnlyFeedTests : IDisposable
     [InlineData("POST")]
     public async Task ConfigMode_ValidApiKey_ReturnsForbidden(string method)
     {
-        CreateApp("Config");
+        CreateApp("Legacy");
 
         using var request = BuildRequest(method);
         request.Headers.Add("X-NuGet-ApiKey", ConfigApiKey);
@@ -115,7 +115,7 @@ public class ReadOnlyFeedTests : IDisposable
     [InlineData("POST")]
     public async Task ConfigMode_WrongApiKey_ReturnsUnauthorized(string method)
     {
-        CreateApp("Config");
+        CreateApp("Legacy");
 
         using var request = BuildRequest(method);
         request.Headers.Add("X-NuGet-ApiKey", "wrong-key");

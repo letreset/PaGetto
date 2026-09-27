@@ -68,9 +68,9 @@ internal static partial class ServiceCollectionExtensions
         var modeString = authSection?.GetValue<string>("Mode");
 
         if (!Enum.TryParse<AuthenticationMode>(modeString, ignoreCase: true, out var mode))
-            mode = AuthenticationMode.Config;
+            mode = AuthenticationMode.Legacy;
 
-		if (mode == AuthenticationMode.Config)
+		if (mode == AuthenticationMode.Legacy)
             return app;
 
         var entraSection = authSection.GetSection("Entra");

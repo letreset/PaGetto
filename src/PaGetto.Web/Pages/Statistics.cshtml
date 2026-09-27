@@ -16,7 +16,7 @@
 
 @{
     ViewData["Title"] = "Stats · " + Model.FeedName;
-    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Config;
+    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Legacy;
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 

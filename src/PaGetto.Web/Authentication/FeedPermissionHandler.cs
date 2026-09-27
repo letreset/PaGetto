@@ -34,10 +34,10 @@ public class FeedPermissionHandler : AuthorizationHandler<FeedPermissionRequirem
         AuthorizationHandlerContext context,
         FeedPermissionRequirement requirement)
     {
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Config;
+        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
 
         // In static auth mode, the existing auth handler already did its job
-        if (authMode == AuthenticationMode.Config)
+        if (authMode == AuthenticationMode.Legacy)
         {
             context.Succeed(requirement);
             return;

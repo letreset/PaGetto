@@ -34,9 +34,9 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var authMode = _pagettoOptions.Value.Authentication?.Mode ?? AuthenticationMode.Config;
+        var authMode = _pagettoOptions.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
 
-        if (authMode == AuthenticationMode.Config)
+        if (authMode == AuthenticationMode.Legacy)
         {
             // Static auth mode: use configured credentials
             return await HandleStaticAuthAsync();

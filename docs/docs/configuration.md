@@ -36,7 +36,7 @@ Make sure the account PaGetto runs as can read the file.
 
 :::note
 
-`ApiKey`, `ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Config`, the default. In the `Local`, `Entra` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
+`ApiKey`, `ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
 
 :::
 
@@ -298,7 +298,7 @@ Like `AllowPackageOverwrites` and `PackageDeletionBehavior`, this is the default
 
 A private feed requires users to authenticate before accessing packages.
 
-The `Credentials` list below only applies in the `Config` authentication mode. With user accounts (`Local`, `Entra` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
+The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
 
 You can require that users provide a username and password to access the nuget feed.
 To do so, you can insert the credentials in the `Authentication` section.
@@ -708,7 +708,7 @@ AUDIT package_upload_succeeded feed=default package_id=Contoso.Utils package_ver
 | Event | NuGet API: `package_upload_{succeeded,unauthorized,read_only}` and `package_{delete,relist}_{succeeded,unauthorized,read_only,not_found}`, plus `package_upload_already_exists`, `package_upload_invalid_package` and `package_upload_too_large`. A symbol package over the feed's size limit logs `symbol_upload_too_large` (with `feed`, `actor` and `ip` only). Web UI (the package page's **Manage** section and **Relist** links): `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}`, where `package_delete_*` is a hard delete. Browser uploads on the **Upload** page log the same `package_upload_*` events as the API, and `symbol_upload_{succeeded,unauthorized,read_only,invalid_package,package_not_found,too_large}` for symbol packages, with the package id and version |
 | `feed` | The feed slug |
 | `package_id`, `package_version` | Empty for uploads that are denied before the package is read |
-| `actor` | The user name (the token owner for personal access tokens), `api-key` for the shared API key in `Config` mode, or `anonymous` |
+| `actor` | The user name (the token owner for personal access tokens), `api-key` for the shared API key in `Legacy` mode, or `anonymous` |
 | `ip` | The client IP address. Behind a reverse proxy it comes from `X-Forwarded-For`, with the same caveat as [rate limiting](#request-rate-limiting). |
 
 The `*_unauthorized` events cover both denial responses: `401 Unauthorized` for missing or wrong credentials, and `403 Forbidden` for a signed-in user without the push or delete permission.

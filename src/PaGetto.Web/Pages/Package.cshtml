@@ -15,7 +15,7 @@
     ViewData["Title"] = Model.Found
         ? Model.Package.Id + " " + Model.Package.NormalizedVersionString
         : Model.Package?.Id ?? Model.PackageIdNotFound;
-    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Config;
+    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Legacy;
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var atomFeedUrl = Model.Found ? Url.RouteUrl(Routes.PackageAtomFeedRouteName, new { id = Model.Package.Id }) : null;
 }

@@ -94,7 +94,7 @@ The **Upload** tab publishes packages to the current feed. It only appears for u
 
 **Upload** then sends the files one at a time, packages before symbol packages, and shows a progress bar, the result and a link to the published package for each.
 
-Browser uploads follow the same rules as `dotnet nuget push`: the push permission, the feed's [read-only mode](configuration.md#read-only-mode), its size limit and duplicate versions. They also write the same [audit](configuration.md#audit-log) lines. In the `Config` [authentication mode](authentication.md#authentication-modes), the card asks for the API key when one is configured. On a read-only feed, a note replaces the card.
+Browser uploads follow the same rules as `dotnet nuget push`: the push permission, the feed's [read-only mode](configuration.md#read-only-mode), its size limit and duplicate versions. They also write the same [audit](configuration.md#audit-log) lines. In the `Legacy` [authentication mode](authentication.md#authentication-modes), the card asks for the API key when one is configured. On a read-only feed, a note replaces the card.
 
 Below the card, the tab shows the commands to publish with the .NET CLI, the NuGet CLI, Paket and PowerShellGet.
 

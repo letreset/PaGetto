@@ -18,7 +18,7 @@ dotnet nuget push -s http://localhost:5000/v3/index.json -k change-me MyPackage.
 
 :::warning
 
-Without `ApiKey` (and with the default `Config` [authentication mode](../authentication.md)), anyone who can reach the server can push packages. Set a long random value.
+Without `ApiKey` (and with the `Legacy` [authentication mode](../authentication.md)), anyone who can reach the server can push packages. Set a long random value.
 
 :::
 

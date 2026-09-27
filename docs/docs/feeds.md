@@ -17,7 +17,7 @@ The **default feed** is created on first start and can't be deleted. Its URLs ar
 
 ## Managing feeds
 
-Feeds are managed by administrators on **Admin > Feeds**. This needs `Authentication:Mode` set to `Local`, `Entra` or `Hybrid` (see [Authentication](authentication.md)). The default `Config` mode has no administrators, so only the default feed exists.
+Feeds are managed by administrators on **Admin > Feeds**. This needs `Authentication:Mode` set to `Local`, `Entra` or `Hybrid` (see [Authentication](authentication.md)). The `Legacy` mode has no administrators, so only the default feed exists.
 
 - **Create** a feed with **New feed**: a slug, a display name (at most 256 characters) and an optional description (at most 4000 characters). A slug is lowercase letters, digits and hyphens, can't start or end with a hyphen, and is at most 128 characters. It becomes part of the URL, so choose it with care.
 - **Reorder** feeds by dragging them. The order is used wherever feeds are listed in the UI.
@@ -137,7 +137,7 @@ The global `Mirror` configuration section is obsolete. It is only read once, on 
 
 With `Authentication:Mode` set to `Local`, `Entra` or `Hybrid`, access to each feed is controlled by **pull**, **push** and **delete** permissions, granted to groups on **Admin > Groups & permissions**. Administrators can do everything on every feed. Feeds a user can't pull from are hidden from them. See [Feed permissions](authentication.md#feed-permissions).
 
-With the default `Config` mode there are no per-feed permissions: the configured API keys and credentials apply to all feeds.
+With the `Legacy` mode there are no per-feed permissions: the configured API keys and credentials apply to all feeds.
 
 ## Connecting a client
 

@@ -181,7 +181,7 @@ public class IndexModelFacts
         protected readonly CancellationToken Cancellation = CancellationToken.None;
 
         protected SearchRequest CapturedRequest;
-        protected AuthenticationMode AuthMode = AuthenticationMode.Config;
+        protected AuthenticationMode AuthMode = AuthenticationMode.Legacy;
         protected bool IsDefaultRoute;
         protected Feed CurrentFeed;
 

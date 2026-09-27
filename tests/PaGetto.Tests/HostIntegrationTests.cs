@@ -69,6 +69,7 @@ public class HostIntegrationTests
             .CreateHostBuilder(Array.Empty<string>())
             .ConfigureAppConfiguration((ctx, config) =>
             {
+                config.AddInMemoryCollection(new Dictionary<string, string> { ["Authentication:Mode"] = "Legacy" });
                 config.AddInMemoryCollection(configs ?? new Dictionary<string, string>());
             })
             .Build();

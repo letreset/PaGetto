@@ -79,6 +79,7 @@ public class PaGettoApplication : WebApplicationFactory<Startup>
                     { "Storage:Type", "FileSystem" },
                     { "Storage:Path", storagePath },
                     { "Search:Type", "Database" },
+                    { "Authentication:Mode", "Legacy" },
                     { "Mirror:Enabled", _upstreamHandler != null ? "true": "false" },
                     { "Mirror:PackageSource", "http://localhost/v3/index.json" },
                 };

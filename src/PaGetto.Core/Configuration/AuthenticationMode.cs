@@ -1,16 +1,13 @@
+using System;
+
 namespace PaGetto.Core.Configuration;
 
 /// <summary>
-/// Controls which authentication mechanisms are active.
+/// Controls which authentication mechanisms are active. <c>Authentication:Mode</c> is required:
+/// the default value (0) is not a mode, so startup validation rejects a missing setting.
 /// </summary>
 public enum AuthenticationMode
 {
-    /// <summary>
-    /// Config-file-based API key and basic auth. No database-backed users.
-    /// Credentials are defined in appsettings.json.
-    /// </summary>
-    Config = 0,
-
     /// <summary>
     /// Only Entra ID (OIDC) authentication is enabled. Local accounts are not accepted.
     /// </summary>
@@ -24,5 +21,18 @@ public enum AuthenticationMode
     /// <summary>
     /// Both Entra ID and local account authentication are enabled.
     /// </summary>
-    Hybrid = 3
+    Hybrid = 3,
+
+    /// <summary>
+    /// Legacy config-file-based API keys and basic auth credentials (<c>ApiKey</c>,
+    /// <c>Authentication:ApiKeys</c>, <c>Authentication:Credentials</c>). No database-backed users,
+    /// no feed permissions and no admin pages.
+    /// </summary>
+    Legacy = 4,
+
+    /// <summary>
+    /// The old name of <see cref="Legacy"/>, still accepted in configuration.
+    /// </summary>
+    [Obsolete("Use Legacy.")]
+    Config = Legacy,
 }
