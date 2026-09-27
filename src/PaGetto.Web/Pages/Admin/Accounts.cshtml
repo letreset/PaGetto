@@ -151,6 +151,7 @@
                     <ul class="dropdown-menu dropdown-menu-end bgt-acct-menu">
                         @if (isLocal)
                         {
+                            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#edit-modal" data-user-id="@user.Id" data-username="@user.Username" data-display-name="@user.DisplayName" data-email="@user.Email" data-initials="@displayName.ToNameInitials()">Edit account…</button></li>
                             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#password-modal" data-user-id="@user.Id" data-username="@user.Username" data-initials="@displayName.ToNameInitials()">Reset password…</button></li>
                             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#token-modal" data-user-id="@user.Id" data-username="@user.Username" data-initials="@displayName.ToNameInitials()">New token…</button></li>
                         }
@@ -212,6 +213,41 @@
 </div>
 
 @* One modal per action, filled with the account of the clicked menu item. *@
+<div class="modal fade" id="edit-modal" tabindex="-1" aria-labelledby="edit-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="bgt-modal-head">
+                <span class="bgt-avatar bgt-avatar-lg" data-fill="initials"></span>
+                <div style="min-width: 0">
+                    <h2 class="bgt-modal-title" id="edit-modal-title">Edit account</h2>
+                    <div class="bgt-modal-sub">Renaming changes the username for sign-in and NuGet clients.</div>
+                </div>
+                <button type="button" class="bgt-modal-close" data-bs-dismiss="modal" aria-label="Close"><icon name="x" /></button>
+            </div>
+            <form method="post" asp-page-handler="Edit" class="bgt-modal-body">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="userId" data-fill="userId" />
+                <div>
+                    <label for="edit-username" class="form-label">Username</label>
+                    <input type="text" id="edit-username" name="username" class="form-control" maxlength="256" autocomplete="off" required data-fill="username" />
+                </div>
+                <div>
+                    <label for="edit-display-name" class="form-label">Display name</label>
+                    <input type="text" id="edit-display-name" name="displayName" class="form-control" maxlength="256" autocomplete="off" data-fill="displayName" />
+                </div>
+                <div>
+                    <label for="edit-email" class="form-label">Email</label>
+                    <input type="email" id="edit-email" name="email" class="form-control" maxlength="256" autocomplete="off" data-fill="email" />
+                </div>
+                <div class="bgt-form-actions">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="password-modal" tabindex="-1" aria-labelledby="password-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" x-data="{ password: '' }">
@@ -336,7 +372,7 @@ else if (!string.IsNullOrEmpty(Model.SuccessMessage ?? Model.ToastMessage))
     <script>
         (function () {
             // Fill a modal with the account of the menu item that opened it.
-            document.querySelectorAll('#password-modal, #token-modal, #delete-modal').forEach(function (modal) {
+            document.querySelectorAll('#edit-modal, #password-modal, #token-modal, #delete-modal').forEach(function (modal) {
                 modal.addEventListener('show.bs.modal', function (event) {
                     var source = event.relatedTarget;
                     if (!source) return;
@@ -346,7 +382,8 @@ else if (!string.IsNullOrEmpty(Model.SuccessMessage ?? Model.ToastMessage))
                         if (el.tagName === 'INPUT') el.value = value; else el.textContent = value;
                     });
                     var form = modal.querySelector('form');
-                    form.querySelectorAll('input[type=text], input[type=password]').forEach(function (input) {
+                    // Fields filled from the account above keep their value; the others start empty.
+                    form.querySelectorAll('input[type=text]:not([data-fill]), input[type=password]:not([data-fill])').forEach(function (input) {
                         input.value = '';
                         input.dispatchEvent(new Event('input'));
                     });

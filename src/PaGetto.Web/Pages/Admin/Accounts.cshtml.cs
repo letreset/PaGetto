@@ -270,6 +270,73 @@ public class AccountsModel : PageModel
         return RedirectToPage();
     }
 
+    /// <summary>
+    /// Changes the username, display name and email of a local account. Entra accounts take these
+    /// from the directory, so they can't be changed here.
+    /// </summary>
+    public async Task<IActionResult> OnPostEditAsync(
+        Guid userId, string username, string displayName, string email, CancellationToken cancellationToken)
+    {
+        if (!await IsCurrentUserAdminAsync(cancellationToken))
+            return RedirectToPage("/Index");
+
+        username = username?.Trim();
+        displayName = displayName?.Trim();
+        email = email?.Trim();
+
+        var user = await _userService.FindByIdAsync(userId, cancellationToken);
+        var error = ValidateAccountEdit(user, username, displayName, email);
+        if (error == null)
+        {
+            var existing = await _userService.FindByUsernameAsync(username, cancellationToken);
+            if (existing != null && existing.Id != userId)
+                error = $"Username '{username}' already exists.";
+        }
+
+        if (error != null)
+        {
+            ErrorMessage = error;
+            await LoadUsersAndGroupsAsync(cancellationToken);
+            return Page();
+        }
+
+        var previousUsername = user.Username;
+        user.Username = username;
+        user.DisplayName = string.IsNullOrEmpty(displayName) ? username : displayName;
+        user.Email = string.IsNullOrEmpty(email) ? null : email;
+        await _userService.UpdateUserAsync(user, cancellationToken);
+
+        _audit.Admin(HttpContext, "account_updated", username,
+            previousUsername == username ? null : $"previous_username={previousUsername}");
+        ToastMessage = $"Account '{username}' updated.";
+
+        return RedirectToPage();
+    }
+
+    // The column lengths of Users.Username, DisplayName and Email.
+    private const int MaxAccountFieldLength = 256;
+
+    private static string ValidateAccountEdit(User user, string username, string displayName, string email)
+    {
+        if (user == null || user.AuthProvider != AuthProvider.Local)
+            return "Only local accounts can be edited here. Entra ID accounts take their name and email from the directory.";
+
+        if (string.IsNullOrEmpty(username))
+            return "Username is required.";
+
+        if (username.Length > MaxAccountFieldLength)
+            return $"Username must be at most {MaxAccountFieldLength} characters.";
+
+        if (displayName?.Length > MaxAccountFieldLength)
+            return $"Display name must be at most {MaxAccountFieldLength} characters.";
+
+        if (!string.IsNullOrEmpty(email)
+            && (email.Length > MaxAccountFieldLength || !new EmailAddressAttribute().IsValid(email)))
+            return "Enter a valid email address.";
+
+        return null;
+    }
+
     public async Task<IActionResult> OnPostUnlockAsync(Guid userId, CancellationToken cancellationToken)
     {
         if (!await IsCurrentUserAdminAsync(cancellationToken))
