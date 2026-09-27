@@ -20,14 +20,15 @@ public partial class WebAuditLog
     }
 
     /// <summary>
-    /// Logs a package change, e.g. <c>package_unlist_succeeded</c>.
+    /// Logs a package change, e.g. <c>package_unlist_succeeded</c>. <paramref name="actor"/>
+    /// overrides the signed-in user, e.g. <c>api-key</c> for a Config mode upload.
     /// </summary>
-    public void Package(HttpContext httpContext, LogLevel level, string eventName, string feed, string packageId, string packageVersion)
+    public void Package(HttpContext httpContext, LogLevel level, string eventName, string feed, string packageId, string packageVersion, string actor = null)
     {
         if (!_logger.IsEnabled(level))
             return;
 
-        var actor = GetActor(httpContext);
+        actor ??= GetActor(httpContext);
         LogPackageEvent(level, eventName, feed, packageId, packageVersion, actor, httpContext.Connection.RemoteIpAddress);
     }
 

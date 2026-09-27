@@ -705,7 +705,7 @@ AUDIT package_upload_succeeded feed=default package_id=Contoso.Utils package_ver
 
 | Field | Value |
 |---|---|
-| Event | NuGet API: `package_upload_{succeeded,unauthorized,read_only}` and `package_{delete,relist}_{succeeded,unauthorized,read_only,not_found}`, plus `package_upload_already_exists`, `package_upload_invalid_package` and `package_upload_too_large`. A symbol package over the feed's size limit logs `symbol_upload_too_large` (with `feed`, `actor` and `ip` only). Web UI (the package page's **Manage** section and **Relist** links): `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}`, where `package_delete_*` is a hard delete |
+| Event | NuGet API: `package_upload_{succeeded,unauthorized,read_only}` and `package_{delete,relist}_{succeeded,unauthorized,read_only,not_found}`, plus `package_upload_already_exists`, `package_upload_invalid_package` and `package_upload_too_large`. A symbol package over the feed's size limit logs `symbol_upload_too_large` (with `feed`, `actor` and `ip` only). Web UI (the package page's **Manage** section and **Relist** links): `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}`, where `package_delete_*` is a hard delete. Browser uploads on the **Upload** page log the same `package_upload_*` events as the API, and `symbol_upload_{succeeded,unauthorized,read_only,invalid_package,package_not_found,too_large}` for symbol packages, with the package id and version |
 | `feed` | The feed slug |
 | `package_id`, `package_version` | Empty for uploads that are denied before the package is read |
 | `actor` | The user name (the token owner for personal access tokens), `api-key` for the shared API key in `Config` mode, or `anonymous` |

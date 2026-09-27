@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -107,6 +108,28 @@ public sealed class WebUiSession : IDisposable
         var separator = pagePath.Contains('?') ? "&" : "?";
         var url = handler == null ? pagePath : $"{pagePath}{separator}handler={handler}";
         return await Client.PostAsync(url, new FormUrlEncodedContent(form));
+    }
+
+    /// <summary>
+    /// Loads <paramref name="pagePath"/> for its antiforgery token, then posts <paramref name="file"/>
+    /// as multipart form data to the given handler, with the token in the
+    /// <c>RequestVerificationToken</c> header as the upload page's script sends it. Pass
+    /// <paramref name="tokenPagePath"/> to take the token from another page.
+    /// </summary>
+    public async Task<HttpResponseMessage> PostFileAsync(
+        string pagePath, string handler, Stream file, string fileName, bool includeToken = true, string tokenPagePath = null)
+    {
+        var body = await GetStringAsync(tokenPagePath ?? pagePath);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{pagePath}?handler={handler}");
+        if (includeToken)
+        {
+            request.Headers.Add("RequestVerificationToken", ExtractAntiforgeryToken(body));
+        }
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(file), "package", fileName);
+        request.Content = content;
+        return await Client.SendAsync(request);
     }
 
     private static string ExtractAntiforgeryToken(string body)
