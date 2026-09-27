@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: v2
 name: pagetto
 description: A Helm chart for PaGetto nuget package server
 type: application
