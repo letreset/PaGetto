@@ -28,7 +28,14 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # One PR for all updates, so a week's bumps run CI and CodeQL once.
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      docker:
+        patterns: ["*"]
