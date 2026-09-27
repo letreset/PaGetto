@@ -145,6 +145,10 @@ public partial class LoginModel : PageModel
             new(Core.Authentication.AuthenticationConstants.IsAdminClaim, user.IsAdmin ? "true" : "false")
         };
 
+        if (user.MustChangePassword)
+        {
+            claims.Add(new Claim(Core.Authentication.AuthenticationConstants.MustChangePasswordClaim, "true"));
+        }
 
         var identity = new ClaimsIdentity(claims, Core.Authentication.AuthenticationConstants.CookieScheme);
         var principal = new ClaimsPrincipal(identity);
@@ -159,6 +163,11 @@ public partial class LoginModel : PageModel
             });
 
         LogSignedIn(Username);
+
+        if (user.MustChangePassword)
+        {
+            return RedirectToPage("/Account/ChangePassword", new { ReturnUrl });
+        }
 
         if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {

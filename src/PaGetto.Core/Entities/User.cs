@@ -33,6 +33,13 @@ public class User
     public bool IsEnabled { get; set; } = true;
     public bool IsAdmin { get; set; }
     public bool CanLoginToUI { get; set; }
+
+    /// <summary>
+    /// The user has to choose a new password on the next web sign-in before doing anything else,
+    /// and can't use the password for NuGet clients until then. Set on the default administrator.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
+
     public int FailedLoginCount { get; set; }
     public DateTime? LockedUntilUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }

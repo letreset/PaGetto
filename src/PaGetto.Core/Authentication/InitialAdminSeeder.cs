@@ -10,13 +10,17 @@ using Microsoft.Extensions.Options;
 namespace PaGetto.Core.Authentication;
 
 /// <summary>
-/// Creates the local administrator from <c>Authentication:InitialAdmin</c> on startup, so a fresh
-/// Local or Hybrid install has a way into Admin &gt; Accounts. It only acts while no administrator
-/// can manage the server (no enabled administrator with web sign-in), and never changes an existing
-/// user: to recover from a disabled last administrator, configure a new username.
+/// Creates the default local administrator (<see cref="DefaultUsername"/> / <see cref="DefaultPassword"/>)
+/// on startup, so a fresh Local or Hybrid install has a way into Admin &gt; Accounts. The account has to
+/// change its password on the first web sign-in and can't be used by NuGet clients before that.
+/// It only acts while no administrator can manage the server (no enabled administrator with web
+/// sign-in), and never changes an existing user.
 /// </summary>
 public partial class InitialAdminSeeder
 {
+    public const string DefaultUsername = "admin";
+    public const string DefaultPassword = "admin";
+
     private readonly IContext _context;
     private readonly IUserService _userService;
     private readonly NugetAuthenticationOptions _authOptions;
@@ -36,53 +40,36 @@ public partial class InitialAdminSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var mode = _authOptions.Mode;
-        if (mode is not (AuthenticationMode.Local or AuthenticationMode.Hybrid))
+        if (_authOptions.Mode is not (AuthenticationMode.Local or AuthenticationMode.Hybrid))
             return;
 
         if (await _context.Users.AnyAsync(u => u.IsAdmin && u.IsEnabled && u.CanLoginToUI, cancellationToken))
             return;
 
-        var username = _authOptions.InitialAdmin?.Username;
-        var password = _authOptions.InitialAdmin?.Password;
-
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        if (await _userService.FindByUsernameAsync(DefaultUsername, cancellationToken) != null)
         {
-            // Hybrid can still get an admin from the Entra Admin app role.
-            if (mode == AuthenticationMode.Local)
-            {
-                LogInitialAdminNotConfigured();
-            }
-
-            return;
-        }
-
-        if (await _userService.FindByUsernameAsync(username, cancellationToken) != null)
-        {
-            LogInitialAdminExistsAsNonAdmin(username);
+            LogDefaultAdminNameTaken(DefaultUsername);
             return;
         }
 
         try
         {
-            var user = await _userService.CreateLocalAdminAsync(username, password, cancellationToken);
+            var user = await _userService.CreateLocalAdminAsync(
+                DefaultUsername, DefaultPassword, mustChangePassword: true, cancellationToken);
 
-            LogInitialAdminCreated("InitialAdminCreated", username, user.Id);
+            LogInitialAdminCreated("InitialAdminCreated", DefaultUsername, user.Id);
         }
         catch (DbUpdateException ex) when (_context.IsUniqueConstraintViolationException(ex))
         {
             // Another replica starting at the same time won the insert.
-            LogInitialAdminCreatedByAnotherInstance(username);
+            LogInitialAdminCreatedByAnotherInstance(DefaultUsername);
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No administrator exists and Authentication:InitialAdmin is not configured, so nobody can manage accounts. Set Authentication:InitialAdmin:Username and Authentication:InitialAdmin:Password to create one on startup.")]
-    private partial void LogInitialAdminNotConfigured();
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No enabled administrator with web sign-in exists, but a user named {Username} already exists, so the default administrator was not created. The user was left unchanged.")]
+    private partial void LogDefaultAdminNameTaken(string username);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No enabled administrator with web sign-in exists, but the configured initial administrator {Username} already exists. The user was left unchanged; choose a different Authentication:InitialAdmin:Username to create a new administrator.")]
-    private partial void LogInitialAdminExistsAsNonAdmin(string username);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - Created initial administrator {Username} with ID {UserId} from configuration")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Audit: {EventType} - Created the default administrator {Username} with ID {UserId} and the default password. Sign in to the web UI and change the password.")]
     private partial void LogInitialAdminCreated(string eventType, string username, Guid userId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The initial administrator {Username} was created by another instance; skipping.")]

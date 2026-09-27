@@ -191,11 +191,6 @@ public class ValidatePaGettoOptions
             }
         }
 
-        if (mode is AuthenticationMode.Local or AuthenticationMode.Hybrid)
-        {
-            ValidateInitialAdmin(auth.InitialAdmin, failures);
-        }
-
         if (auth.MaxTokenExpiryDays < 1)
             failures.Add($"The '{nameof(NugetAuthenticationOptions.MaxTokenExpiryDays)}' config must be at least 1");
 
@@ -204,27 +199,5 @@ public class ValidatePaGettoOptions
 
         if (auth.LockoutMinutes < 1)
             failures.Add($"The '{nameof(NugetAuthenticationOptions.LockoutMinutes)}' config must be at least 1");
-    }
-
-    private static void ValidateInitialAdmin(InitialAdminOptions initialAdmin, List<string> failures)
-    {
-        var hasUsername = !string.IsNullOrEmpty(initialAdmin?.Username);
-        var hasPassword = !string.IsNullOrEmpty(initialAdmin?.Password);
-
-        // The section is optional: leaving both values out means no initial admin is created.
-        if (!hasUsername && !hasPassword)
-            return;
-
-        const string section = $"{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.InitialAdmin)}";
-
-        if (!hasUsername)
-            failures.Add($"The '{section}:{nameof(InitialAdminOptions.Username)}' config is required when '{section}:{nameof(InitialAdminOptions.Password)}' is set");
-        else if (initialAdmin.Username.Length > InitialAdminOptions.MaxUsernameLength)
-            failures.Add($"The '{section}:{nameof(InitialAdminOptions.Username)}' config must be at most {InitialAdminOptions.MaxUsernameLength} characters");
-
-        if (!hasPassword)
-            failures.Add($"The '{section}:{nameof(InitialAdminOptions.Password)}' config is required when '{section}:{nameof(InitialAdminOptions.Username)}' is set");
-        else if (initialAdmin.Password.Length < InitialAdminOptions.MinPasswordLength)
-            failures.Add($"The '{section}:{nameof(InitialAdminOptions.Password)}' config must be at least {InitialAdminOptions.MinPasswordLength} characters");
     }
 }

@@ -22,6 +22,8 @@ For every page you open, the browser console should show no errors.
 | S5 | none | Sign in as `build-agent` | Refused: this account can't sign in to the web UI |
 | S6 | `admin` | User menu > **Sign out** | Back to the sign-in prompt |
 | S7 | none | Sign in as `bob` with a wrong password 5 times, then with the right one | "This account is locked due to too many failed attempts" (resets after 15 minutes or with `down -v`) |
+| S8 | `alice` | User menu > **Change password**, change it with the wrong current password, then with the right one | Wrong one: "The current password is incorrect."; right one: "Your password has been changed." and signing in again needs the new password |
+| S9 | none | Start with `TESTENV_EMPTY=1` and sign in as `admin` / `admin` | Lands on **Change password** with a warning; opening any other page returns there; after changing the password the site works normally |
 
 ## Navigation
 

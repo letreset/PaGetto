@@ -34,31 +34,18 @@ In every other mode those settings are ignored: there is no anonymous access, ev
 Administrators manage feeds, accounts, groups and permissions, and can pull, push and delete on every feed. How you get the first one depends on the mode:
 
 - **`Entra` and `Hybrid`**: assign the `Admin` app role to yourself in Entra ID (see [Step 3](#step-3-define-app-roles-recommended)) and sign in. Admin status always follows the token.
-- **`Local`** (and optionally `Hybrid`): set `Authentication:InitialAdmin:Username` and `Authentication:InitialAdmin:Password`. On startup, while no user is an administrator, PaGetto creates that local account with admin rights and logs it.
+- **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters). Until then the default password is also rejected by NuGet clients.
 
-```json
-{
-    "Authentication": {
-        "Mode": "Local",
-        "InitialAdmin": {
-            "Username": "admin",
-            "Password": "<at least 12 characters>"
-        }
-    }
-}
-```
+The default administrator is only ever created, never changed:
 
-Keep the password out of `appsettings.json`: pass it as the `Authentication__InitialAdmin__Password` environment variable or mount it as a [secret file](configuration.md#load-secrets-from-files). Sign in with it and change it afterwards: there is no page to change your own password, so use **Reset password…** in the **Actions** menu of your own row on **Admin > Accounts**.
-
-The initial admin settings only ever create an account:
-
-- Once an enabled administrator with web sign-in exists, they are ignored. You can remove them after the first start.
-- An existing user is never changed and a password is never reset. If a user with the configured username already exists, PaGetto logs a warning and leaves it alone; pick a different username.
-- **Recovery:** if no administrator can sign in any more (every administrator is disabled or has lost web sign-in), set a username that doesn't exist yet and restart. PaGetto creates that account as a new administrator.
-- The password must be at least 12 characters, the same rule as **Admin > Accounts**. Startup fails if only one of the two settings is set.
+- Once an enabled administrator with web sign-in exists, nothing happens on startup.
+- An existing user is never changed and a password is never reset. If a user named `admin` already exists (but no administrator can sign in), PaGetto logs a warning and leaves it alone.
+- **Recovery:** if no administrator can sign in any more (every administrator is disabled or has lost web sign-in), rename or delete the `admin` user in the database and restart. PaGetto creates a new `admin` account with the default password.
 - Several replicas can start at once: only one creates the account, the others skip it.
 
-In `Local` mode PaGetto logs a warning on startup while no administrator exists and the settings are missing. In `Config` and `Entra` mode they are ignored.
+Change the default password right after the first start, before the server is reachable by others. Every local user can change their own password later under **Change password** in the account menu.
+
+In `Config` and `Entra` mode no default administrator is created.
 
 ## Azure Entra ID setup
 
@@ -350,10 +337,6 @@ When a PAT is used as a password, the username must be the token owner's usernam
             "CallbackPath": "/signin-oidc",
             "RoleClaim": "roles"
         },
-        "InitialAdmin": {
-            "Username": "admin",
-            "Password": "<initial-admin-password>"
-        },
         "MaxTokenExpiryDays": 365,
         "MaxFailedAttempts": 5,
         "LockoutMinutes": 15,
@@ -391,8 +374,6 @@ All authentication settings can be provided via environment variables using the 
 | `Authentication__Entra__ClientSecret` | Client secret |
 | `Authentication__Entra__CallbackPath` | OIDC callback path |
 | `Authentication__Entra__RoleClaim` | Token claim name for App Roles (default: `roles`) |
-| `Authentication__InitialAdmin__Username` | Username of the [first administrator](#the-first-administrator) (`Local` and `Hybrid`) |
-| `Authentication__InitialAdmin__Password` | Password of the first administrator, at least 12 characters |
 | `Authentication__MaxTokenExpiryDays` | Maximum PAT lifetime in days |
 | `Authentication__MaxFailedAttempts` | Failed login threshold for lockout |
 | `Authentication__LockoutMinutes` | Lockout duration in minutes |

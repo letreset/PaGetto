@@ -159,7 +159,7 @@ public class UserServiceTests
         [Fact]
         public async Task CreatesEnabledLocalAdminWithHashedPassword()
         {
-            var result = await Target.CreateLocalAdminAsync("root", "MyPassword123!", Ct);
+            var result = await Target.CreateLocalAdminAsync("root", "MyPassword123!", mustChangePassword: true, Ct);
 
             Assert.Equal("root", result.Username);
             Assert.Equal("root", result.DisplayName);
@@ -168,6 +168,7 @@ public class UserServiceTests
             Assert.True(result.IsEnabled);
             Assert.True(result.CanLoginToUI);
             Assert.Null(result.CreatedByUserId);
+            Assert.True(result.MustChangePassword);
             Assert.True(await Target.VerifyPasswordAsync(result, "MyPassword123!"));
             Assert.True(await Target.IsAdminAsync(result.Id, Ct));
         }
@@ -312,6 +313,29 @@ public class UserServiceTests
         {
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => Target.SetPasswordAsync(Guid.NewGuid(), "pwd", Ct));
+        }
+    }
+
+    public class ChangeOwnPasswordAsync : FactsBase
+    {
+        [Fact]
+        public async Task UpdatesPasswordAndClearsMustChangePassword()
+        {
+            var admin = await Target.CreateLocalAdminAsync("root", "OldPassword", mustChangePassword: true, Ct);
+
+            await Target.ChangeOwnPasswordAsync(admin.Id, "NewPassword", Ct);
+
+            var updated = await Target.FindByIdAsync(admin.Id, Ct);
+            Assert.False(updated.MustChangePassword);
+            Assert.True(await Target.VerifyPasswordAsync(updated, "NewPassword"));
+            Assert.False(await Target.VerifyPasswordAsync(updated, "OldPassword"));
+        }
+
+        [Fact]
+        public async Task ThrowsWhenUserNotFound()
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => Target.ChangeOwnPasswordAsync(Guid.NewGuid(), "pwd", Ct));
         }
     }
 

@@ -141,7 +141,7 @@ internal static partial class ServiceCollectionExtensions
                     return;
                 }
 
-                // Refresh the IsAdmin claim so changes take effect without requiring re-login
+                // Refresh the IsAdmin and MustChangePassword claims so changes take effect without requiring re-login
                 var identity = context.Principal?.Identity as ClaimsIdentity;
                 if (identity != null)
                 {
@@ -149,6 +149,13 @@ internal static partial class ServiceCollectionExtensions
                     if (existing != null)
                         identity.RemoveClaim(existing);
                     identity.AddClaim(new Claim(AuthenticationConstants.IsAdminClaim, user.IsAdmin ? "true" : "false"));
+
+                    var mustChange = identity.FindFirst(AuthenticationConstants.MustChangePasswordClaim);
+                    if (mustChange != null)
+                        identity.RemoveClaim(mustChange);
+                    if (user.MustChangePassword)
+                        identity.AddClaim(new Claim(AuthenticationConstants.MustChangePasswordClaim, "true"));
+
                     context.ReplacePrincipal(new ClaimsPrincipal(identity));
                     context.ShouldRenew = true;
                 }

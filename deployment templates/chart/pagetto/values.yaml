@@ -27,10 +27,9 @@ configMaps:
       #Mirror__Enabled: "true"
       #Mirror__PackageSource: "https://api.nuget.org/v3/index.json"
       #PackageDeletionBehavior: "HardDelete"
-      # -- Local accounts. The first admin is created on startup while no admin exists; its
-      # password comes from a Secret (see `env` on the container below).
+      # -- Local accounts. The administrator admin/admin is created on startup while no admin
+      # exists; it has to change the password on the first sign-in.
       #Authentication__Mode: "Local"
-      #Authentication__InitialAdmin__Username: "admin"
 
 # -- Configures containers for the chart.
 # @default -- See values.yaml
@@ -48,14 +47,14 @@ controllers:
         envFrom:
           - configMapRef:
               name: pagetto-pagetto-env
-        # -- Secret-backed settings, e.g. the initial admin password (at least 12 characters):
-        # kubectl create secret generic pagetto-initial-admin --from-literal=password=...
+        # -- Secret-backed settings, e.g. a database connection string:
+        # kubectl create secret generic pagetto-database --from-literal=connection-string=...
         #env:
-        #  Authentication__InitialAdmin__Password:
+        #  Database__ConnectionString:
         #    valueFrom:
         #      secretKeyRef:
-        #        name: pagetto-initial-admin
-        #        key: password
+        #        name: pagetto-database
+        #        key: connection-string
         resources:
           requests:
             cpu: 100m

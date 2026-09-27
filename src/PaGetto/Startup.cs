@@ -175,6 +175,7 @@ public class Startup
         }
 
         app.UseMiddleware<FeedResolutionMiddleware>();
+        app.UseMiddleware<MustChangePasswordMiddleware>();
         app.UseRouting();
         app.UseAuthorization();
 

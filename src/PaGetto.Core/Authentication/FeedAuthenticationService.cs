@@ -114,6 +114,13 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
 
         await _userService.ResetFailedLoginCountAsync(user.Id, cancellationToken);
 
+        // The password is a default or temporary one until it's changed in the web UI.
+        if (user.MustChangePassword)
+        {
+            LogPasswordChangeRequiredLoginAttempt("LoginFailure", username, user.Id);
+            return new AuthResult(false, null, null);
+        }
+
         LogLocalLoginSucceeded("LoginSuccess", username, user.Id);
 
         return new AuthResult(true, user.Id, user.Username);
@@ -133,6 +140,9 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Audit: {EventType} - Login attempt for locked out local account {Username} ({UserId})")]
     private partial void LogLockedOutAccountLoginAttempt(string eventType, string username, Guid userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Audit: {EventType} - Local account {Username} ({UserId}) must change its password in the web UI before it can be used by NuGet clients")]
+    private partial void LogPasswordChangeRequiredLoginAttempt(string eventType, string username, Guid userId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Audit: {EventType} - Failed login attempt for local account {Username} ({UserId})")]
     private partial void LogLocalLoginFailed(string eventType, string username, Guid userId);

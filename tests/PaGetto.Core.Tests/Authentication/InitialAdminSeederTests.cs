@@ -22,17 +22,19 @@ public class InitialAdminSeederTests
         [Theory]
         [InlineData(AuthenticationMode.Local)]
         [InlineData(AuthenticationMode.Hybrid)]
-        public async Task CreatesAdminWhenNoAdminExists(AuthenticationMode mode)
+        public async Task CreatesDefaultAdminWhenNoAdminExists(AuthenticationMode mode)
         {
-            await CreateTarget(mode, "root", Password).SeedAsync(Ct);
+            await CreateTarget(mode).SeedAsync(Ct);
 
             var user = Assert.Single(Context.Users.ToList());
-            Assert.Equal("root", user.Username);
+            Assert.Equal(InitialAdminSeeder.DefaultUsername, user.Username);
             Assert.True(user.IsAdmin);
             Assert.True(user.IsEnabled);
             Assert.True(user.CanLoginToUI);
+            Assert.True(user.MustChangePassword);
             Assert.Equal(AuthProvider.Local, user.AuthProvider);
-            Assert.True(await Users.VerifyPasswordAsync(user, Password));
+            Assert.True(await Users.VerifyPasswordAsync(user, InitialAdminSeeder.DefaultPassword));
+            VerifyLogged(LogLevel.Warning, Times.Once());
         }
 
         [Fact]
@@ -40,10 +42,11 @@ public class InitialAdminSeederTests
         {
             AddUser("existing-admin", isAdmin: true);
 
-            await CreateTarget(AuthenticationMode.Local, "root", Password).SeedAsync(Ct);
+            await CreateTarget(AuthenticationMode.Local).SeedAsync(Ct);
 
             var user = Assert.Single(Context.Users.ToList());
             Assert.Equal("existing-admin", user.Username);
+            VerifyLogged(LogLevel.Warning, Times.Never());
         }
 
         [Theory]
@@ -53,18 +56,19 @@ public class InitialAdminSeederTests
         {
             AddUser("locked-out-admin", isAdmin: true, isEnabled, canLoginToUI);
 
-            await CreateTarget(AuthenticationMode.Local, "root", Password).SeedAsync(Ct);
+            await CreateTarget(AuthenticationMode.Local).SeedAsync(Ct);
 
-            var created = Assert.Single(Context.Users.AsNoTracking().ToList(), u => u.Username == "root");
+            var created = Assert.Single(
+                Context.Users.AsNoTracking().ToList(), u => u.Username == InitialAdminSeeder.DefaultUsername);
             Assert.True(created.IsAdmin);
         }
 
         [Fact]
         public async Task DoesNotPromoteAnExistingNonAdminUser()
         {
-            var existing = AddUser("root", isAdmin: false);
+            var existing = AddUser(InitialAdminSeeder.DefaultUsername, isAdmin: false);
 
-            await CreateTarget(AuthenticationMode.Local, "root", Password).SeedAsync(Ct);
+            await CreateTarget(AuthenticationMode.Local).SeedAsync(Ct);
 
             var user = Assert.Single(Context.Users.AsNoTracking().ToList());
             Assert.Equal(existing.Id, user.Id);
@@ -78,40 +82,9 @@ public class InitialAdminSeederTests
         [InlineData(AuthenticationMode.Entra)]
         public async Task DoesNothingInModesWithoutLocalAccounts(AuthenticationMode mode)
         {
-            await CreateTarget(mode, "root", Password).SeedAsync(Ct);
+            await CreateTarget(mode).SeedAsync(Ct);
 
             Assert.Empty(Context.Users.ToList());
-            VerifyLogged(LogLevel.Warning, Times.Never());
-        }
-
-        [Theory]
-        [InlineData(null, null)]
-        [InlineData("root", null)]
-        [InlineData(null, Password)]
-        public async Task WarnsInLocalModeWhenSettingsAreMissing(string username, string password)
-        {
-            await CreateTarget(AuthenticationMode.Local, username, password).SeedAsync(Ct);
-
-            Assert.Empty(Context.Users.ToList());
-            VerifyLogged(LogLevel.Warning, Times.Once());
-        }
-
-        [Fact]
-        public async Task DoesNotWarnInHybridModeWhenSettingsAreMissing()
-        {
-            await CreateTarget(AuthenticationMode.Hybrid, null, null).SeedAsync(Ct);
-
-            Assert.Empty(Context.Users.ToList());
-            VerifyLogged(LogLevel.Warning, Times.Never());
-        }
-
-        [Fact]
-        public async Task DoesNotWarnWhenAnAdminExistsAndSettingsAreMissing()
-        {
-            AddUser("existing-admin", isAdmin: true);
-
-            await CreateTarget(AuthenticationMode.Local, null, null).SeedAsync(Ct);
-
             VerifyLogged(LogLevel.Warning, Times.Never());
         }
 
@@ -121,22 +94,22 @@ public class InitialAdminSeederTests
             // Another replica inserted the same username between our checks and our insert.
             var users = new Mock<IUserService>();
             users
-                .Setup(u => u.CreateLocalAdminAsync("root", Password, It.IsAny<CancellationToken>()))
+                .Setup(u => u.CreateLocalAdminAsync(
+                    InitialAdminSeeder.DefaultUsername, InitialAdminSeeder.DefaultPassword, true, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new DbUpdateException("duplicate", new SqliteException("UNIQUE constraint failed", 19)));
 
-            var target = CreateTarget(AuthenticationMode.Local, "root", Password, users.Object);
+            var target = CreateTarget(AuthenticationMode.Local, users.Object);
 
             await target.SeedAsync(Ct);
 
-            users.Verify(u => u.CreateLocalAdminAsync("root", Password, It.IsAny<CancellationToken>()), Times.Once);
+            users.Verify(u => u.CreateLocalAdminAsync(
+                InitialAdminSeeder.DefaultUsername, InitialAdminSeeder.DefaultPassword, true, It.IsAny<CancellationToken>()), Times.Once);
             VerifyLogged(LogLevel.Warning, Times.Never());
         }
     }
 
     public class FactsBase : IDisposable
     {
-        protected const string Password = "InitialPassword123!";
-
         protected readonly TestDbContext Context;
         protected readonly UserService Users;
         protected readonly Mock<ILogger<InitialAdminSeeder>> Logger = new();
@@ -152,17 +125,9 @@ public class InitialAdminSeederTests
                 Mock.Of<ILogger<UserService>>());
         }
 
-        protected InitialAdminSeeder CreateTarget(
-            AuthenticationMode mode,
-            string username,
-            string password,
-            IUserService userService = null)
+        protected InitialAdminSeeder CreateTarget(AuthenticationMode mode, IUserService userService = null)
         {
-            var options = new NugetAuthenticationOptions
-            {
-                Mode = mode,
-                InitialAdmin = new InitialAdminOptions { Username = username, Password = password },
-            };
+            var options = new NugetAuthenticationOptions { Mode = mode };
 
             return new InitialAdminSeeder(Context, userService ?? Users, Snapshot(options), Logger.Object);
         }

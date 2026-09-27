@@ -14,11 +14,6 @@ public sealed class NugetAuthenticationOptions
     public EntraOptions Entra { get; set; }
 
     /// <summary>
-    /// The local administrator to create on startup while no administrator exists (Local and Hybrid modes).
-    /// </summary>
-    public InitialAdminOptions InitialAdmin { get; set; }
-
-    /// <summary>
     /// Maximum number of days a personal access token can be valid.
     /// </summary>
     public int MaxTokenExpiryDays { get; set; } = 365;
