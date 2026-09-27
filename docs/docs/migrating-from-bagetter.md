@@ -45,7 +45,7 @@ Every package now belongs to a [feed](feeds.md). On the first start PaGetto crea
 
 The global `Mirror` section is **obsolete**. On the first start, if it is enabled, PaGetto copies it (source, legacy flag, timeout and upstream authentication) to the default feed as its first mirror. From then on each feed's own mirror settings, edited in **Admin > Feeds**, apply, and changing `Mirror` in `appsettings.json` has no effect.
 
-Don't remove the `Mirror` section: PaGetto refuses to start without it. Once the copy has happened, set `Mirror:Enabled` to `false`. Otherwise PaGetto copies it to the default feed again whenever that feed has no mirrors left, for example after you remove its mirror on purpose.
+The `Mirror` section is optional. Once the copy has happened, remove it or set `Mirror:Enabled` to `false`. Otherwise PaGetto copies it to the default feed again whenever that feed has no mirrors left, for example after you remove its mirror on purpose.
 
 A feed can have [several mirrors](feeds.md#multiple-mirrors). Mirrored feeds keep upstream version lists in memory for 5 minutes by default, so a version newly published upstream can take up to 5 minutes to appear; set `UpstreamListingCacheSeconds` to `0` to turn this off. See [Upstream listing cache](feeds.md#upstream-listing-cache).
 

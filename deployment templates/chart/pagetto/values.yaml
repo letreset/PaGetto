@@ -13,8 +13,12 @@
 configMaps:
   pagetto-env:
     data:
-      # -- Set the Nuget API key
-      ApiKey: "ChangeMe"
+      # -- Authentication mode (required): Local, Entra, Hybrid or Legacy. With Local, the administrator
+      # admin/admin is created on startup while no admin exists; it has to change the password on the
+      # first sign-in.
+      Authentication__Mode: "Local"
+      # -- Legacy mode only: the NuGet API key for pushes
+      #ApiKey: "ChangeMe"
       # -- Set database and storage settings
       Storage__Type: "FileSystem"
       Storage__Path: "/data"
@@ -27,9 +31,6 @@ configMaps:
       #Mirror__Enabled: "true"
       #Mirror__PackageSource: "https://api.nuget.org/v3/index.json"
       #PackageDeletionBehavior: "HardDelete"
-      # -- Local accounts. The administrator admin/admin is created on startup while no admin
-      # exists; it has to change the password on the first sign-in.
-      #Authentication__Mode: "Local"
 
 # -- Configures containers for the chart.
 # @default -- See values.yaml

@@ -13,17 +13,16 @@ It supports:
 
 ```bash
 docker run -d --name pagetto -p 5000:8080 -v pagetto-data:/data \
-  -e ApiKey=change-me \
   letreset/pagetto:latest
 ```
 
-Open http://localhost:5000, then push a package with the API key:
+Open http://localhost:5000 and sign in as `admin` with the password `admin`. PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it:
 
 ```bash
-dotnet nuget push -s http://localhost:5000/v3/index.json -k change-me MyPackage.1.0.0.nupkg
+dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
 
-Without `ApiKey`, anyone who can reach the server can push. By default the image stores packages, symbols, the SQLite database and Data Protection keys in `/data`. Mount a volume there to keep them.
+Change the default password right after the first start. By default the image stores packages, symbols, the SQLite database and Data Protection keys in `/data`. Mount a volume there to keep them.
 
 ## Configuration
 
@@ -31,7 +30,6 @@ Configure PaGetto with environment variables, using `__` as the section separato
 
 ```bash
 docker run -d -p 5000:8080 -v pagetto-data:/data \
-  -e ApiKey=change-me \
   -e Database__Type=PostgreSql \
   -e Database__ConnectionString="Host=db;Database=pagetto;Username=pagetto;Password=..." \
   letreset/pagetto:latest

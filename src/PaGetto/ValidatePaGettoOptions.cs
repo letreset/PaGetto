@@ -56,9 +56,6 @@ public class ValidatePaGettoOptions
         var failures = new List<string>();
 
         if (options.Database == null) failures.Add($"The '{nameof(PaGettoOptions.Database)}' config is required");
-#pragma warning disable CS0618 // Still validated because it seeds the default feed.
-        if (options.Mirror == null) failures.Add($"The '{nameof(PaGettoOptions.Mirror)}' config is required");
-#pragma warning restore CS0618
         if (options.Search == null) failures.Add($"The '{nameof(PaGettoOptions.Search)}' config is required");
         if (options.Storage == null) failures.Add($"The '{nameof(PaGettoOptions.Storage)}' config is required");
         if (options.RegistrationPageSize < 1) failures.Add($"The '{nameof(PaGettoOptions.RegistrationPageSize)}' config must be at least 1");

@@ -119,6 +119,7 @@ env_variables:
   Database__ConnectionString: "Server=/cloudsql/PROJECT:REGION:INSTANCE;Database=pagetto;User Id=pagetto;Password=PASSWORD"
   Storage__Type: "GoogleCloud"
   Storage__BucketName: "BUCKETNAME"
+  Authentication__Mode: "Legacy"
   ApiKey: "APIKEY"
 ```
 
