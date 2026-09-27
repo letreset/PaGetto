@@ -12,6 +12,12 @@ public interface IGroupService
     Task<Group> FindByNameAsync(string name, CancellationToken cancellationToken);
     Task<Group> FindByAppRoleValueAsync(string appRoleValue, CancellationToken cancellationToken);
     Task<Group> CreateGroupAsync(string name, string appRoleValue, string description, CancellationToken cancellationToken);
+    /// <summary>
+    /// Changes the name and description. Members, feed permissions and the app role value are kept.
+    /// The caller checks that the name isn't taken by another group.
+    /// </summary>
+    /// <returns>False when the group doesn't exist.</returns>
+    Task<bool> UpdateGroupAsync(Guid groupId, string name, string description, CancellationToken cancellationToken);
     Task<List<Group>> GetAllGroupsAsync(CancellationToken cancellationToken);
     Task<List<Group>> GetUserGroupsAsync(Guid userId, CancellationToken cancellationToken);
     Task AddUserToGroupAsync(Guid userId, Guid groupId, CancellationToken cancellationToken);

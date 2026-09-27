@@ -105,6 +105,59 @@ public class GroupServiceTests
         }
     }
 
+    public class UpdateGroupAsync : FactsBase
+    {
+        [Fact]
+        public async Task ReturnsFalseWhenGroupNotFound()
+        {
+            Assert.False(await Target.UpdateGroupAsync(Guid.NewGuid(), "Name", null, Ct));
+        }
+
+        [Fact]
+        public async Task ChangesNameAndDescriptionAndKeepsMembersAndPermissions()
+        {
+            var user = await CreateLocalUser("renamemember");
+            var group = await Target.CreateGroupAsync("OldName", null, "Old description", Ct);
+            await Target.AddUserToGroupAsync(user.Id, group.Id, Ct);
+            Context.FeedPermissions.Add(new FeedPermission
+            {
+                Id = Guid.NewGuid(),
+                FeedId = new Guid("00000000-0000-0000-0000-000000000011"),
+                PrincipalType = PrincipalType.Group,
+                PrincipalId = group.Id,
+                CanPull = true
+            });
+            await Context.SaveChangesAsync(Ct);
+
+            Assert.True(await Target.UpdateGroupAsync(group.Id, "NewName", "New description", Ct));
+
+            var renamed = await Target.FindByNameAsync("newname", Ct);
+            Assert.Equal(group.Id, renamed?.Id);
+            Assert.Equal("NewName", renamed.Name);
+            Assert.Equal("New description", renamed.Description);
+            Assert.Null(await Target.FindByNameAsync("OldName", Ct));
+
+            var groups = await Target.GetUserGroupsAsync(user.Id, Ct);
+            Assert.Equal(group.Id, Assert.Single(groups).Id);
+            Assert.Equal(1, await Context.FeedPermissions.CountAsync(fp => fp.PrincipalId == group.Id, Ct));
+        }
+
+        [Fact]
+        public async Task KeepsAppRoleSyncWorking()
+        {
+            var user = await CreateUser("renamesync");
+            var group = await Target.CreateGroupAsync("RoleGroup", "TeamBackend", null, Ct);
+
+            await Target.UpdateGroupAsync(group.Id, "Renamed", null, Ct);
+            await Target.SyncAppRoleMembershipsAsync(user.Id, new List<string> { "TeamBackend" }, Ct);
+
+            var renamed = await Target.FindByIdAsync(group.Id, Ct);
+            Assert.Equal("TeamBackend", renamed.AppRoleValue);
+            var groups = await Target.GetUserGroupsAsync(user.Id, Ct);
+            Assert.Equal("Renamed", Assert.Single(groups).Name);
+        }
+    }
+
     public class GetAllGroupsAsync : FactsBase
     {
         [Fact]
