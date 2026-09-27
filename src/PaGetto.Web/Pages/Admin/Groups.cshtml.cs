@@ -60,6 +60,13 @@ public class GroupsModel : PageModel
     [MaxLength(4000)]
     public string NewDescription { get; set; }
 
+    /// <summary>
+    /// The group whose edit form failed, with the posted values, so the page shows the form again.
+    /// </summary>
+    public Guid? EditGroupId { get; set; }
+    public string EditName { get; set; }
+    public string EditDescription { get; set; }
+
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
 
@@ -164,6 +171,58 @@ public class GroupsModel : PageModel
 
         _audit.Admin(HttpContext, "group_created", NewGroupName);
         SuccessMessage = $"Group '{NewGroupName}' created successfully.";
+        Groups = await _groupService.GetAllGroupsAsync(cancellationToken);
+        AllUsers = await _userService.GetAllUsersAsync(cancellationToken);
+        await LoadGroupPermissionsAsync(cancellationToken);
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostUpdateGroupAsync(
+        Guid groupId, string name, string description, CancellationToken cancellationToken)
+    {
+        if (!await IsCurrentUserAdminAsync(cancellationToken))
+            return RedirectToPage("/Index");
+
+        var group = await _groupService.FindByIdAsync(groupId, cancellationToken);
+        // Read before the update: the service changes the same tracked entity.
+        var oldName = group?.Name;
+        if (group == null)
+        {
+            ErrorMessage = "Group not found.";
+        }
+        else if (string.IsNullOrWhiteSpace(name))
+        {
+            ErrorMessage = "Group name is required.";
+        }
+        else if (name.Length > 256)
+        {
+            ErrorMessage = "The group name can be at most 256 characters.";
+        }
+        else if (description?.Length > 4000)
+        {
+            ErrorMessage = "The description can be at most 4000 characters.";
+        }
+        else if (await _groupService.FindByNameAsync(name, cancellationToken) is { } existing && existing.Id != groupId)
+        {
+            ErrorMessage = $"Group '{name}' already exists.";
+        }
+        else if (await _groupService.UpdateGroupAsync(groupId, name, description, cancellationToken))
+        {
+            _audit.Admin(HttpContext, "group_updated", oldName, $"name={name}");
+            SuccessMessage = $"Group '{name}' updated successfully.";
+        }
+        else
+        {
+            ErrorMessage = "Group not found.";
+        }
+
+        if (ErrorMessage != null && group != null)
+        {
+            EditGroupId = groupId;
+            EditName = name;
+            EditDescription = description;
+        }
+
         Groups = await _groupService.GetAllGroupsAsync(cancellationToken);
         AllUsers = await _userService.GetAllUsersAsync(cancellationToken);
         await LoadGroupPermissionsAsync(cancellationToken);

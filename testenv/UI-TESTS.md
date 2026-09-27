@@ -151,6 +151,7 @@ For every page you open, the browser console should show no errors.
 | G4 | `admin` | Open Developers > **Feed permissions**, clear Pull on Internal and **Save permissions** | The button is disabled until a box changes, then shows "Unsaved changes" next to it (ticking the box again disables it again). After saving, `bob` no longer sees Internal; restore it |
 | G5 | `admin` | Do G4, then check the container log | One `AUDIT feed_permission_revoked` line for Internal and one `feed_permission_set` line for the restore, no lines for the unchanged feeds |
 | G6 | `admin` | Create a group, open its delete confirmation in two tabs, confirm in both | The first shows the toast "Group deleted successfully.", the second "Group not found." |
+| G7 | `admin` | Create a group `Temp`, add `carol` and give it Pull on Internal. Click its pencil, rename it to `Developers`; then rename it to `Temporary` with a new description and **Save** | The first shows "Group 'Developers' already exists." with the form still open and nothing changed; the second shows the toast "Group 'Temporary' updated successfully.", the new name and description, `carol` still a member and Pull on Internal kept. The container log has `AUDIT group_updated` for `Temp` with `name=Temporary`. Delete the group afterwards |
 
 ## Access control
 

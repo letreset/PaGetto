@@ -82,6 +82,83 @@ public class GroupsModelFacts
         }
     }
 
+    public class OnPostUpdateGroupAsync : FactsBase
+    {
+        private readonly Group _group = new() { Id = Guid.NewGuid(), Name = "Developers", Description = "Old" };
+
+        public OnPostUpdateGroupAsync()
+        {
+            _groups.Setup(g => g.GetAllGroupsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Group>());
+            _groups.Setup(g => g.FindByIdAsync(_group.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_group);
+            _users.Setup(u => u.GetAllUsersAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<User>());
+            _permissions
+                .Setup(p => p.GetPermissionsByPrincipalTypeAsync(PrincipalType.Group, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<FeedPermission>());
+        }
+
+        [Fact]
+        public async Task UpdatesTheGroup()
+        {
+            _groups.Setup(g => g.UpdateGroupAsync(_group.Id, "Engineers", "New", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+            await _target.OnPostUpdateGroupAsync(_group.Id, "Engineers", "New", CancellationToken.None);
+
+            _groups.Verify(g => g.UpdateGroupAsync(_group.Id, "Engineers", "New", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Equal("Group 'Engineers' updated successfully.", _target.SuccessMessage);
+            Assert.Null(_target.ErrorMessage);
+            Assert.Null(_target.EditGroupId);
+        }
+
+        [Fact]
+        public async Task AllowsChangingTheCaseOfItsOwnName()
+        {
+            _groups.Setup(g => g.FindByNameAsync("developers", It.IsAny<CancellationToken>())).ReturnsAsync(_group);
+            _groups.Setup(g => g.UpdateGroupAsync(_group.Id, "developers", "Old", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+            await _target.OnPostUpdateGroupAsync(_group.Id, "developers", "Old", CancellationToken.None);
+
+            _groups.Verify(g => g.UpdateGroupAsync(_group.Id, "developers", "Old", It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Null(_target.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task RejectsTheNameOfAnotherGroup()
+        {
+            _groups
+                .Setup(g => g.FindByNameAsync("Testers", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Group { Id = Guid.NewGuid(), Name = "Testers" });
+
+            await _target.OnPostUpdateGroupAsync(_group.Id, "Testers", "New", CancellationToken.None);
+
+            _groups.Verify(g => g.UpdateGroupAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.Equal("Group 'Testers' already exists.", _target.ErrorMessage);
+            Assert.Equal(_group.Id, _target.EditGroupId);
+            Assert.Equal("Testers", _target.EditName);
+            Assert.Equal("New", _target.EditDescription);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("   ")]
+        public async Task RequiresAName(string name)
+        {
+            await _target.OnPostUpdateGroupAsync(_group.Id, name, null, CancellationToken.None);
+
+            _groups.Verify(g => g.UpdateGroupAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.Equal("Group name is required.", _target.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task ReportsAnUnknownGroup()
+        {
+            await _target.OnPostUpdateGroupAsync(Guid.NewGuid(), "Engineers", null, CancellationToken.None);
+
+            _groups.Verify(g => g.UpdateGroupAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.Equal("Group not found.", _target.ErrorMessage);
+            Assert.Null(_target.EditGroupId);
+        }
+    }
+
     public class OnPostDeleteGroupAsync : FactsBase
     {
         public OnPostDeleteGroupAsync()

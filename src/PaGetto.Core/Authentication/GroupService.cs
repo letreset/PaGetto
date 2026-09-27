@@ -62,6 +62,24 @@ public partial class GroupService : IGroupService
         return group;
     }
 
+    public async Task<bool> UpdateGroupAsync(
+        Guid groupId,
+        string name,
+        string description,
+        CancellationToken cancellationToken)
+    {
+        var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == groupId, cancellationToken);
+        if (group == null) return false;
+
+        var oldName = group.Name;
+        group.Name = name;
+        group.Description = description;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        LogGroupUpdated(oldName, name, groupId);
+        return true;
+    }
+
     public async Task<List<Group>> GetAllGroupsAsync(CancellationToken cancellationToken)
     {
         return await _context.Groups
@@ -213,6 +231,9 @@ public partial class GroupService : IGroupService
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created group {GroupName} with ID {GroupId}")]
     private partial void LogGroupCreated(string groupName, Guid groupId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Updated group {OldGroupName} to {GroupName} (ID: {GroupId})")]
+    private partial void LogGroupUpdated(string oldGroupName, string groupName, Guid groupId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Added user {UserId} to group {GroupId}")]
     private partial void LogUserAddedToGroup(Guid userId, Guid groupId);

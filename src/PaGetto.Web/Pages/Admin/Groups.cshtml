@@ -77,9 +77,33 @@
         perFeedPerms ??= new Dictionary<Guid, FeedPermission>();
         var permissionsId = $"perms-{group.Id}";
         var isExpanded = Model.SavedGroupId == group.Id;
+        var editFailed = Model.EditGroupId == group.Id;
+        var editFormId = $"edit-{group.Id}";
 
-        <section class="bgt-card">
-            <div class="bgt-group-head">
+        <section class="bgt-card" x-data="{ editing: @Json.Serialize(editFailed) }">
+            <div class="bgt-group-head" x-show="editing" @(editFailed ? null : "x-cloak")>
+                <form id="@editFormId" method="post" asp-page-handler="UpdateGroup" class="m-0" style="flex: 1; min-width: 0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="groupId" value="@group.Id" />
+                    <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr))">
+                        <div>
+                            <label for="@editFormId-name" class="form-label">Group name</label>
+                            <input id="@editFormId-name" name="name" class="form-control" value="@(editFailed ? Model.EditName : group.Name)"
+                                   required maxlength="256" autocomplete="off" />
+                        </div>
+                        <div>
+                            <label for="@editFormId-description" class="form-label">Description</label>
+                            <input id="@editFormId-description" name="description" class="form-control" value="@(editFailed ? Model.EditDescription : group.Description)"
+                                   maxlength="4000" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="bgt-form-actions">
+                        <button type="button" class="btn btn-secondary" @@click="editing = false">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+            <div class="bgt-group-head" x-show="!editing" @(editFailed ? "x-cloak" : null)>
                 <div style="flex: 1; min-width: 0">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <h2 class="bgt-group-name m-0">@group.Name</h2>
@@ -97,6 +121,10 @@
                         <div class="bgt-group-desc">@group.Description</div>
                     }
                 </div>
+                <button type="button" class="btn btn-secondary btn-icon" title="Edit group" aria-label="Edit group @group.Name"
+                        @@click="editing = true; $nextTick(() => document.getElementById('@editFormId-name').focus())">
+                    <icon name="pencil" size="15" />
+                </button>
                 <form method="post" asp-page-handler="DeleteGroup" class="m-0"
                       data-confirm="@($"Delete the group '{group.Name}'? All memberships and permissions will be removed.")">
                     @Html.AntiForgeryToken()
