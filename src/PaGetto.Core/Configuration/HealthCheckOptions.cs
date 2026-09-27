@@ -6,7 +6,7 @@ namespace PaGetto.Core.Configuration;
 public class HealthCheckOptions : IValidatableObject
 {
     [Required]
-    public string Path { get; set; }
+    public string Path { get; set; } = "/health";
 
     /// <summary>
     /// What the overall status property is called in the health check response. Default is "Status".

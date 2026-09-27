@@ -87,9 +87,9 @@ public class PaGettoOptions
     [Obsolete("Mirror config is now per-feed. This property is only read once at upgrade time to seed the default feed; configure mirroring via the admin UI or FeedSettings.")]
     public MirrorOptions Mirror { get; set; }
 
-    public HealthCheckOptions HealthCheck { get; set; }
+    public HealthCheckOptions HealthCheck { get; set; } = new();
 
-    public StatisticsOptions Statistics { get; set; }
+    public StatisticsOptions Statistics { get; set; } = new();
 
     public CorsPolicyOptions Cors { get; set; } = new();
 
