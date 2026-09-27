@@ -206,6 +206,34 @@ public class ValidatePaGettoOptionsTests
         }
     }
 
+    public class ValidateForwardedHeaders
+    {
+        private static bool HasFailure(ProxyTrustOptions trust)
+        {
+            var options = new PaGettoOptions { ForwardedHeaders = trust };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed && result.Failures.Any(f => f.Contains(nameof(PaGettoOptions.ForwardedHeaders)));
+        }
+
+        [Fact]
+        public void AcceptsValidValues()
+        {
+            Assert.False(HasFailure(new ProxyTrustOptions { KnownProxies = ["10.0.0.5", "::1"], KnownNetworks = ["10.0.0.0/8"] }));
+        }
+
+        [Fact]
+        public void RejectsInvalidProxy()
+        {
+            Assert.True(HasFailure(new ProxyTrustOptions { KnownProxies = ["proxy.local"] }));
+        }
+
+        [Fact]
+        public void RejectsInvalidNetwork()
+        {
+            Assert.True(HasFailure(new ProxyTrustOptions { KnownNetworks = ["10.0.0.0"] }));
+        }
+    }
+
     public class ValidateRemovedApiKey
     {
         [Fact]

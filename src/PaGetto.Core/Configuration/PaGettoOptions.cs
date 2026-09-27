@@ -92,6 +92,8 @@ public class PaGettoOptions
 
     public RequestRateLimitOptions RequestRateLimit { get; set; } = new();
 
+    public ProxyTrustOptions ForwardedHeaders { get; set; } = new();
+
     public NugetAuthenticationOptions Authentication { get; set; }
 
     public EmailOptions Email { get; set; }

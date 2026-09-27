@@ -78,6 +78,21 @@ By default, PaGetto is hosted at the root path `/` (e.g. `pagetto.your-company.o
 }
 ```
 
+## Trusted reverse proxies
+
+PaGetto reads the `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` headers, so it sees the client's address and the public scheme and host behind a reverse proxy. By default it accepts them from every client. When PaGetto is reachable directly as well as through the proxy, list the proxies so nobody else can fake these headers:
+
+```json
+{
+    "ForwardedHeaders": {
+        "KnownProxies": [ "10.0.0.5" ],
+        "KnownNetworks": [ "10.1.0.0/16" ]
+    }
+}
+```
+
+Once either list is set, only those addresses are trusted. Startup fails if an entry isn't an IP address or a network in CIDR notation.
+
 ## Enable read-through caching
 
 Read-through caching lets you index packages from an upstream source. You can use read-through

@@ -74,6 +74,7 @@ public class ValidatePaGettoOptions
         }
 
         ValidateRequestRateLimit(options, failures);
+        ValidateForwardedHeaders(options, failures);
 
         if (string.Equals(options.Database?.Type, "AzureTable", StringComparison.OrdinalIgnoreCase))
         {
@@ -141,6 +142,23 @@ public class ValidatePaGettoOptions
             failures.Add(
                 $"The '{nameof(PaGettoOptions.Email)}:{nameof(EmailOptions.Type)}' config is invalid. " +
                 $"Allowed values: {string.Join(", ", _validEmailTypes)} (or omit to disable email)");
+        }
+    }
+
+    private static void ValidateForwardedHeaders(PaGettoOptions options, List<string> failures)
+    {
+        const string section = nameof(PaGettoOptions.ForwardedHeaders);
+
+        foreach (var proxy in options.ForwardedHeaders?.KnownProxies ?? [])
+        {
+            if (!System.Net.IPAddress.TryParse(proxy, out _))
+                failures.Add($"The '{section}:{nameof(ProxyTrustOptions.KnownProxies)}' value '{proxy}' is not an IP address");
+        }
+
+        foreach (var network in options.ForwardedHeaders?.KnownNetworks ?? [])
+        {
+            if (!System.Net.IPNetwork.TryParse(network, out _))
+                failures.Add($"The '{section}:{nameof(ProxyTrustOptions.KnownNetworks)}' value '{network}' is not a network in CIDR notation, e.g. 10.0.0.0/8");
         }
     }
 
