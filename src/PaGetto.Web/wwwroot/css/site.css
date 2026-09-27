@@ -1188,6 +1188,15 @@ html:not(.bgt-view-grid) .bgt-pkg-grid { display: none; }
 .bgt-perm-hint { flex: 1 1 240px; }
 .bgt-perm-dirty { font-size: 13px; font-weight: 500; color: var(--bgt-warn); }
 
+/* ---------- Audit log ---------- */
+
+.bgt-audit-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.bgt-audit-table thead tr { font-size: 12px; color: var(--bgt-muted); background: var(--bgt-subtle); }
+.bgt-audit-table th { font-weight: 500; padding: 9px 12px; text-align: left; white-space: nowrap; }
+.bgt-audit-table td { border-top: 1px solid var(--bgt-divider); padding: 8px 12px; vertical-align: top; }
+.bgt-audit-table th:first-child, .bgt-audit-table td:first-child { padding-left: 18px; }
+.bgt-audit-detail { overflow-wrap: anywhere; color: var(--bgt-text-2); min-width: 160px; }
+
 /* ---------- Feeds ---------- */
 
 .bgt-feed-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 18px 14px 12px; background: var(--bgt-surface); }

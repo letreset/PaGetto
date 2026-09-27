@@ -128,7 +128,7 @@ public class AccountsModel : PageModel
     {
         var user = await _userService.FindByIdAsync(userId, cancellationToken);
         var username = user?.Username ?? userId.ToString();
-        _audit.Admin(HttpContext, eventName, username, detail);
+        await _audit.AdminAsync(HttpContext, eventName, username, detail);
         return username;
     }
 
@@ -196,7 +196,7 @@ public class AccountsModel : PageModel
             GetUserId(),
             cancellationToken);
 
-        _audit.Admin(HttpContext, "account_created", NewUsername, $"web_sign_in={NewCanLoginToUI}");
+        await _audit.AdminAsync(HttpContext, "account_created", NewUsername, $"web_sign_in={NewCanLoginToUI}");
         SuccessMessage = $"Account '{NewUsername}' created successfully.";
         await LoadUsersAndGroupsAsync(cancellationToken);
         return Page();
@@ -268,7 +268,7 @@ public class AccountsModel : PageModel
         }
 
         await _userService.SetAdminAsync(userId, !isAdmin, cancellationToken);
-        _audit.Admin(HttpContext, isAdmin ? "account_admin_revoked" : "account_admin_granted", user.Username);
+        await _audit.AdminAsync(HttpContext, isAdmin ? "account_admin_revoked" : "account_admin_granted", user.Username);
         ToastMessage = isAdmin ? $"Administrator role removed from '{user.Username}'." : $"'{user.Username}' is now an administrator.";
 
         return RedirectToPage();
@@ -310,7 +310,7 @@ public class AccountsModel : PageModel
         user.Email = string.IsNullOrEmpty(email) ? null : email;
         await _userService.UpdateUserAsync(user, cancellationToken);
 
-        _audit.Admin(HttpContext, "account_updated", username,
+        await _audit.AdminAsync(HttpContext, "account_updated", username,
             previousUsername == username ? null : $"previous_username={previousUsername}");
         ToastMessage = $"Account '{username}' updated.";
 
@@ -378,7 +378,7 @@ public class AccountsModel : PageModel
 
         // A new password from an administrator also ends a lockout from earlier failed attempts.
         await _userService.ResetFailedLoginCountAsync(userId, cancellationToken);
-        _audit.Admin(HttpContext, "account_password_reset", user.Username);
+        await _audit.AdminAsync(HttpContext, "account_password_reset", user.Username);
 
         SuccessMessage = $"Password of '{user.Username}' reset successfully.";
         await LoadUsersAndGroupsAsync(cancellationToken);
@@ -408,7 +408,7 @@ public class AccountsModel : PageModel
 
         var username = user.Username;
         await _userService.DeleteUserAsync(userId, cancellationToken);
-        _audit.Admin(HttpContext, "account_deleted", username);
+        await _audit.AdminAsync(HttpContext, "account_deleted", username);
 
         SuccessMessage = $"Account '{username}' has been deleted.";
         await LoadUsersAndGroupsAsync(cancellationToken);
@@ -446,7 +446,7 @@ public class AccountsModel : PageModel
             var result = await _tokenService.CreateTokenAsync(
                 userId, tokenName.Trim(), DateTime.UtcNow.AddDays(days), cancellationToken);
             NewTokenPlaintext = result.PlaintextToken;
-            _audit.Admin(HttpContext, "account_token_created", user.Username, $"token={result.Token.TokenPrefix} expires={result.Token.ExpiresAtUtc:yyyy-MM-dd}");
+            await _audit.AdminAsync(HttpContext, "account_token_created", user.Username, $"token={result.Token.TokenPrefix} expires={result.Token.ExpiresAtUtc:yyyy-MM-dd}");
             SuccessMessage = $"Token '{result.Token.Name}' created for '{user.Username}'. Copy it now, it is shown only once.";
         }
         catch (ArgumentException ex)

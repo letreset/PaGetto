@@ -7,6 +7,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Web.Audit;
+using PaGetto.Web.Tests.Audit;
 using PaGetto.Web.Pages.Admin;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -211,7 +212,7 @@ public class GroupsModelFacts
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
                 new[] { new Claim(ClaimTypes.NameIdentifier, adminId.ToString()) }, "TestAuth"));
 
-            _target = new GroupsModel(_groups.Object, _users.Object, _permissions.Object, _feeds.Object, new WebAuditLog(NullLogger<WebAuditLog>.Instance))
+            _target = new GroupsModel(_groups.Object, _users.Object, _permissions.Object, _feeds.Object, TestWebAuditLog.Create())
             {
                 PageContext = new PageContext(new ActionContext(
                     new DefaultHttpContext { User = principal },

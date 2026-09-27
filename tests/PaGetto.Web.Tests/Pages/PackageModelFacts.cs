@@ -15,6 +15,7 @@ using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Search;
 using PaGetto.Web.Audit;
+using PaGetto.Web.Tests.Audit;
 using PaGetto.Web.Pages;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -72,7 +73,7 @@ public class PackageModelFacts
             permissions.Object,
             deletionService.Object,
             _feedSettings.Object,
-            new WebAuditLog(_auditLogger.Object),
+            TestWebAuditLog.Create(_auditLogger.Object),
             authOptions.Object,
             _time.Object);
 
@@ -575,7 +576,7 @@ public class PackageModelFacts
 
         var target = new PackageModel(
             _packages.Object, _content.Object, _search.Object, _url.Object,
-            _feedContext.Object, permissions.Object, new Mock<IPackageDeletionService>().Object, _feedSettings.Object, new WebAuditLog(_auditLogger.Object), authOptions.Object, _time.Object);
+            _feedContext.Object, permissions.Object, new Mock<IPackageDeletionService>().Object, _feedSettings.Object, TestWebAuditLog.Create(_auditLogger.Object), authOptions.Object, _time.Object);
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));
@@ -689,7 +690,7 @@ public class PackageModelFacts
         var deletion = new Mock<IPackageDeletionService>();
         var target = new PackageModel(
             _packages.Object, _content.Object, _search.Object, _url.Object,
-            _feedContext.Object, permissions.Object, deletion.Object, _feedSettings.Object, new WebAuditLog(_auditLogger.Object), authOptions.Object, _time.Object);
+            _feedContext.Object, permissions.Object, deletion.Object, _feedSettings.Object, TestWebAuditLog.Create(_auditLogger.Object), authOptions.Object, _time.Object);
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));

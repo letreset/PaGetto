@@ -19,6 +19,7 @@ public class NullContext : IContext
     public DbSet<Group> Groups { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<UserGroup> UserGroups { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<FeedPermission> FeedPermissions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public DbSet<AuditEvent> AuditEvents { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public bool SupportsLimitInSubqueries => throw new NotImplementedException();
 

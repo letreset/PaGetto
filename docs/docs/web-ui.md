@@ -115,6 +115,7 @@ Administrators open these pages from the user menu. They share a tab row, so you
 | Accounts | Create, enable and disable [local accounts](authentication.md#local-accounts), allow or block web sign-in, make or remove administrators, unlock locked accounts, reset passwords, create tokens, and see Entra users who have signed in. A disabled account can be deleted. Each row shows whether the account is Local or Entra, its email address, and its groups: role-synced groups and manual memberships have different chips |
 | Groups & permissions | Manage [groups](authentication.md#groups), their members, and their [permissions](authentication.md#feed-permissions) on each feed |
 | Feeds | Create, reorder and delete [feeds](feeds.md#managing-feeds), copy each feed's service index URL, and open each feed's [settings](feeds.md#feed-settings) (including its display name, description and mirrors) |
+| Audit log | The successful package actions and administration changes, with who made them, when and from which IP address |
 
 ### Feeds
 
@@ -133,3 +134,7 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 ![Admin > Groups & permissions with three groups, and the permissions of the Developers group on each feed](./assets/web-ui/admin-groups.png)
 
 **New group** opens the form for a group, with an optional **App role value** that links it to an Entra app role; it can't be changed afterwards. The pencil button next to a group edits its name and description; members, permissions and the app role link are kept. Add members to a group with **Add member**, and remove one with the x on its chip. Entra users can't be added to or removed from a role-linked group by hand: their membership follows their app roles. **Delete group** removes the group with its memberships and permissions. Open **Feed permissions** under a group to set its **Pull**, **Push** and **Delete** permissions on each feed, then select **Save permissions**; the button is enabled once a box changes. Clearing all three removes the group's access to that feed.
+
+### Audit log
+
+**Audit log** lists the successful package uploads, unlists, relists and deletes, from NuGet clients and from the web UI, and every change on the **Admin** pages, newest first and 50 per page. Each row shows the time in UTC, the [event](configuration.md#audit-log), the actor, the target (the account, group or feed that was changed, or the package id and version with its feed), the detail and the client IP address. Filter by event, actor, feed, target or package id, and a range of days in UTC. Denied and failed attempts are only in the server log. Events are kept for `Audit:RetentionDays` days, 30 by default (see [Audit retention](configuration.md#audit-retention)).

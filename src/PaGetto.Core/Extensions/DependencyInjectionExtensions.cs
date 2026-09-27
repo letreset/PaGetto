@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
+using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Content;
@@ -90,6 +91,7 @@ public static partial class DependencyInjectionExtensions
         services.AddPaGettoOptions<EmailOptions>(nameof(PaGettoOptions.Email));
         services.AddPaGettoOptions<SmtpEmailOptions>(nameof(PaGettoOptions.Email));
         services.AddPaGettoOptions<PatExpiryNotificationOptions>(nameof(PaGettoOptions.PatExpiryNotification));
+        services.AddPaGettoOptions<AuditOptions>(nameof(PaGettoOptions.Audit));
     }
 
     private static void AddPaGettoServices(this IServiceCollection services)
@@ -120,6 +122,7 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<IUserService, UserService>();
         services.TryAddTransient<IGroupService, GroupService>();
         services.TryAddTransient<IPermissionService, PermissionService>();
+        services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();
         services.TryAddTransient<IPackageContentService, DefaultPackageContentService>();

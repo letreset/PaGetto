@@ -78,6 +78,11 @@ public class ValidatePaGettoOptions
             failures.Add($"The '{nameof(PaGettoOptions.SecurityHeaders)}:{nameof(SecurityHeadersOptions.HstsMaxAgeDays)}' config must be at least 1");
         }
 
+        if (options.Audit is { RetentionDays: < 0 })
+        {
+            failures.Add($"The '{nameof(PaGettoOptions.Audit)}:{nameof(AuditOptions.RetentionDays)}' config must be 0 or more");
+        }
+
         ValidateRequestRateLimit(options, failures);
         ValidateForwardedHeaders(options, failures);
         ValidateDataProtection(options, failures);

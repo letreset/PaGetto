@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +8,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Web.Audit;
 using PaGetto.Web.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -32,6 +32,7 @@ public partial class PackagePublishController : Controller
     private readonly IPackageDatabase _packages;
     private readonly IPackageDeletionService _deleteService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
+    private readonly WebAuditLog _audit;
     private readonly ILogger<PackagePublishController> _logger;
 
     public PackagePublishController(
@@ -44,6 +45,7 @@ public partial class PackagePublishController : Controller
         IPackageDatabase packages,
         IPackageDeletionService deletionService,
         IOptionsSnapshot<PaGettoOptions> options,
+        WebAuditLog audit,
         ILogger<PackagePublishController> logger)
     {
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
@@ -55,6 +57,7 @@ public partial class PackagePublishController : Controller
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _deleteService = deletionService ?? throw new ArgumentNullException(nameof(deletionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -64,7 +67,7 @@ public partial class PackagePublishController : Controller
         if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
         {
             var (readOnlyAuthorized, readOnlyAuthenticated, _) = await AuthorizePushAsync(cancellationToken);
-            LogAudit(LogLevel.Warning, "package_upload_read_only", null, null, GetActor());
+            await AuditAsync(LogLevel.Warning, "package_upload_read_only", null, null, GetActor());
             HttpContext.Response.StatusCode = readOnlyAuthorized || readOnlyAuthenticated ? 403 : 401;
             return;
         }
@@ -73,7 +76,7 @@ public partial class PackagePublishController : Controller
         var (authorized, authenticated, actor) = await AuthorizePushAsync(cancellationToken);
         if (!authorized)
         {
-            LogAudit(LogLevel.Warning, "package_upload_unauthorized", null, null, actor);
+            await AuditAsync(LogLevel.Warning, "package_upload_unauthorized", null, null, actor);
             HttpContext.Response.StatusCode = authenticated ? 403 : 401;
             return;
         }
@@ -83,7 +86,7 @@ public partial class PackagePublishController : Controller
             using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
             if (uploadStream == null)
             {
-                LogAudit(LogLevel.Warning, "package_upload_invalid_package", null, null, actor);
+                await AuditAsync(LogLevel.Warning, "package_upload_invalid_package", null, null, actor);
                 HttpContext.Response.StatusCode = 400;
                 return;
             }
@@ -96,7 +99,7 @@ public partial class PackagePublishController : Controller
             var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
             if (uploadStream.Length > maxBytes)
             {
-                LogAudit(LogLevel.Warning, "package_upload_too_large", packageId, packageVersion, actor);
+                await AuditAsync(LogLevel.Warning, "package_upload_too_large", packageId, packageVersion, actor);
                 HttpContext.Response.StatusCode = 413;
                 return;
             }
@@ -106,17 +109,17 @@ public partial class PackagePublishController : Controller
             switch (result)
             {
                 case PackageIndexingResult.InvalidPackage:
-                    LogAudit(LogLevel.Warning, "package_upload_invalid_package", packageId, packageVersion, actor);
+                    await AuditAsync(LogLevel.Warning, "package_upload_invalid_package", packageId, packageVersion, actor);
                     HttpContext.Response.StatusCode = 400;
                     break;
 
                 case PackageIndexingResult.PackageAlreadyExists:
-                    LogAudit(LogLevel.Warning, "package_upload_already_exists", packageId, packageVersion, actor);
+                    await AuditAsync(LogLevel.Warning, "package_upload_already_exists", packageId, packageVersion, actor);
                     HttpContext.Response.StatusCode = 409;
                     break;
 
                 case PackageIndexingResult.Success:
-                    LogAudit(LogLevel.Information, "package_upload_succeeded", packageId, packageVersion, actor);
+                    await AuditAsync(LogLevel.Information, "package_upload_succeeded", packageId, packageVersion, actor);
                     HttpContext.Response.StatusCode = 201;
                     break;
             }
@@ -135,31 +138,31 @@ public partial class PackagePublishController : Controller
         if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
         {
             var (readOnlyAuthorized, readOnlyAuthenticated, _) = await AuthorizeDeleteAsync(cancellationToken);
-            LogAudit(LogLevel.Warning, "package_delete_read_only", id, version, GetActor());
+            await AuditAsync(LogLevel.Warning, "package_delete_read_only", id, version, GetActor());
             return DeniedResult(readOnlyAuthorized || readOnlyAuthenticated);
         }
 
         if (!NuGetVersion.TryParse(version, out var nugetVersion))
         {
-            LogAudit(LogLevel.Warning, "package_delete_not_found", id, version, GetActor());
+            await AuditAsync(LogLevel.Warning, "package_delete_not_found", id, version, GetActor());
             return NotFound();
         }
 
         var (authorized, authenticated, actor) = await AuthorizeDeleteAsync(cancellationToken);
         if (!authorized)
         {
-            LogAudit(LogLevel.Warning, "package_delete_unauthorized", id, version, actor);
+            await AuditAsync(LogLevel.Warning, "package_delete_unauthorized", id, version, actor);
             return DeniedResult(authenticated);
         }
 
         if (await _deleteService.TryDeletePackageAsync(_feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, id, nugetVersion, cancellationToken))
         {
-            LogAudit(LogLevel.Information, "package_delete_succeeded", id, version, actor);
+            await AuditAsync(LogLevel.Information, "package_delete_succeeded", id, version, actor);
             return NoContent();
         }
         else
         {
-            LogAudit(LogLevel.Warning, "package_delete_not_found", id, version, actor);
+            await AuditAsync(LogLevel.Warning, "package_delete_not_found", id, version, actor);
             return NotFound();
         }
     }
@@ -170,31 +173,31 @@ public partial class PackagePublishController : Controller
         if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
         {
             var (readOnlyAuthorized, readOnlyAuthenticated, _) = await AuthorizePushAsync(cancellationToken);
-            LogAudit(LogLevel.Warning, "package_relist_read_only", id, version, GetActor());
+            await AuditAsync(LogLevel.Warning, "package_relist_read_only", id, version, GetActor());
             return DeniedResult(readOnlyAuthorized || readOnlyAuthenticated);
         }
 
         if (!NuGetVersion.TryParse(version, out var nugetVersion))
         {
-            LogAudit(LogLevel.Warning, "package_relist_not_found", id, version, GetActor());
+            await AuditAsync(LogLevel.Warning, "package_relist_not_found", id, version, GetActor());
             return NotFound();
         }
 
         var (authorized, authenticated, actor) = await AuthorizePushAsync(cancellationToken);
         if (!authorized)
         {
-            LogAudit(LogLevel.Warning, "package_relist_unauthorized", id, version, actor);
+            await AuditAsync(LogLevel.Warning, "package_relist_unauthorized", id, version, actor);
             return DeniedResult(authenticated);
         }
 
         if (await _packages.RelistPackageAsync(_feedContext.CurrentFeed.Id, id, nugetVersion, cancellationToken))
         {
-            LogAudit(LogLevel.Information, "package_relist_succeeded", id, version, actor);
+            await AuditAsync(LogLevel.Information, "package_relist_succeeded", id, version, actor);
             return Ok();
         }
         else
         {
-            LogAudit(LogLevel.Warning, "package_relist_not_found", id, version, actor);
+            await AuditAsync(LogLevel.Warning, "package_relist_not_found", id, version, actor);
             return NotFound();
         }
     }
@@ -280,19 +283,9 @@ public partial class PackagePublishController : Controller
         return string.IsNullOrEmpty(Request.GetApiKey()) ? "anonymous" : "api-key";
     }
 
-    private void LogAudit(LogLevel level, string eventName, string packageId, string packageVersion, string actor)
+    private async Task AuditAsync(LogLevel level, string eventName, string packageId, string packageVersion, string actor)
     {
-        if (!_logger.IsEnabled(level))
-            return;
-
-        LogAuditEvent(
-            level,
-            eventName,
-            _feedContext.CurrentFeed.Slug,
-            packageId,
-            packageVersion,
-            actor,
-            HttpContext.Connection.RemoteIpAddress);
+        await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageId, packageVersion, actor);
     }
 
     private static PackageIdentity TryReadPackageIdentity(Stream packageStream)
@@ -315,7 +308,4 @@ public partial class PackagePublishController : Controller
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Exception thrown during package upload")]
     private partial void LogUploadException(Exception exception);
-
-    [LoggerMessage(Message = "AUDIT {Event} feed={Feed} package_id={PackageId} package_version={PackageVersion} actor={Actor} ip={Ip}")]
-    private partial void LogAuditEvent(LogLevel level, string @event, string feed, string packageId, string packageVersion, string actor, IPAddress ip);
 }

@@ -1,0 +1,156 @@
+@page
+@using System.Globalization
+@model PaGetto.Web.Pages.Admin.AuditModel
+
+@{
+    ViewData["Title"] = "Audit log";
+}
+
+@await Html.PartialAsync("_AdminTabs", "Audit")
+
+<div class="bgt-page-head">
+    <div>
+        <h1>Audit log</h1>
+        <p class="bgt-lead">
+            @Model.TotalCount.ToString("N0", CultureInfo.InvariantCulture) @(Model.TotalCount == 1 ? "event" : "events"):
+            successful changes in the web UI and the NuGet API, newest first.
+        </p>
+    </div>
+</div>
+
+<form method="get" class="bgt-card bgt-card-body mb-3" aria-label="Filter the audit log">
+    <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr))">
+        <div>
+            <label for="audit-event" class="form-label">Event</label>
+            <select id="audit-event" name="event" class="form-select">
+                <option value="">Any event</option>
+                @foreach (var name in Model.EventNames)
+                {
+                    <option value="@name" selected="@(name == Model.Event)">@name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="audit-actor" class="form-label">Actor</label>
+            <input id="audit-actor" name="actor" value="@Model.Actor" class="form-control" autocomplete="off" />
+        </div>
+        <div>
+            <label for="audit-feed" class="form-label">Feed</label>
+            <select id="audit-feed" name="feed" class="form-select">
+                <option value="">Any feed</option>
+                @foreach (var feed in Model.Feeds)
+                {
+                    <option value="@feed.Slug" selected="@(feed.Slug == Model.Feed)">@feed.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="audit-target" class="form-label">Target or package</label>
+            <input id="audit-target" name="target" value="@Model.Target" class="form-control" autocomplete="off" />
+        </div>
+        <div>
+            <label for="audit-from" class="form-label">From (UTC)</label>
+            <input id="audit-from" name="from" type="date" value="@Model.From?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" class="form-control" />
+        </div>
+        <div>
+            <label for="audit-to" class="form-label">To (UTC)</label>
+            <input id="audit-to" name="to" type="date" value="@Model.To?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" class="form-control" />
+        </div>
+    </div>
+    <div class="bgt-form-actions">
+        <a asp-page="/Admin/Audit" class="btn btn-secondary">Clear</a>
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+
+<div class="bgt-card">
+    @if (Model.Events.Count == 0)
+    {
+        <div class="bgt-empty-row">@(Model.PageIndex > 1 ? $"Page {Model.PageIndex} is past the last page." : "No audit events found.")</div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="bgt-audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Time (UTC)</th>
+                        <th scope="col">Event</th>
+                        <th scope="col">Actor</th>
+                        <th scope="col">Target</th>
+                        <th scope="col">Detail</th>
+                        <th scope="col">IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var auditEvent in Model.Events)
+                    {
+                        var hasPackage = auditEvent.PackageId != null;
+                        <tr>
+                            <td class="text-nowrap">@Html.DisplayDate(auditEvent.TimestampUtc, auditEvent.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))</td>
+                            <td><span class="bgt-slug">@auditEvent.Event</span></td>
+                            <td>@auditEvent.Actor</td>
+                            <td>
+                                @if (hasPackage)
+                                {
+                                    <text>@auditEvent.PackageId @auditEvent.PackageVersion</text>
+                                }
+                                else
+                                {
+                                    @auditEvent.Target
+                                }
+                                @if (auditEvent.Feed != null)
+                                {
+                                    <span class="bgt-slug ms-1">@auditEvent.Feed</span>
+                                }
+                            </td>
+                            <td class="bgt-audit-detail">@auditEvent.Detail</td>
+                            <td class="text-nowrap">@auditEvent.IpAddress</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="bgt-pager" aria-label="Audit log page navigation">
+        @if (Model.PageIndex <= 1)
+        {
+            <span class="disabled" aria-disabled="true">&larr; Prev</span>
+        }
+        else
+        {
+            <a href="@PageLink(Model.PageIndex - 1)" rel="prev">&larr; Prev</a>
+        }
+
+        <span class="num current" aria-current="page">Page @Model.PageIndex of @Model.TotalPages</span>
+
+        @if (Model.PageIndex >= Model.TotalPages)
+        {
+            <span class="disabled" aria-disabled="true">Next &rarr;</span>
+        }
+        else
+        {
+            <a href="@PageLink(Model.PageIndex + 1)" rel="next">Next &rarr;</a>
+        }
+    </nav>
+}
+
+@functions {
+    private string PageLink(int page)
+    {
+        return Url.Page("/Admin/Audit", new
+        {
+            @event = Model.Event,
+            actor = Model.Actor,
+            feed = Model.Feed,
+            target = Model.Target,
+            from = Model.From?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            to = Model.To?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            p = page == 1 ? (int?)null : page,
+        });
+    }
+}

@@ -153,6 +153,15 @@ For every page you open, the browser console should show no errors.
 | G6 | `admin` | Create a group, open its delete confirmation in two tabs, confirm in both | The first shows the toast "Group deleted successfully.", the second "Group not found." |
 | G7 | `admin` | Create a group `Temp`, add `carol` and give it Pull on Internal. Click its pencil, rename it to `Developers`; then rename it to `Temporary` with a new description and **Save** | The first shows "Group 'Developers' already exists." with the form still open and nothing changed; the second shows the toast "Group 'Temporary' updated successfully.", the new name and description, `carol` still a member and Pull on Internal kept. The container log has `AUDIT group_updated` for `Temp` with `name=Temporary`. Delete the group afterwards |
 
+## Admin > Audit log
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| U1 | `admin` | Create a group `Audit test`, delete it, then open **Audit log** | The newest rows are `group_deleted` and `group_created` for `Audit test`, with actor `admin`, the time in UTC and your IP address |
+| U2 | `alice` | Push a package from `testenv/packages` to Internal, then push the same version again (409); as `admin`, open **Audit log** with Feed = Internal | One `package_upload_succeeded` row with the package id and version, actor `alice`; no row for the rejected push |
+| U3 | `admin` | Filter by Event = `group_created` and a From date after today, then **Clear** | "No audit events found." while filtered; all events again after **Clear** |
+| U4 | `alice` | Open `/admin/audit` | Redirected to the package list |
+
 ## Access control
 
 | # | Account | Steps | Expected |

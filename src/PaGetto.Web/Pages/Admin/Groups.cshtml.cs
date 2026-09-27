@@ -137,7 +137,7 @@ public class GroupsModel : PageModel
     private async Task AuditMembershipAsync(string eventName, Guid groupId, Guid userId, CancellationToken cancellationToken)
     {
         var user = await _userService.FindByIdAsync(userId, cancellationToken);
-        _audit.Admin(HttpContext, eventName, await GetGroupNameAsync(groupId, cancellationToken), $"user={user?.Username ?? userId.ToString()}");
+        await _audit.AdminAsync(HttpContext, eventName, await GetGroupNameAsync(groupId, cancellationToken), $"user={user?.Username ?? userId.ToString()}");
     }
 
     public async Task<IActionResult> OnPostCreateGroupAsync(CancellationToken cancellationToken)
@@ -169,7 +169,7 @@ public class GroupsModel : PageModel
             NewDescription,
             cancellationToken);
 
-        _audit.Admin(HttpContext, "group_created", NewGroupName);
+        await _audit.AdminAsync(HttpContext, "group_created", NewGroupName);
         SuccessMessage = $"Group '{NewGroupName}' created successfully.";
         Groups = await _groupService.GetAllGroupsAsync(cancellationToken);
         AllUsers = await _userService.GetAllUsersAsync(cancellationToken);
@@ -208,7 +208,7 @@ public class GroupsModel : PageModel
         }
         else if (await _groupService.UpdateGroupAsync(groupId, name, description, cancellationToken))
         {
-            _audit.Admin(HttpContext, "group_updated", oldName, $"name={name}");
+            await _audit.AdminAsync(HttpContext, "group_updated", oldName, $"name={name}");
             SuccessMessage = $"Group '{name}' updated successfully.";
         }
         else
@@ -297,7 +297,7 @@ public class GroupsModel : PageModel
                 if (existing != null)
                 {
                     await _permissionService.RevokePermissionAsync(existing.Id, cancellationToken);
-                    _audit.Admin(HttpContext, "feed_permission_revoked", groupName,
+                    await _audit.AdminAsync(HttpContext, "feed_permission_revoked", groupName,
                         $"feed={feedSlugs.GetValueOrDefault(permission.FeedId)}");
                 }
             }
@@ -311,7 +311,7 @@ public class GroupsModel : PageModel
                     groupId, PrincipalType.Group, permission.FeedId,
                     permission.CanPush, permission.CanPull, cancellationToken,
                     canDelete: permission.CanDelete);
-                _audit.Admin(HttpContext, "feed_permission_set", groupName,
+                await _audit.AdminAsync(HttpContext, "feed_permission_set", groupName,
                     $"feed={feedSlugs.GetValueOrDefault(permission.FeedId)} pull={permission.CanPull} push={permission.CanPush} delete={permission.CanDelete}");
             }
         }
@@ -326,7 +326,7 @@ public class GroupsModel : PageModel
             return RedirectToPage("/Index");
 
         await _permissionService.RevokePermissionAsync(permissionId, cancellationToken);
-        _audit.Admin(HttpContext, "feed_permission_revoked", permissionId.ToString());
+        await _audit.AdminAsync(HttpContext, "feed_permission_revoked", permissionId.ToString());
 
         return RedirectToPage();
     }
@@ -340,7 +340,7 @@ public class GroupsModel : PageModel
         var deletedName = await GetGroupNameAsync(groupId, cancellationToken);
         if (await _groupService.DeleteGroupAsync(groupId, cancellationToken))
         {
-            _audit.Admin(HttpContext, "group_deleted", deletedName);
+            await _audit.AdminAsync(HttpContext, "group_deleted", deletedName);
             SuccessMessage = "Group deleted successfully.";
         }
         else

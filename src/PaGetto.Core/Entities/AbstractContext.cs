@@ -37,6 +37,8 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public const int MaxGroupNameLength = 256;
     public const int MaxAppRoleValueLength = 128;
     public const int MaxFeedIdLength = 128;
+    public const int MaxAuditEventNameLength = 128;
+    public const int MaxIpAddressLength = 64;
 
     /// <summary>
     /// The name suffix of the migration that adds the normalized username and group name columns.
@@ -63,6 +65,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<Group> Groups { get; set; }
     public DbSet<UserGroup> UserGroups { get; set; }
     public DbSet<FeedPermission> FeedPermissions { get; set; }
+    public DbSet<AuditEvent> AuditEvents { get; set; }
 
     public Task<int> SaveChangesAsync() => SaveChangesAsync(default);
 
@@ -150,6 +153,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<Group>(BuildGroupEntity);
         builder.Entity<UserGroup>(BuildUserGroupEntity);
         builder.Entity<FeedPermission>(BuildFeedPermissionEntity);
+        builder.Entity<AuditEvent>(BuildAuditEventEntity);
     }
 
     private void BuildFeedEntity(EntityTypeBuilder<Feed> feed)
@@ -444,5 +448,21 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
             .WithMany(f => f.Permissions)
             .HasForeignKey(p => p.FeedId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void BuildAuditEventEntity(EntityTypeBuilder<AuditEvent> auditEvent)
+    {
+        auditEvent.HasKey(e => e.Id);
+        auditEvent.HasIndex(e => e.TimestampUtc);
+
+        auditEvent.Property(e => e.TimestampUtc).IsRequired();
+        auditEvent.Property(e => e.Event).HasMaxLength(MaxAuditEventNameLength).IsRequired();
+        auditEvent.Property(e => e.Actor).HasMaxLength(MaxUsernameLength);
+        auditEvent.Property(e => e.IpAddress).HasMaxLength(MaxIpAddressLength);
+        auditEvent.Property(e => e.Feed).HasMaxLength(MaxFeedIdLength);
+        auditEvent.Property(e => e.Target).HasMaxLength(MaxUsernameLength);
+        auditEvent.Property(e => e.Detail).HasMaxLength(DefaultMaxStringLength);
+        auditEvent.Property(e => e.PackageId).HasMaxLength(MaxPackageIdLength);
+        auditEvent.Property(e => e.PackageVersion).HasMaxLength(MaxPackageVersionLength);
     }
 }

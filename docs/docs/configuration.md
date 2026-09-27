@@ -595,7 +595,25 @@ HTML pages aren't compressed on purpose: compressing pages that carry anti-forge
 
 ## Audit log
 
-PaGetto writes one log line for every package upload, unlist, delete and relist, from NuGet clients and from the web UI, including denied attempts, and one for every change on the **Admin** pages. There is no separate audit store: the lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.
+PaGetto writes one log line for every package upload, unlist, delete and relist, from NuGet clients and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.
+
+The successful events (the `Information` lines) are also stored in the database and listed on **Admin > Audit log** (see [Web UI](web-ui.md#audit-log)). Denied and failed attempts are only logged, so a misbehaving client can't fill the table.
+
+### Audit retention
+
+The database keeps audit events for `Audit:RetentionDays` days (default `30`). Older events are deleted at startup and then once a day. `0` keeps them forever; negative values are refused at startup. The log lines are not affected.
+
+```json
+{
+    ...
+
+    "Audit": {
+        "RetentionDays": 30
+    },
+
+    ...
+}
+```
 
 ### Package events
 
@@ -628,6 +646,7 @@ AUDIT account_disabled target=bob detail= actor=admin ip=10.0.0.12
 | `account_unlocked`, `account_password_reset`, `account_deleted` | Username | |
 | `account_token_created` | Username | Token prefix and expiry date |
 | `group_created`, `group_deleted` | Group name | |
+| `group_updated` | The group's old name | `name=<new name>` |
 | `group_member_added`, `group_member_removed` | Group name | `user=<username>` |
 | `feed_permission_set` | Group name | `feed=<slug> pull=… push=… delete=…` |
 | `feed_permission_revoked` | Group name | `feed=<slug>` |
@@ -640,7 +659,7 @@ AUDIT account_disabled target=bob detail= actor=admin ip=10.0.0.12
 
 ### Log categories
 
-Successful operations are logged at `Information`, denials and failures at `Warning`. NuGet API lines use the `PaGetto.Web.Controllers.PackagePublishController` log category, web UI lines use `PaGetto.Web.Audit.WebAuditLog`. The default `appsettings.json` logs both at `Information`. If you override the `Logging` section, keep them at `Information` or the successful operations won't be logged:
+Successful operations are logged at `Information`, denials and failures at `Warning`. All lines, from the NuGet API and the web UI, use the `PaGetto.Web.Audit.WebAuditLog` log category (NuGet API lines used `PaGetto.Web.Controllers.PackagePublishController` before the audit page was added). The default `appsettings.json` logs it at `Information`. If you override the `Logging` section, keep it at `Information` or the successful operations won't be logged. The audit page doesn't depend on the log level:
 
 ```json
 {
@@ -649,7 +668,6 @@ Successful operations are logged at `Information`, denials and failures at `Warn
     "Logging": {
         "Console": {
             "LogLevel": {
-                "PaGetto.Web.Controllers.PackagePublishController": "Information",
                 "PaGetto.Web.Audit.WebAuditLog": "Information",
                 "Default": "Warning"
             }
