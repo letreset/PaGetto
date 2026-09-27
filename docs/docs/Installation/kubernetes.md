@@ -24,7 +24,7 @@ PaGetto's settings are environment variables in a ConfigMap, under `configMaps.p
 configMaps:
   pagetto-env:
     data:
-      ApiKey: "ChangeMe"
+      Authentication__Mode: "Local"
       Storage__Type: "FileSystem"
       Storage__Path: "/data"
       Database__Type: "Sqlite"

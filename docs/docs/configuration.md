@@ -3,7 +3,7 @@ import TabItem from '@theme/TabItem';
 
 # Configuration
 
-You can modify PaGetto's configurations by editing the `appsettings.json` file.
+You can modify PaGetto's configurations by editing the `appsettings.json` file. The shipped file only turns on what a SQLite install with local accounts needs (`Database`, `Storage`, `Search` and `Authentication:Mode`); every other setting is listed in it as a comment with its default value and a short description.
 
 ## Machine-wide config file
 
@@ -203,7 +203,7 @@ The `Mirror` section also takes these settings:
 - **Legacy**: set to `true` if `PackageSource` is a NuGet v2 feed. Default `false`. Legacy feeds only support basic authentication.
 - **PackageDownloadTimeoutSeconds**: how long a package download from the upstream can take. Default `600`.
 
-PaGetto refuses to start without a `Mirror` section, even though it is obsolete. To run without a mirror, keep the section and set `Enabled` to `false`, as the shipped `appsettings.json` does.
+The `Mirror` section is optional and only used for that one-time copy. The shipped `appsettings.json` leaves it out.
 
 ## Enable package hard deletions
 

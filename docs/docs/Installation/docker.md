@@ -6,19 +6,20 @@ The image is [`letreset/pagetto`](https://hub.docker.com/r/letreset/pagetto) on 
 
 ```shell
 docker run -d --name pagetto -p 5000:8080 -v pagetto-data:/data \
-  -e ApiKey=change-me \
   letreset/pagetto:latest
 ```
 
-Open [`http://localhost:5000/`](http://localhost:5000/) and push a package with the API key:
+The image runs with local accounts (`Authentication:Mode` is `Local`). Open [`http://localhost:5000/`](http://localhost:5000/) and sign in as `admin` with the password `admin`: PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it:
 
 ```shell
-dotnet nuget push -s http://localhost:5000/v3/index.json -k change-me MyPackage.1.0.0.nupkg
+dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
 
 :::warning
 
-Without `ApiKey` (and with the `Legacy` [authentication mode](../authentication.md)), anyone who can reach the server can push packages. Set a long random value.
+Change the default `admin` password right after the first start, before others can reach the server.
+
+To run without accounts, like BaGetter, set `Authentication__Mode=Legacy` and `ApiKey` to a long random value. Without `ApiKey`, anyone who can reach the server can push packages.
 
 :::
 
@@ -83,6 +84,7 @@ services:
       Database__Type: PostgreSql
       Database__ConnectionString: Host=db;Database=pagetto;Username=pagetto;Password=${POSTGRES_PASSWORD}
       Search__Type: Database
+      Authentication__Mode: Legacy
     secrets:
       - source: pagetto_api_key
         target: ApiKey
