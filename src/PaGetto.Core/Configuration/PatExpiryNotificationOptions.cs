@@ -43,11 +43,9 @@ public class PatExpiryNotificationOptions : IValidatableObject
         NotificationDaysBeforeExpiry is { Length: > 0 } days ? days : DefaultNotificationDaysBeforeExpiry;
 
     /// <summary>
-    /// The public base URL of the PaGetto site (e.g. <c>https://packages.example.com</c>).
-    /// When set, notification emails include a link to the token management page so the owner
-    /// can create a replacement token. When empty, the email refers to the page by name only.
-    /// The scanner runs outside an HTTP request and cannot infer this, so it must be configured.
+    /// The old place of <see cref="PaGettoOptions.PublicBaseUrl"/>, only used when that isn't set.
     /// </summary>
+    [Obsolete("Use PublicBaseUrl.")]
     public string WebBaseUrl { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -70,6 +68,7 @@ public class PatExpiryNotificationOptions : IValidatableObject
             }
         }
 
+#pragma warning disable CS0618 // The legacy setting is still validated while it is honored.
         if (!string.IsNullOrWhiteSpace(WebBaseUrl))
         {
             var isHttpUrl = Uri.TryCreate(WebBaseUrl, UriKind.Absolute, out var uri)
@@ -81,5 +80,6 @@ public class PatExpiryNotificationOptions : IValidatableObject
                     [nameof(WebBaseUrl)]);
             }
         }
+#pragma warning restore CS0618
     }
 }

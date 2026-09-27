@@ -82,6 +82,13 @@ public class ValidatePaGettoOptions
         ValidateForwardedHeaders(options, failures);
         ValidateDataProtection(options, failures);
 
+        if (!string.IsNullOrWhiteSpace(options.PublicBaseUrl)
+            && !(Uri.TryCreate(options.PublicBaseUrl, UriKind.Absolute, out var publicBaseUrl)
+                 && (publicBaseUrl.Scheme == Uri.UriSchemeHttp || publicBaseUrl.Scheme == Uri.UriSchemeHttps)))
+        {
+            failures.Add($"The '{nameof(PaGettoOptions.PublicBaseUrl)}' config must be an absolute http(s) URL");
+        }
+
         if (string.Equals(options.Database?.Type, "AzureTable", StringComparison.OrdinalIgnoreCase))
         {
             failures.Add(

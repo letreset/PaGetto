@@ -292,6 +292,20 @@ public class ValidatePaGettoOptionsTests
         }
     }
 
+    public class ValidatePublicBaseUrl
+    {
+        [Theory]
+        [InlineData("https://packages.example.com", false)]
+        [InlineData("packages.example.com", true)]
+        [InlineData("ftp://packages.example.com", true)]
+        public void RequiresAnAbsoluteHttpUrl(string url, bool fails)
+        {
+            var result = new ValidatePaGettoOptions().Validate(null, new PaGettoOptions { PublicBaseUrl = url });
+
+            Assert.Equal(fails, result.Failed && result.Failures.Any(f => f.Contains(nameof(PaGettoOptions.PublicBaseUrl))));
+        }
+    }
+
     public class ValidateRemovedApiKey
     {
         [Fact]

@@ -77,7 +77,9 @@ public class PatExpiryNotificationOptionsTests
         [Fact]
         public void RejectsNonAbsoluteWebBaseUrl()
         {
+#pragma warning disable CS0618 // The legacy setting is still validated.
             var options = new PatExpiryNotificationOptions { WebBaseUrl = "not-a-url" };
+#pragma warning restore CS0618
 
             Assert.Contains(RunValidation(options), r => r.ErrorMessage.Contains("WebBaseUrl"));
         }

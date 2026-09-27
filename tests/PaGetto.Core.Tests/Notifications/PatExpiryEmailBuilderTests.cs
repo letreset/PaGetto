@@ -22,7 +22,9 @@ public class PatExpiryEmailBuilderTests
 
         private static PatExpiryEmailBuilder BuildBuilder(string webBaseUrl = null)
         {
-            return new PatExpiryEmailBuilder(Options.Create(new PatExpiryNotificationOptions { WebBaseUrl = webBaseUrl }));
+            return new PatExpiryEmailBuilder(
+                Options.Create(new PaGettoOptions { PublicBaseUrl = webBaseUrl }),
+                Options.Create(new PatExpiryNotificationOptions()));
         }
 
         [Fact]
@@ -52,6 +54,20 @@ public class PatExpiryEmailBuilderTests
             var message = BuildBuilder("https://packages.example.com/").Build(Token(), daysUntilExpiry: 2);
 
             Assert.Contains("""<a href="https://packages.example.com/account/tokens">""", message.Body);
+        }
+
+        [Fact]
+        public void FallsBackToTheLegacyWebBaseUrl()
+        {
+#pragma warning disable CS0618 // The legacy setting is still honored.
+            var builder = new PatExpiryEmailBuilder(
+                Options.Create(new PaGettoOptions()),
+                Options.Create(new PatExpiryNotificationOptions { WebBaseUrl = "https://old.example.com" }));
+#pragma warning restore CS0618
+
+            var message = builder.Build(Token(), daysUntilExpiry: 2);
+
+            Assert.Contains("""<a href="https://old.example.com/account/tokens">""", message.Body);
         }
 
         [Fact]
