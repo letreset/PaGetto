@@ -158,6 +158,8 @@ PublishScripts/
 
 # NuGet Packages
 *.nupkg
+# except the packages the tests read.
+!tests/**/TestData/*.nupkg
 # The packages folder can be ignored because of Package Restore
 **/packages/*
 # except build/, which is used as an MSBuild target.
@@ -273,7 +275,10 @@ __pycache__/
 **/pagetto.db-shm
 **/pagetto.db-wal
 
-.vscode/
+# Editor settings, except the shared launch and build tasks.
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # Chart dependencies
 charts/
@@ -281,5 +286,5 @@ Chart.lock
 
 .claude
 
-# keyring
-DataProtection
+# Data Protection keys written by local runs (the code in DataProtection/ is committed).
+**/DataProtection/*.xml
