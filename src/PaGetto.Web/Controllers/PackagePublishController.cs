@@ -206,9 +206,9 @@ public partial class PackagePublishController : Controller
     /// </summary>
     private async Task<(bool Authorized, bool Authenticated, string Actor)> AuthorizePushAsync(CancellationToken cancellationToken)
     {
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Config;
+        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
 
-        if (authMode == AuthenticationMode.Config)
+        if (authMode == AuthenticationMode.Legacy)
         {
             // Static auth mode: use configured API key
             return (await _authentication.AuthenticateAsync(Request.GetApiKey(), cancellationToken), false, GetActor());
@@ -235,9 +235,9 @@ public partial class PackagePublishController : Controller
 
     private async Task<(bool Authorized, bool Authenticated, string Actor)> AuthorizeDeleteAsync(CancellationToken cancellationToken)
     {
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Config;
+        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
 
-        if (authMode == AuthenticationMode.Config)
+        if (authMode == AuthenticationMode.Legacy)
         {
             // Static auth mode has no per-user delete permission; the configured API key
             // governs deletion exactly as it governs push.

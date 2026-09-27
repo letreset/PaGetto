@@ -164,12 +164,16 @@ public class ValidatePaGettoOptions
     private static void ValidateAuthentication(PaGettoOptions options, List<string> failures)
     {
         var auth = options.Authentication;
-        if (auth == null)
+        if (auth == null || !Enum.IsDefined(auth.Mode))
+        {
+            failures.Add($"The '{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Mode)}' config is required: " +
+                $"'{nameof(AuthenticationMode.Local)}', '{nameof(AuthenticationMode.Entra)}', '{nameof(AuthenticationMode.Hybrid)}' or '{nameof(AuthenticationMode.Legacy)}'");
             return;
+        }
 
         var mode = auth.Mode;
 
-        if (mode == AuthenticationMode.Config)
+        if (mode == AuthenticationMode.Legacy)
             return;
 
         if (mode is AuthenticationMode.Entra or AuthenticationMode.Hybrid)

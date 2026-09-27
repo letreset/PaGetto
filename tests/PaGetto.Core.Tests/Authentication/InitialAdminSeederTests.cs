@@ -78,7 +78,7 @@ public class InitialAdminSeederTests
         }
 
         [Theory]
-        [InlineData(AuthenticationMode.Config)]
+        [InlineData(AuthenticationMode.Legacy)]
         [InlineData(AuthenticationMode.Entra)]
         public async Task DoesNothingInModesWithoutLocalAccounts(AuthenticationMode mode)
         {

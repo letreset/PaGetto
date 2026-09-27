@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using PaGetto.Core.Configuration;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace PaGetto.Tests;
@@ -159,6 +160,49 @@ public class ValidatePaGettoOptionsTests
             var rateLimit = new RequestRateLimitOptions { Enabled = true, QueueLimit = -1 };
 
             Assert.True(HasFailure(rateLimit, nameof(RequestRateLimitOptions.QueueLimit)));
+        }
+    }
+
+    public class ValidateAuthenticationMode
+    {
+        private static bool HasModeFailure(NugetAuthenticationOptions authentication)
+        {
+            var options = new PaGettoOptions { Authentication = authentication };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed && result.Failures.Any(f => f.Contains("'Authentication:Mode' config is required"));
+        }
+
+        [Fact]
+        public void RejectsMissingSection()
+        {
+            Assert.True(HasModeFailure(null));
+        }
+
+        [Fact]
+        public void RejectsMissingMode()
+        {
+            Assert.True(HasModeFailure(new NugetAuthenticationOptions()));
+        }
+
+        [Theory]
+        [InlineData(AuthenticationMode.Legacy)]
+        [InlineData(AuthenticationMode.Local)]
+        public void AcceptsMode(AuthenticationMode mode)
+        {
+            Assert.False(HasModeFailure(new NugetAuthenticationOptions { Mode = mode }));
+        }
+
+        [Theory]
+        [InlineData("Legacy")]
+        [InlineData("Config")]
+        public void BindsLegacyAndItsOldName(string value)
+        {
+            var options = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string> { ["Authentication:Mode"] = value })
+                .Build()
+                .Get<PaGettoOptions>();
+
+            Assert.Equal(AuthenticationMode.Legacy, options.Authentication.Mode);
         }
     }
 

@@ -98,7 +98,7 @@ public class IndexModel : PageModel
         // On an explicit /feeds/{slug} route, only redirect away when the user can't pull
         // the requested feed. Unauthenticated visitors returned above; the view renders a
         // "Sign in required" prompt for them.
-        if (authMode != AuthenticationMode.Config)
+        if (authMode != AuthenticationMode.Legacy)
         {
             var mustSelectLandingFeed = _feedContext.IsDefaultRoute
                 || currentFeed == null

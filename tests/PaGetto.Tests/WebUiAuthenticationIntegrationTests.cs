@@ -62,7 +62,7 @@ public class WebUiLocalLoginTests : IDisposable
         // Arrange - create app with Mode=None
         using var app = new PaGettoApplication(_output, null, dict =>
         {
-            dict["Authentication:Mode"] = "Config";
+            dict["Authentication:Mode"] = "Legacy";
         });
         using var client = app.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {

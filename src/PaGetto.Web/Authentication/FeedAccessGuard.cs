@@ -27,7 +27,7 @@ public static class FeedAccessGuard
     /// </summary>
     public static bool RequiresSignIn(HttpContext httpContext, AuthenticationMode authMode)
     {
-        return authMode != AuthenticationMode.Config
+        return authMode != AuthenticationMode.Legacy
             && httpContext.User.Identity?.IsAuthenticated != true;
     }
 
@@ -44,7 +44,7 @@ public static class FeedAccessGuard
         CancellationToken cancellationToken)
     {
         // Config mode has no DB-backed users; UI access is gated by _Layout's auth check.
-        if (authMode == AuthenticationMode.Config) return null;
+        if (authMode == AuthenticationMode.Legacy) return null;
 
         var user = httpContext.User;
         if (user.Identity?.IsAuthenticated != true)
@@ -86,7 +86,7 @@ public static class FeedAccessGuard
         AuthenticationMode authMode,
         CancellationToken cancellationToken)
     {
-        if (authMode == AuthenticationMode.Config) return true;
+        if (authMode == AuthenticationMode.Legacy) return true;
 
         var user = httpContext.User;
         if (user.Identity?.IsAuthenticated != true) return false;
@@ -116,7 +116,7 @@ public static class FeedAccessGuard
         AuthenticationMode authMode,
         CancellationToken cancellationToken)
     {
-        if (authMode == AuthenticationMode.Config) return false;
+        if (authMode == AuthenticationMode.Legacy) return false;
 
         var user = httpContext.User;
         if (user.Identity?.IsAuthenticated != true) return false;
@@ -146,7 +146,7 @@ public static class FeedAccessGuard
     {
         if (allFeeds == null || allFeeds.Count == 0) return new List<Feed>();
 
-        if (authMode == AuthenticationMode.Config) return allFeeds.ToList();
+        if (authMode == AuthenticationMode.Legacy) return allFeeds.ToList();
 
         var user = httpContext.User;
         if (user.Identity?.IsAuthenticated != true) return new List<Feed>();

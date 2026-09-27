@@ -34,7 +34,7 @@ public class UploadModelFacts
         [Fact]
         public async Task ConfigModeShowsPage()
         {
-            var target = CreateTarget(AuthenticationMode.Config, UnauthenticatedUser());
+            var target = CreateTarget(AuthenticationMode.Legacy, UnauthenticatedUser());
 
             Assert.IsType<PageResult>(await target.OnGetAsync(Ct));
             Assert.False(target.ApiKeyRequired);
@@ -44,7 +44,7 @@ public class UploadModelFacts
         public async Task ConfigModeWithApiKeyAsksForIt()
         {
             ApiKeyConfigured = true;
-            var target = CreateTarget(AuthenticationMode.Config, UnauthenticatedUser());
+            var target = CreateTarget(AuthenticationMode.Legacy, UnauthenticatedUser());
 
             Assert.IsType<PageResult>(await target.OnGetAsync(Ct));
             Assert.True(target.ApiKeyRequired);
@@ -214,7 +214,7 @@ public class UploadModelFacts
         public async Task ConfigModeRejectsAWrongApiKey()
         {
             ApiKeyConfigured = true;
-            var target = CreateTarget(AuthenticationMode.Config, UnauthenticatedUser(), apiKey: "wrong", body: CreatePackage("Foo", "1.0.0"));
+            var target = CreateTarget(AuthenticationMode.Legacy, UnauthenticatedUser(), apiKey: "wrong", body: CreatePackage("Foo", "1.0.0"));
 
             var result = await target.OnPostPackageAsync(Ct);
 
@@ -228,7 +228,7 @@ public class UploadModelFacts
         {
             ApiKeyConfigured = true;
             IndexReturns(PackageIndexingResult.Success);
-            var target = CreateTarget(AuthenticationMode.Config, UnauthenticatedUser(), apiKey: ValidApiKey, body: CreatePackage("Foo", "1.0.0"));
+            var target = CreateTarget(AuthenticationMode.Legacy, UnauthenticatedUser(), apiKey: ValidApiKey, body: CreatePackage("Foo", "1.0.0"));
 
             var result = await target.OnPostPackageAsync(Ct);
 

@@ -56,7 +56,7 @@ public partial class LoginModel : PageModel
 
     public IActionResult OnGet()
     {
-        if (_authOptions.Value.Mode == AuthenticationMode.Config)
+        if (_authOptions.Value.Mode == AuthenticationMode.Legacy)
         {
             return RedirectToPage("/Index");
         }
@@ -76,7 +76,7 @@ public partial class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (_authOptions.Value.Mode == AuthenticationMode.Config)
+        if (_authOptions.Value.Mode == AuthenticationMode.Legacy)
         {
             return RedirectToPage("/Index");
         }

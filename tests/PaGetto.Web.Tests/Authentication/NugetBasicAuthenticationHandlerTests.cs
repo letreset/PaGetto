@@ -72,6 +72,7 @@ public class NugetBasicAuthenticationHandlerTests
         {
             Authentication = new NugetAuthenticationOptions
             {
+                Mode = AuthenticationMode.Legacy,
                 Credentials = [new NugetCredentials { Username = "user", Password = "pass" }]
             }
         });
@@ -97,6 +98,7 @@ public class NugetBasicAuthenticationHandlerTests
         {
             Authentication = new NugetAuthenticationOptions
             {
+                Mode = AuthenticationMode.Legacy,
                 Credentials = [new NugetCredentials { Username = "user", Password = "pass" }]
             }
         });
@@ -122,6 +124,7 @@ public class NugetBasicAuthenticationHandlerTests
         {
             Authentication = new NugetAuthenticationOptions
             {
+                Mode = AuthenticationMode.Legacy,
                 Credentials = [new NugetCredentials { Username = "user", Password = "pass" }]
             }
         });
@@ -145,6 +148,7 @@ public class NugetBasicAuthenticationHandlerTests
         {
             Authentication = new NugetAuthenticationOptions
             {
+                Mode = AuthenticationMode.Legacy,
                 Credentials = [new NugetCredentials { Username = username, Password = password }]
             }
         });

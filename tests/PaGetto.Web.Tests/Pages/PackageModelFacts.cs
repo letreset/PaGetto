@@ -61,7 +61,7 @@ public class PackageModelFacts
         var deletionService = new Mock<IPackageDeletionService>();
 
         var authOptions = new Mock<IOptionsSnapshot<NugetAuthenticationOptions>>();
-        authOptions.Setup(o => o.Value).Returns(new NugetAuthenticationOptions());
+        authOptions.Setup(o => o.Value).Returns(new NugetAuthenticationOptions { Mode = AuthenticationMode.Legacy });
 
         _target = new PackageModel(
             _packages.Object,

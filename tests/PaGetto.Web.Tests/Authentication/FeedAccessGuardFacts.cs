@@ -40,7 +40,7 @@ public class FeedAccessGuardFacts
         [Fact]
         public async Task ConfigModeAlwaysAllows()
         {
-            Assert.True(await InvokeAsync(UnauthenticatedContext(), AuthenticationMode.Config));
+            Assert.True(await InvokeAsync(UnauthenticatedContext(), AuthenticationMode.Legacy));
         }
 
         [Fact]
@@ -104,7 +104,7 @@ public class FeedAccessGuardFacts
         public async Task ConfigModeDenies()
         {
             // Delete is a per-user/group permission; Config mode has no such model.
-            Assert.False(await InvokeAsync(AuthenticatedContext(), AuthenticationMode.Config));
+            Assert.False(await InvokeAsync(AuthenticatedContext(), AuthenticationMode.Legacy));
         }
 
         [Fact]

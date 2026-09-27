@@ -4,9 +4,9 @@ public sealed class NugetAuthenticationOptions
 {
     /// <summary>
     /// Controls which authentication mechanisms are active.
-    /// Defaults to <see cref="AuthenticationMode.Config"/> for backward compatibility.
+    /// Required: <c>Legacy</c>, <c>Local</c>, <c>Entra</c> or <c>Hybrid</c>.
     /// </summary>
-    public AuthenticationMode Mode { get; set; } = AuthenticationMode.Config;
+    public AuthenticationMode Mode { get; set; }
 
     /// <summary>
     /// Azure Entra ID (OIDC) configuration. Required when Mode is Entra or Hybrid.

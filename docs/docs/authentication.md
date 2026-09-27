@@ -8,7 +8,7 @@ The `Authentication:Mode` setting controls which mechanisms are active:
 
 | Mode | Who signs in | Use it when |
 |------|-------------|-------------|
-| `Config` | Nobody. Pushes need an API key from configuration, reads optionally need a username and password from configuration. | (Default) A single team or a quick setup. See [Require an API key](configuration.md#require-an-api-key) and [Private feeds](configuration.md#private-feeds). |
+| `Legacy` | Nobody. Pushes need an API key from configuration, reads optionally need a username and password from configuration. | Existing BaGetter-style setups. Formerly called `Config`, which is still accepted. See [Require an API key](configuration.md#require-an-api-key) and [Private feeds](configuration.md#private-feeds). |
 | `Local` | Local accounts created by an administrator | You don't use Entra ID but want users, groups and per-feed permissions |
 | `Entra` | Microsoft Entra ID accounts only | Everyone in your organization has an Entra ID account |
 | `Hybrid` | Entra ID accounts and local accounts | People sign in with Entra ID, and build agents or external partners use local accounts |
@@ -23,7 +23,7 @@ The `Authentication:Mode` setting controls which mechanisms are active:
 
 :::info
 
-When `Mode` is `Config` (or the `Authentication` section is omitted), PaGetto uses `ApiKey`, `ApiKeys` and `Credentials` from configuration.
+`Authentication:Mode` is required: PaGetto refuses to start without it. When `Mode` is `Legacy` (formerly `Config`, still accepted), PaGetto uses `ApiKey`, `ApiKeys` and `Credentials` from configuration.
 
 In every other mode those settings are ignored: there is no anonymous access, every request needs a signed-in user, a local account password or a personal access token, and what a user can do is decided by [feed permissions](#feed-permissions).
 
@@ -45,7 +45,7 @@ The default administrator is only ever created, never changed:
 
 Change the default password right after the first start, before the server is reachable by others. Every local user can change their own password later under **Change password** in the account menu.
 
-In `Config` and `Entra` mode no default administrator is created.
+In `Legacy` and `Entra` mode no default administrator is created.
 
 ## Azure Entra ID setup
 
@@ -295,7 +295,7 @@ NuGet clients send a username and password (HTTP Basic) for restores, and an API
 
 | Mode | Restore (username / password) | Push (`-k` API key) |
 |---|---|---|
-| `Config` | A `Credentials` entry, if any are configured | An `ApiKey`/`ApiKeys` value |
+| `Legacy` | A `Credentials` entry, if any are configured | An `ApiKey`/`ApiKeys` value |
 | `Local` | Your username and a PAT (recommended), or your account password | A PAT |
 | `Entra` | Your username and a PAT as the password | A PAT |
 | `Hybrid` | Your username and a PAT, or a local account's password | A PAT |
@@ -357,7 +357,7 @@ When a PAT is used as a password, the username must be the token owner's usernam
 
 :::info
 
-The `Credentials` and `ApiKeys` arrays are only used when `Mode` is `Config`. When `Mode` is `Entra`, `Local`, or `Hybrid`, authentication is handled through the database-backed user system and PATs.
+The `Credentials` and `ApiKeys` arrays are only used when `Mode` is `Legacy`. When `Mode` is `Entra`, `Local`, or `Hybrid`, authentication is handled through the database-backed user system and PATs.
 
 :::
 
@@ -367,7 +367,7 @@ All authentication settings can be provided via environment variables using the 
 
 | Environment Variable | Description |
 |---------------------|-------------|
-| `Authentication__Mode` | Authentication mode (`Config`, `Entra`, `Local`, `Hybrid`) |
+| `Authentication__Mode` | Authentication mode (required: `Local`, `Entra`, `Hybrid` or `Legacy`) |
 | `Authentication__Entra__Instance` | Entra ID instance URL |
 | `Authentication__Entra__TenantId` | Tenant ID |
 | `Authentication__Entra__ClientId` | Application (client) ID |

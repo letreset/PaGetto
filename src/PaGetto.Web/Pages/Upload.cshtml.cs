@@ -89,7 +89,7 @@ public partial class UploadModel : PageModel
         MaxPackageSizeGiB = _feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed);
 
         // The key check accepts anything when no key is configured.
-        ApiKeyRequired = authMode == AuthenticationMode.Config
+        ApiKeyRequired = authMode == AuthenticationMode.Legacy
             && !await _authentication.AuthenticateAsync(null, cancellationToken);
 
         return Page();
@@ -223,7 +223,7 @@ public partial class UploadModel : PageModel
     {
         var authMode = _authOptions.Value.Mode;
 
-        if (authMode == AuthenticationMode.Config)
+        if (authMode == AuthenticationMode.Legacy)
         {
             if (!await _authentication.AuthenticateAsync(Request.GetApiKey(), cancellationToken))
                 return Audited(StatusCodes.Status401Unauthorized, $"{kind}_upload_unauthorized", "unauthorized", "The API key is missing or wrong.");
@@ -258,7 +258,7 @@ public partial class UploadModel : PageModel
         var level = statusCode < 400 ? LogLevel.Information : LogLevel.Warning;
 
         // Config mode API keys are shared and carry no user identity.
-        var actor = _authOptions.Value.Mode == AuthenticationMode.Config && !string.IsNullOrEmpty(Request.GetApiKey())
+        var actor = _authOptions.Value.Mode == AuthenticationMode.Legacy && !string.IsNullOrEmpty(Request.GetApiKey())
             ? "api-key"
             : null;
         _audit.Package(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageId, packageVersion, actor);
