@@ -271,9 +271,9 @@ A background scanner wakes every `ScanIntervalHours` and emails owners as each c
     "PatExpiryNotification": {
         "Enabled": true,
         "ScanIntervalHours": 1,
-        "NotificationDaysBeforeExpiry": [ 14, 7, 2, 0 ],
-        "WebBaseUrl": "https://packages.example.com"
-    }
+        "NotificationDaysBeforeExpiry": [ 14, 7, 2, 0 ]
+    },
+    "PublicBaseUrl": "https://packages.example.com"
 }
 ```
 
@@ -282,11 +282,11 @@ A background scanner wakes every `ScanIntervalHours` and emails owners as each c
 | `Enabled` | `true` | Whether the scanner runs. When `false`, no scanning or emailing happens regardless of email configuration. |
 | `ScanIntervalHours` | `1` | How often (in hours) the scanner looks for tokens nearing expiry. Minimum `1`. |
 | `NotificationDaysBeforeExpiry` | `[14, 7, 2, 0]` | Thresholds, in whole days before expiry, at which an owner is emailed. `0` means the expiry day itself. Values must be distinct and zero or greater. |
-| `WebBaseUrl` | | Public base URL of this site (e.g. `https://packages.example.com`), used to link owners to the token page. Must be an absolute `http(s)` URL when set. Omit for a name-only reference. |
+| `PublicBaseUrl` (top level) | | Public base URL of this site (e.g. `https://packages.example.com`), used to link owners to the token page. Must be an absolute `http(s)` URL when set. Omit for a name-only reference. The older `PatExpiryNotification:WebBaseUrl` is still read when it isn't set. |
 
 :::info
 
-The scanner runs outside an HTTP request and cannot infer the site URL, so `WebBaseUrl` must be configured for notification emails to include a working link.
+The scanner runs outside an HTTP request and cannot infer the site URL, so `PublicBaseUrl` must be configured for notification emails to include a working link.
 
 :::
 

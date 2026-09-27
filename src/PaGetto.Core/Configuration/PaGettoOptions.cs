@@ -17,6 +17,13 @@ public class PaGettoOptions
     public string PathBase { get; set; }
 
     /// <summary>
+    /// The public base URL of the site (e.g. <c>https://packages.example.com</c>), for links in
+    /// emails, which are sent outside a request and can't infer it. Not set: emails name pages
+    /// without linking to them.
+    /// </summary>
+    public string PublicBaseUrl { get; set; }
+
+    /// <summary>
     /// If enabled, the database will be updated at app startup by running
     /// Entity Framework migrations. This is not recommended in production.
     /// </summary>

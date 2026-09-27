@@ -9,11 +9,18 @@ namespace PaGetto.Core.Notifications;
 /// <inheritdoc />
 public class PatExpiryEmailBuilder : IPatExpiryEmailBuilder
 {
-    private readonly PatExpiryNotificationOptions _options;
+    private readonly string _publicBaseUrl;
 
-    public PatExpiryEmailBuilder(IOptions<PatExpiryNotificationOptions> options)
+    public PatExpiryEmailBuilder(IOptions<PaGettoOptions> pagettoOptions, IOptions<PatExpiryNotificationOptions> options)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(pagettoOptions);
+        ArgumentNullException.ThrowIfNull(options);
+
+#pragma warning disable CS0618 // The legacy PatExpiryNotification:WebBaseUrl is still honored.
+        _publicBaseUrl = string.IsNullOrWhiteSpace(pagettoOptions.Value?.PublicBaseUrl)
+            ? options.Value?.WebBaseUrl
+            : pagettoOptions.Value.PublicBaseUrl;
+#pragma warning restore CS0618
     }
 
     public EmailMessage Build(PersonalAccessToken token, int daysUntilExpiry)
@@ -31,7 +38,7 @@ public class PatExpiryEmailBuilder : IPatExpiryEmailBuilder
 
         var subject = $"Your PaGetto token '{token.Name}' expires {whenText}";
 
-        var tokensLink = BuildTokensPageLink(_options.WebBaseUrl);
+        var tokensLink = BuildTokensPageLink(_publicBaseUrl);
         var callToAction = tokensLink is null
             ? "Create a replacement token on your account's Tokens page before then."
             : $"""<a href="{System.Net.WebUtility.HtmlEncode(tokensLink)}">Create a replacement token</a> before then.""";

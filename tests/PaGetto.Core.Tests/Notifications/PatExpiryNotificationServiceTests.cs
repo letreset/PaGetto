@@ -273,7 +273,9 @@ public class PatExpiryNotificationServiceTests
                 .AddSingleton(sender)
                 .BuildServiceProvider();
 
-            var emailBuilder = new PatExpiryEmailBuilder(Microsoft.Extensions.Options.Options.Create(Options));
+            var emailBuilder = new PatExpiryEmailBuilder(
+                Microsoft.Extensions.Options.Options.Create(new PaGettoOptions()),
+                Microsoft.Extensions.Options.Options.Create(Options));
 
             // Re-evaluates on each access so tests can advance Now between runs.
             var systemTime = new Mock<SystemTime>();
