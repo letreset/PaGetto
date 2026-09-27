@@ -43,11 +43,27 @@ public class PaGettoOptions
     /// </summary>
     public string Urls { get; set; }
 
+    public const uint DefaultMaxPackageSizeMiB = 8192;
+
     /// <summary>
-    /// The maximum package size in GB.
-    /// Attempted uploads of packages larger than this will be rejected with an internal server error carrying one <see cref="System.IO.InvalidDataException"/>.
+    /// The maximum package size in MiB, the default for feeds without their own limit.
+    /// It also sets the server's request body limit. Leave it unset for the default of 8192 MiB (8 GiB).
     /// </summary>
-    public uint MaxPackageSizeGiB { get; set; } = 8;
+    public uint? MaxPackageSizeMiB { get; set; }
+
+    /// <summary>
+    /// The old maximum package size setting in GiB. Only read when <see cref="MaxPackageSizeMiB"/> is not set.
+    /// </summary>
+    [Obsolete("Use MaxPackageSizeMiB.")]
+    public uint? MaxPackageSizeGiB { get; set; }
+
+    /// <summary>
+    /// The configured maximum package size in MiB: <see cref="MaxPackageSizeMiB"/>, else the legacy
+    /// <c>MaxPackageSizeGiB</c> converted to MiB, else <see cref="DefaultMaxPackageSizeMiB"/>.
+    /// </summary>
+#pragma warning disable CS0618 // The legacy GiB setting is still honored.
+    public uint EffectiveMaxPackageSizeMiB => MaxPackageSizeMiB ?? MaxPackageSizeGiB * 1024 ?? DefaultMaxPackageSizeMiB;
+#pragma warning restore CS0618
 
     /// <summary>
     /// The maximum number of package versions in a single registration page.

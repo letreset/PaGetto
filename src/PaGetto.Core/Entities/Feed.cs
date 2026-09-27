@@ -19,7 +19,7 @@ public class Feed
     public PackageOverwriteAllowed? AllowPackageOverwrites { get; set; }
     public PackageDeletionBehavior? PackageDeletionBehavior { get; set; }
     public bool? IsReadOnlyMode { get; set; }
-    public uint? MaxPackageSizeGiB { get; set; }
+    public uint? MaxPackageSizeMiB { get; set; }
     public int? RetentionMaxMajorVersions { get; set; }
     public int? RetentionMaxMinorVersions { get; set; }
     public int? RetentionMaxPatchVersions { get; set; }

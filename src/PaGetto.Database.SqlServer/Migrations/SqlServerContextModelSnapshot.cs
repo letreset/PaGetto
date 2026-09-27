@@ -41,7 +41,7 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<bool?>("IsReadOnlyMode")
                         .HasColumnType("bit");
 
-                    b.Property<long?>("MaxPackageSizeGiB")
+                    b.Property<long?>("MaxPackageSizeMiB")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")

@@ -19,7 +19,7 @@ namespace PaGetto.Web.Controllers;
 [Authorize(AuthenticationSchemes = AuthenticationConstants.NugetBasicAuthenticationScheme, Policy = AuthenticationConstants.NugetUserPolicy)]
 public partial class SymbolController : Controller
 {
-    private const long BytesPerGiB = 1024L * 1024 * 1024;
+    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IAuthenticationService _authentication;
     private readonly IFeedAuthenticationService _feedAuthentication;
@@ -80,7 +80,7 @@ public partial class SymbolController : Controller
             }
 
             // The server-wide request limit applies before the feed is known; a feed can only lower it.
-            var maxBytes = (long)_feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed) * BytesPerGiB;
+            var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
             if (uploadStream.Length > maxBytes)
             {
                 LogSymbolUploadTooLarge("symbol_upload_too_large", _feedContext.CurrentFeed.Slug, HttpContext.User.Identity?.Name ?? "anonymous", HttpContext.Connection.RemoteIpAddress);

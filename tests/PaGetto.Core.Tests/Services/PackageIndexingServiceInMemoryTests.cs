@@ -55,8 +55,8 @@ public class PackageIndexingServiceInMemoryTests
             .Returns(() => _options.AllowPackageOverwrites);
         feedSettings.Setup(r => r.GetIsReadOnlyMode(It.IsAny<Feed>()))
             .Returns(() => _options.IsReadOnlyMode);
-        feedSettings.Setup(r => r.GetMaxPackageSizeGiB(It.IsAny<Feed>()))
-            .Returns(() => _options.MaxPackageSizeGiB);
+        feedSettings.Setup(r => r.GetMaxPackageSizeMiB(It.IsAny<Feed>()))
+            .Returns(() => _options.EffectiveMaxPackageSizeMiB);
         feedSettings.Setup(r => r.GetRetentionOptions(It.IsAny<Feed>()))
             .Returns(() => _retentionOptions);
 
@@ -393,8 +393,8 @@ public class PackageIndexingServiceInMemoryTests
                 .Returns(() => options.PackageDeletionBehavior);
             feedSettings.Setup(r => r.GetAllowPackageOverwrites(It.IsAny<Feed>()))
                 .Returns(() => options.AllowPackageOverwrites);
-            feedSettings.Setup(r => r.GetMaxPackageSizeGiB(It.IsAny<Feed>()))
-                .Returns(() => options.MaxPackageSizeGiB);
+            feedSettings.Setup(r => r.GetMaxPackageSizeMiB(It.IsAny<Feed>()))
+                .Returns(() => options.EffectiveMaxPackageSizeMiB);
             feedSettings.Setup(r => r.GetRetentionOptions(It.IsAny<Feed>()))
                 .Returns(() => RetentionOptions);
 

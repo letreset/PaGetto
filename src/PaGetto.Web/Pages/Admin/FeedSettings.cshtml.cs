@@ -64,7 +64,7 @@ public class FeedSettingsModel : PageModel
 
     // Signed so that a negative value gets the range message instead of a binding error.
     [BindProperty]
-    public int? MaxPackageSizeGiB { get; set; }
+    public int? MaxPackageSizeMiB { get; set; }
 
     [BindProperty]
     public bool UseGlobalMaxSize { get; set; }
@@ -134,8 +134,8 @@ public class FeedSettingsModel : PageModel
         UseGlobalDeletion = !feed.PackageDeletionBehavior.HasValue;
         PackageDeletionBehavior = feed.PackageDeletionBehavior;
 
-        UseGlobalMaxSize = !feed.MaxPackageSizeGiB.HasValue;
-        MaxPackageSizeGiB = (int?)feed.MaxPackageSizeGiB;
+        UseGlobalMaxSize = !feed.MaxPackageSizeMiB.HasValue;
+        MaxPackageSizeMiB = (int?)feed.MaxPackageSizeMiB;
 
         UseGlobalRetentionMajor = !feed.RetentionMaxMajorVersions.HasValue;
         RetentionMaxMajorVersions = feed.RetentionMaxMajorVersions;
@@ -344,7 +344,7 @@ public class FeedSettingsModel : PageModel
         Feed.IsReadOnlyMode = UseGlobalReadOnly ? null : IsReadOnlyMode;
         Feed.AllowPackageOverwrites = UseGlobalOverwrite ? null : AllowPackageOverwrites;
         Feed.PackageDeletionBehavior = UseGlobalDeletion ? null : PackageDeletionBehavior;
-        Feed.MaxPackageSizeGiB = UseGlobalMaxSize ? null : (uint?)MaxPackageSizeGiB;
+        Feed.MaxPackageSizeMiB = UseGlobalMaxSize ? null : (uint?)MaxPackageSizeMiB;
 
         Feed.RetentionMaxMajorVersions = UseGlobalRetentionMajor ? null : RetentionMaxMajorVersions;
         Feed.RetentionMaxMinorVersions = UseGlobalRetentionMinor ? null : RetentionMaxMinorVersions;
@@ -370,8 +370,8 @@ public class FeedSettingsModel : PageModel
     /// </summary>
     private void ValidateNumbers()
     {
-        ValidateOverride(UseGlobalMaxSize, nameof(MaxPackageSizeGiB), MaxPackageSizeGiB, 1,
-            "The max package size must be at least 1 GiB.");
+        ValidateOverride(UseGlobalMaxSize, nameof(MaxPackageSizeMiB), MaxPackageSizeMiB, 1,
+            "The max package size must be at least 1 MiB.");
         ValidateOverride(UseGlobalRetentionMajor, nameof(RetentionMaxMajorVersions), RetentionMaxMajorVersions, 0,
             "The number of major versions to keep must be 0 or more.");
         ValidateOverride(UseGlobalRetentionMinor, nameof(RetentionMaxMinorVersions), RetentionMaxMinorVersions, 0,

@@ -264,7 +264,7 @@
                     if (!kind) {
                         this.fail(item, 'Only .nupkg and .snupkg files can be uploaded.');
                     } else if (file.size > maxBytes) {
-                        this.fail(item, 'The file is larger than this feed\'s ' + config.maxGib + ' GiB limit.');
+                        this.fail(item, 'The file is larger than this feed\'s ' + config.maxSize + ' limit.');
                     } else {
                         this.preview(item);
                     }

@@ -22,7 +22,13 @@ public class FeedResponse
     public PackageOverwriteAllowed? AllowPackageOverwrites { get; set; }
     public PackageDeletionBehavior? PackageDeletionBehavior { get; set; }
     public bool? IsReadOnlyMode { get; set; }
+    public uint? MaxPackageSizeMiB { get; set; }
+
+    /// <summary>
+    /// Deprecated: <see cref="MaxPackageSizeMiB"/> in whole GiB (rounded down), kept for existing API clients.
+    /// </summary>
     public uint? MaxPackageSizeGiB { get; set; }
+
     public int? RetentionMaxMajorVersions { get; set; }
     public int? RetentionMaxMinorVersions { get; set; }
     public int? RetentionMaxPatchVersions { get; set; }
@@ -45,7 +51,8 @@ public class FeedResponse
         AllowPackageOverwrites = feed.AllowPackageOverwrites,
         PackageDeletionBehavior = feed.PackageDeletionBehavior,
         IsReadOnlyMode = feed.IsReadOnlyMode,
-        MaxPackageSizeGiB = feed.MaxPackageSizeGiB,
+        MaxPackageSizeMiB = feed.MaxPackageSizeMiB,
+        MaxPackageSizeGiB = feed.MaxPackageSizeMiB / 1024,
         RetentionMaxMajorVersions = feed.RetentionMaxMajorVersions,
         RetentionMaxMinorVersions = feed.RetentionMaxMinorVersions,
         RetentionMaxPatchVersions = feed.RetentionMaxPatchVersions,

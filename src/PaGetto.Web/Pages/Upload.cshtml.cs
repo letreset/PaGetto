@@ -28,7 +28,7 @@ namespace PaGetto.Web.Pages;
 /// </summary>
 public partial class UploadModel : PageModel
 {
-    private const long BytesPerGiB = 1024L * 1024 * 1024;
+    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IPermissionService _permissions;
     private readonly IFeedContext _feedContext;
@@ -75,7 +75,7 @@ public partial class UploadModel : PageModel
     /// </summary>
     public bool ApiKeyRequired { get; private set; }
 
-    public uint MaxPackageSizeGiB { get; private set; }
+    public uint MaxPackageSizeMiB { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -86,7 +86,7 @@ public partial class UploadModel : PageModel
         if (denied != null) return denied;
 
         IsReadOnly = _feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed);
-        MaxPackageSizeGiB = _feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed);
+        MaxPackageSizeMiB = _feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed);
 
         // The key check accepts anything when no key is configured.
         ApiKeyRequired = authMode == AuthenticationMode.Legacy
@@ -245,12 +245,12 @@ public partial class UploadModel : PageModel
 
     private long MaxUploadBytes()
     {
-        return (long)_feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed) * BytesPerGiB;
+        return (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
     }
 
     private string TooLargeMessage()
     {
-        return $"The file is larger than this feed's {_feedSettings.GetMaxPackageSizeGiB(_feedContext.CurrentFeed)} GiB limit.";
+        return $"The file is larger than this feed's {_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed).ToSizeLimit()} limit.";
     }
 
     private JsonResult Audited(int statusCode, string eventName, string outcome, string message, string packageId = null, string packageVersion = null)

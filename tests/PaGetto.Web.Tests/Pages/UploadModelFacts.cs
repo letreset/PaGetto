@@ -86,7 +86,7 @@ public class UploadModelFacts
 
             Assert.IsType<PageResult>(await target.OnGetAsync(Ct));
             Assert.False(target.IsReadOnly);
-            Assert.Equal(8u, target.MaxPackageSizeGiB);
+            Assert.Equal(8192u, target.MaxPackageSizeMiB);
         }
 
         [Fact]
@@ -240,7 +240,7 @@ public class UploadModelFacts
         public async Task TooLargePackageIsRejected()
         {
             AllowPush();
-            FeedSettings.Setup(s => s.GetMaxPackageSizeGiB(It.IsAny<Feed>())).Returns(0u);
+            FeedSettings.Setup(s => s.GetMaxPackageSizeMiB(It.IsAny<Feed>())).Returns(0u);
             var target = CreateTarget(AuthenticationMode.Local, SignedInUser(), body: CreatePackage("Foo", "1.0.0"));
 
             var result = await target.OnPostPackageAsync(Ct);
@@ -340,7 +340,7 @@ public class UploadModelFacts
 
         protected FactsBase()
         {
-            FeedSettings.Setup(s => s.GetMaxPackageSizeGiB(It.IsAny<Feed>())).Returns(8u);
+            FeedSettings.Setup(s => s.GetMaxPackageSizeMiB(It.IsAny<Feed>())).Returns(8192u);
             AuditLogger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
 
             // Like ApiKeyAuthenticationService: anything passes until a key is configured.

@@ -46,7 +46,7 @@ Open **Admin > Feeds > Settings** for a feed (`/Admin/Feeds/{slug}/Settings`). E
 | Read-only mode | `IsReadOnlyMode` | Reject pushes, unlists, deletes and relists on this feed, from NuGet clients and from the web UI |
 | Package overwrite policy | `AllowPackageOverwrites` | Disallow (recommended), prerelease only, or allow all. See [package overwrites](configuration.md#enable-package-overwrites). |
 | Deletion behavior | `PackageDeletionBehavior` | Unlist (recommended) or hard delete. See [hard deletions](configuration.md#enable-package-hard-deletions). |
-| Max package size (GiB) | `MaxPackageSizeGiB` | Largest package or symbol package this feed accepts, at least 1. It can only lower the global value, which caps every request; larger pushes get `413 Payload Too Large` |
+| Max package size (MiB) | `MaxPackageSizeMiB` | Largest package or symbol package this feed accepts, at least 1 MiB. It can only lower the global value, which caps every request; larger pushes get `413 Payload Too Large` |
 | Retention | `Retention` | How many major versions, minor versions per major, patch versions per minor and prerelease versions per patch to keep, each 0 or more. `0` keeps none of them except the version being pushed. An override left empty falls back to the global value. See [auto-deletion](configuration.md#package-auto-deletion). |
 | Upstream listing cache (seconds) | `UpstreamListingCacheSeconds` | How long mirrored version lists are reused before asking the upstreams again. See [upstream listing cache](#upstream-listing-cache). |
 
