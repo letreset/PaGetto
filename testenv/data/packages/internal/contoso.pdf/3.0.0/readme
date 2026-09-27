@@ -1,0 +1,11 @@
+# Contoso.Pdf
+
+PDF rendering for invoices and reports.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Pdf
+```
+
+Maintained by the Contoso platform team.

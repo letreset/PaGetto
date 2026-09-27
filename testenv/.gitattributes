@@ -1,0 +1,4 @@
+# The snapshot is served as-is by PaGetto (package readmes, nuspecs and the database), so it must be
+# byte-identical on every machine. No line ending conversion, no text diffs.
+data/** -text -diff
+packages/** -text -diff

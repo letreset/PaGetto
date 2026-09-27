@@ -1,0 +1,58 @@
+# git-cliff configuration: https://git-cliff.org/docs/configuration
+# Used by .github/workflows/release.yml to write GitHub release notes.
+# Understands Conventional Commits (feat:, fix:, ...) and plain imperative
+# subjects ("Add ...", "Fix ..."), since the history contains both.
+
+[changelog]
+header = ""
+body = """
+{%- macro remote_url() -%}https://github.com/letreset/PaGetto{%- endmacro -%}
+{% if version -%}
+## [{{ version | trim_start_matches(pat="v") }}]({{ self::remote_url() }}/{% if previous.version %}compare/{{ previous.version }}...{{ version }}{% else %}releases/tag/{{ version }}{% endif %}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## Unreleased
+{% endif -%}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{% if commit.breaking %}**BREAKING** {% endif %}{{ commit.message | split(pat="\n") | first | upper_first | trim }} ([{{ commit.id | truncate(length=7, end="") }}]({{ self::remote_url() }}/commit/{{ commit.id }})) - {% if commit.remote.username %}@{{ commit.remote.username }}{% else %}{{ commit.author.name }}{% endif %}
+{%- endfor %}
+{% endfor %}
+"""
+footer = ""
+trim = true
+
+# Resolves commit authors to GitHub usernames (needs GITHUB_TOKEN), so the
+# notes credit contributors as @nick rather than their git author name.
+[remote.github]
+owner = "letreset"
+repo = "PaGetto"
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = true
+filter_commits = false
+sort_commits = "oldest"
+tag_pattern = 'v[0-9]+\.[0-9]+\.[0-9]+.*'
+
+commit_preprocessors = [
+]
+
+# The <!-- NN --> prefixes fix the section order; they are stripped when rendering.
+commit_parsers = [
+  { message = '^Merge (pull request|branch|remote-tracking branch)', skip = true },
+  { message = '^\+\+$', skip = true },
+  { message = '^chore\(release\)', skip = true },
+  { message = '^[Rr]evert', group = "<!-- 09 -->⏪ Reverts" },
+  { message = '^(feat|[Ff]eat(ure)?/|([Aa]dd|[Ii]mplement|[Ii]ntroduce|[Ss]upport|[Ee]nable|[Aa]llow)\b)', group = "<!-- 01 -->✨ Features" },
+  { message = '^(fix|[Ff]ix/|([Ff]ix(es|ed)?|[Rr]esolve[sd]?|[Cc]orrect|[Hh]otfix|[Pp]atch)\b)', group = "<!-- 02 -->🐛 Bug Fixes" },
+  { message = '^(perf|([Oo]ptimi[sz]e|[Ss]peed up)\b)', group = "<!-- 03 -->⚡ Performance" },
+  { message = '^(refactor|([Rr]efactor|[Rr]ename|[Mm]ove|[Cc]lean|[Rr]emove|[Ss]plit)\b)', group = "<!-- 05 -->♻️ Refactoring" },
+  { message = '^(docs?|([Dd]ocs?|[Dd]ocument|[Uu]pdate (docs|documentation))\b)', group = "<!-- 06 -->📚 Documentation" },
+  { message = '^(test|[Tt]ests?\b)', group = "<!-- 07 -->🧪 Tests" },
+  { message = '^(build|ci|chore\(deps\)|([Bb]ump|[Uu]pgrade)\b|[Uu]pdate to dotnet|[Uu]pdate \S+\.\S+$)', group = "<!-- 08 -->⚙️ Build & CI" },
+  { message = '^(chore|style)', group = "<!-- 10 -->🧹 Chores" },
+  { message = '.*', group = "<!-- 04 -->🔄 Changes" },
+]

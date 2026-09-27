@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <PackageTags>NuGet</PackageTags>
+    <Description>The libraries to host PaGetto on MySQL.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PaGetto.Core\PaGetto.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PaGetto.Tests" />
+  </ItemGroup>
+
+</Project>

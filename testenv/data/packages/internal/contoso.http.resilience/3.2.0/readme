@@ -1,0 +1,11 @@
+# Contoso.Http.Resilience
+
+Retry, timeout and circuit breaker policies for HttpClient.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Http.Resilience
+```
+
+Maintained by the Contoso platform team.

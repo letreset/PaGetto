@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "bootstrap@5.3.8",
+      "destination": "wwwroot/lib/bootstrap/",
+      "files": [
+        "dist/css/bootstrap.min.css",
+        "dist/css/bootstrap.min.css.map",
+        "dist/js/bootstrap.bundle.min.js",
+        "dist/js/bootstrap.bundle.min.js.map",
+        "README.md",
+        "LICENSE"
+      ]
+    },
+    {
+      "library": "geist@1.7.2",
+      "destination": "wwwroot/lib/geist/",
+      "files": [
+        "dist/fonts/geist-sans/Geist-Variable.woff2",
+        "dist/fonts/geist-mono/GeistMono-Variable.woff2",
+        "LICENSE.TXT"
+      ]
+    },
+    {
+      "library": "alpinejs@2.8.1",
+      "destination": "wwwroot/lib/alpinejs/",
+      "files": [
+        "dist/alpine-ie11.js",
+        "dist/alpine.js",
+        "LICENSE.md",
+        "README.md"
+      ]
+    },
+    {
+      "library": "sortablejs@1.15.6",
+      "destination": "wwwroot/lib/sortablejs/",
+      "files": [
+        "Sortable.min.js",
+        "LICENSE",
+        "README.md"
+      ]
+    }
+  ]
+}

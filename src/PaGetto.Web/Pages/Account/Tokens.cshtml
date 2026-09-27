@@ -1,0 +1,104 @@
+@page
+@model PaGetto.Web.Pages.Account.TokensModel
+
+@{
+    ViewData["Title"] = "Personal Access Tokens";
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Personal access tokens</h1>
+        <p class="bgt-lead">Use a token as the password / API key for NuGet clients and CI pipelines.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger mb-0" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-body">
+        <h2 class="bgt-card-title">Create token</h2>
+        <form method="post" asp-page-handler="Create" class="bgt-token-form">
+            @Html.AntiForgeryToken()
+            <div class="bgt-f-name">
+                <label asp-for="TokenName" class="form-label">Name</label>
+                <input asp-for="TokenName" class="form-control" placeholder="e.g. CI pipeline" />
+                <span asp-validation-for="TokenName" class="text-danger"></span>
+            </div>
+            <div class="bgt-f-expiry">
+                <label asp-for="ExpiryDays" class="form-label">Expires in</label>
+                <select asp-for="ExpiryDays" class="form-select">
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                    <option value="90" selected>90 days</option>
+                    <option value="180">180 days</option>
+                    @if (Model.MaxTokenExpiryDays >= 365)
+                    {
+                        <option value="365">1 year</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="min-height: 40px">Create token</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(Model.NewTokenPlaintext))
+        {
+            <div class="bgt-reveal" role="status">
+                <div class="bgt-reveal-title">Token created. Copy it now, it won't be shown again.</div>
+                <div class="bgt-cmd bgt-cmd-value bgt-cmd-surface">
+                    <code id="new-token-value">@Model.NewTokenPlaintext</code>
+                    <button type="button" class="bgt-cmd-btn" data-copy-target="#new-token-value">
+                        <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="bgt-card bgt-card-clip">
+        <h2 class="bgt-card-head m-0">Your tokens</h2>
+        @if (Model.Tokens.Count == 0)
+        {
+            <div class="bgt-empty-row">You have no personal access tokens yet.</div>
+        }
+        else
+        {
+            @foreach (var token in Model.Tokens)
+            {
+                var isExpired = token.ExpiresAtUtc <= DateTime.UtcNow;
+                var isActive = !token.IsRevoked && !isExpired;
+                <div class="bgt-row @(isActive ? null : "inactive")">
+                    <div style="flex: 1 1 200px; min-width: 0">
+                        <div class="bgt-token-name">@token.Name <span class="bgt-slug ms-1" title="Token prefix">@token.TokenPrefix…</span></div>
+                        <div class="bgt-token-sub">
+                            Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
+                        </div>
+                    </div>
+                    @if (token.IsRevoked)
+                    {
+                        <span class="bgt-pill">Revoked</span>
+                    }
+                    else if (isExpired)
+                    {
+                        <span class="bgt-pill bgt-pill-warn">Expired @Html.DisplayDate(token.ExpiresAtUtc)</span>
+                    }
+                    else
+                    {
+                        <span class="bgt-pill">Expires @Html.DisplayDate(token.ExpiresAtUtc)</span>
+                    }
+                    @if (isActive)
+                    {
+                        <form method="post" asp-page-handler="Revoke" class="m-0"
+                              data-confirm="@($"Revoke the token '{token.Name}'? Clients that use it can no longer sign in.")">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="tokenId" value="@token.Id" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Revoke</button>
+                        </form>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>

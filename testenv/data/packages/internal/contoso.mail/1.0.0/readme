@@ -1,0 +1,11 @@
+# Contoso.Mail
+
+Templated email sending.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Mail
+```
+
+Maintained by the Contoso platform team.

@@ -1,0 +1,16 @@
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace PaGetto.Core.Configuration;
+
+public class StatisticsOptions : IValidatableObject
+{
+    public bool EnableStatisticsPage { get; set; } = true;
+
+    public bool ListConfiguredServices { get; set; } = false;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        yield return ValidationResult.Success;
+    }
+}

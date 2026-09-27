@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # A package goes to the first group that matches it. Major updates outside the first two
+    # groups get a PR of their own, so one breaking package doesn't hold back the rest.
+    groups:
+      # EF Core and its providers must move together.
+      ef-core:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
+          - "Npgsql.EntityFrameworkCore.PostgreSQL"
+          - "Pomelo.EntityFrameworkCore.MySql"
+      nuget-client:
+        patterns: ["NuGet.*"]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # EF Core 10 waits for a Pomelo release that supports it
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Npgsql.EntityFrameworkCore.PostgreSQL"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Pomelo.EntityFrameworkCore.MySql"
+        update-types: ["version-update:semver-major"]
+      # Microsoft.Extensions and ASP.NET Core packages move to 10.x together with EF Core (#62),
+      # not a few packages at a time.
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      # NuGet client 7.x drops netstandard2.0, which PaGetto.Protocol targets, and all three
+      # NuGet.* packages must share one version now that transitive pinning is on.
+      - dependency-name: "NuGet.*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"

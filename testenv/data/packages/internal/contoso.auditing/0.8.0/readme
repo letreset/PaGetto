@@ -1,0 +1,11 @@
+# Contoso.Auditing
+
+Audit trail for domain changes.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Auditing
+```
+
+Maintained by the Contoso platform team.

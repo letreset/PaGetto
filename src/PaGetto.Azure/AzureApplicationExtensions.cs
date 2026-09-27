@@ -1,0 +1,172 @@
+using System;
+using Azure.Core;
+using Azure.Identity;
+using Azure.Storage;
+using Azure.Storage.Blobs;
+using PaGetto.Azure.Configuration;
+using PaGetto.Azure.Email;
+using PaGetto.Azure.Storage;
+using PaGetto.Core;
+using PaGetto.Core.Configuration;
+using PaGetto.Core.Email;
+using PaGetto.Core.Extensions;
+using PaGetto.Core.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.Graph;
+
+namespace PaGetto.Azure
+{
+    public static class AzureApplicationExtensions
+    {
+        public static PaGettoApplication AddAzureBlobStorage(this PaGettoApplication app)
+        {
+            app.Services.AddPaGettoOptions<AzureBlobStorageOptions>(nameof(PaGettoOptions.Storage));
+            app.Services.AddTransient<BlobStorageService>();
+            app.Services.TryAddTransient<IStorageService>(provider => provider.GetRequiredService<BlobStorageService>());
+
+            app.Services.AddSingleton(provider =>
+            {
+                var options = provider.GetRequiredService<IOptions<AzureBlobStorageOptions>>().Value;
+
+                if (options.UseAzureDefaultCredential)
+                {
+                    return new BlobServiceClient(new Uri(options.ConnectionString), new DefaultAzureCredential());
+                }
+
+                // TODO: Add BlobClientOptions with customer-provided key.
+                if (!string.IsNullOrEmpty(options.ConnectionString))
+                {
+                    return new BlobServiceClient(options.ConnectionString);
+                }
+
+                return new BlobServiceClient(new Uri($"https://{options.AccountName}.blob.core.windows.net"), new StorageSharedKeyCredential(options.AccountName, options.AccessKey));
+            });
+
+            app.Services.AddTransient(provider =>
+            {
+                var options = provider.GetRequiredService<IOptionsSnapshot<AzureBlobStorageOptions>>().Value;
+                var account = provider.GetRequiredService<BlobServiceClient>();
+
+                return account.GetBlobContainerClient(options.Container);
+            });
+
+            app.Services.AddProvider<IStorageService>((provider, config) =>
+            {
+                if (!config.HasStorageType("AzureBlobStorage")) return null;
+
+                return provider.GetRequiredService<BlobStorageService>();
+            });
+
+            return app;
+        }
+
+        public static PaGettoApplication AddAzureBlobStorage(
+            this PaGettoApplication app,
+            Action<AzureBlobStorageOptions> configure)
+        {
+            app.AddAzureBlobStorage();
+            app.Services.Configure(configure);
+            return app;
+        }
+
+        public static PaGettoApplication AddGraphEmail(this PaGettoApplication app)
+        {
+            app.Services.AddPaGettoOptions<GraphEmailOptions>(nameof(PaGettoOptions.Email));
+            app.Services.AddTransient<GraphEmailSender>();
+
+            app.Services.AddSingleton(provider =>
+            {
+                var options = provider.GetRequiredService<IOptions<GraphEmailOptions>>().Value;
+
+                TokenCredential credential;
+                if (!string.IsNullOrEmpty(options.TenantId)
+                    && !string.IsNullOrEmpty(options.ClientId)
+                    && !string.IsNullOrEmpty(options.ClientSecret))
+                {
+                    credential = new ClientSecretCredential(options.TenantId, options.ClientId, options.ClientSecret);
+                }
+                else
+                {
+                    credential = new DefaultAzureCredential();
+                }
+
+                return new GraphServiceClient(credential, ["https://graph.microsoft.com/.default"]);
+            });
+
+            app.Services.AddProvider<IEmailSender>((provider, config) =>
+            {
+                if (!config.HasEmailType("graph")) return null;
+
+                return provider.GetRequiredService<GraphEmailSender>();
+            });
+
+            return app;
+        }
+
+        public static PaGettoApplication AddGraphEmail(
+            this PaGettoApplication app,
+            Action<GraphEmailOptions> configure)
+        {
+            app.AddGraphEmail();
+            app.Services.Configure(configure);
+            return app;
+        }
+
+        public static PaGettoApplication AddAzureSearch(this PaGettoApplication app)
+        {
+            throw new NotImplementedException();
+
+            //app.Services.AddPaGettoOptions<AzureSearchOptions>(nameof(PaGettoOptions.Search));
+
+            //app.Services.AddTransient<AzureSearchBatchIndexer>();
+            //app.Services.AddTransient<AzureSearchService>();
+            //app.Services.AddTransient<AzureSearchIndexer>();
+            //app.Services.AddTransient<IndexActionBuilder>();
+            //app.Services.TryAddTransient<ISearchService>(provider => provider.GetRequiredService<AzureSearchService>());
+            //app.Services.TryAddTransient<ISearchIndexer>(provider => provider.GetRequiredService<AzureSearchIndexer>());
+
+            //app.Services.AddSingleton(provider =>
+            //{
+            //    var options = provider.GetRequiredService<IOptions<AzureSearchOptions>>().Value;
+            //    var credentials = new SearchCredentials(options.ApiKey);
+
+            //    return new SearchServiceClient(options.AccountName, credentials);
+            //});
+
+            //app.Services.AddSingleton(provider =>
+            //{
+            //    var options = provider.GetRequiredService<IOptions<AzureSearchOptions>>().Value;
+            //    var credentials = new SearchCredentials(options.ApiKey);
+
+            //    return new SearchIndexClient(options.AccountName, PackageDocument.IndexName, credentials);
+            //});
+
+            //app.Services.AddProvider<ISearchService>((provider, config) =>
+            //{
+            //    if (!config.HasSearchType("AzureSearch")) return null;
+
+            //    return provider.GetRequiredService<AzureSearchService>();
+            //});
+
+            //app.Services.AddProvider<ISearchIndexer>((provider, config) =>
+            //{
+            //    if (!config.HasSearchType("AzureSearch")) return null;
+
+            //    return provider.GetRequiredService<AzureSearchIndexer>();
+            //});
+
+            //return app;
+        }
+
+        public static PaGettoApplication AddAzureSearch(
+            this PaGettoApplication app,
+            Action<AzureSearchOptions> configure)
+        {
+            app.AddAzureSearch();
+            app.Services.Configure(configure);
+            return app;
+        }
+    }
+}

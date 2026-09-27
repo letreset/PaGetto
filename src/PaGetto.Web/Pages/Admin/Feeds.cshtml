@@ -1,0 +1,172 @@
+@page
+@model PaGetto.Web.Pages.Admin.FeedsModel
+@using PaGetto.Core.Entities
+
+@{
+    ViewData["Title"] = "Feed Management";
+
+    // Keep the create form open when its last submission failed.
+    var createFailed = !ViewData.ModelState.IsValid || (Model.NewSlug != null && Model.ErrorMessage != null);
+    var siteUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+}
+
+@await Html.PartialAsync("_AdminTabs", "Feeds")
+
+<div x-data="{ createOpen: @Json.Serialize(createFailed) }">
+    <div class="bgt-page-head">
+        <div>
+            <h1>Feeds</h1>
+            <p class="bgt-lead">Drag to reorder. The order drives the feed menu, and signed-in users land on the first feed they can access.</p>
+        </div>
+        <button type="button" class="btn btn-primary" @@click="createOpen = !createOpen" x-bind:aria-expanded="createOpen" aria-controls="create-feed">
+            <icon name="plus" size="15" />New feed
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <div id="create-feed" class="bgt-card bgt-card-body mb-3" x-show="createOpen" @(createFailed ? null : "x-cloak")>
+        <h2 class="bgt-card-title">Create feed</h2>
+        <form method="post" asp-page-handler="Create">
+            @Html.AntiForgeryToken()
+            <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr))">
+                <div>
+                    <label asp-for="NewSlug" class="form-label">Slug</label>
+                    @* Lowercases and drops characters a slug can't have while typing; the server validates again. *@
+                    <input asp-for="NewSlug" class="form-control mono" placeholder="e.g. team-frontend" autocomplete="off"
+                           oninput="var p = this.selectionStart - (this.value.length - this.value.replace(/[^a-zA-Z0-9-]/g, '').length); var v = this.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); if (v !== this.value) { this.value = v; this.setSelectionRange(p, p); }" />
+                    <div class="form-text">Lowercase letters, numbers and hyphens. Can't be changed later.</div>
+                    <span asp-validation-for="NewSlug" class="text-danger"></span>
+                </div>
+                <div>
+                    <label asp-for="NewName" class="form-label">Display name</label>
+                    <input asp-for="NewName" class="form-control" autocomplete="off" />
+                    <span asp-validation-for="NewName" class="text-danger"></span>
+                </div>
+                <div>
+                    <label asp-for="NewDescription" class="form-label">Description</label>
+                    <input asp-for="NewDescription" class="form-control" autocomplete="off" />
+                </div>
+            </div>
+            <div class="bgt-form-actions">
+                <button type="button" class="btn btn-secondary" @@click="createOpen = false">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create feed</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bgt-card bgt-card-clip">
+    @if (Model.Feeds.Count == 0)
+    {
+        <div class="bgt-empty-row">No feeds found.</div>
+    }
+    else
+    {
+        <div class="bgt-cols-head bgt-desktop-only" style="padding-left: 52px" aria-hidden="true">
+            <span style="flex: 1 1 280px">Feed</span>
+            <span style="flex: 0 0 100px">Created</span>
+            <span style="flex: 0 0 170px"></span>
+        </div>
+        <div id="feed-list">
+            @foreach (var feed in Model.Feeds)
+            {
+                var isDefault = feed.Slug == Feed.DefaultSlug;
+                var serviceIndexUrl = $"{siteUrl}/feeds/{feed.Slug}/v3/index.json";
+                <div class="bgt-feed-item" data-feed-id="@feed.Id">
+                    <div class="bgt-feed-row">
+                        <div class="bgt-feed-main">
+                            <span class="bgt-grip" title="Drag to reorder" aria-hidden="true"><icon name="grip" size="14" /></span>
+                            <div style="min-width: 0">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="bgt-feed-name">@feed.Name</span>
+                                    <span class="bgt-slug">@feed.Slug</span>
+                                    @if (isDefault)
+                                    {
+                                        <span class="bgt-badge bgt-badge-solid">default</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(feed.Description))
+                                {
+                                    <div class="bgt-feed-desc">@feed.Description</div>
+                                }
+                            </div>
+                        </div>
+                        <span class="bgt-feed-created">@Html.DisplayDate(feed.CreatedAtUtc)</span>
+                        <div class="bgt-feed-actions">
+                            <a asp-page="/Admin/FeedSettings" asp-route-slug="@feed.Slug" class="btn btn-secondary btn-sm">Settings</a>
+                            <button type="button" class="btn btn-secondary btn-icon" data-copy="@serviceIndexUrl"
+                                    title="Copy service index URL" aria-label="Copy the service index URL of @feed.Name">
+                                <icon name="link" size="14" /><span class="bgt-copy-label visually-hidden">Copy</span>
+                            </button>
+                            @if (!isDefault)
+                            {
+                                <form method="post" asp-page-handler="Delete"
+                                      data-confirm="@($"Are you sure you want to delete feed '{feed.Slug}'? All packages in this feed will be removed.")">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="feedId" value="@feed.Id" />
+                                    <button type="submit" class="btn btn-outline-danger btn-icon" title="Delete feed" aria-label="Delete feed @feed.Name">
+                                        <icon name="trash" size="14" />
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span style="width: 36px" aria-hidden="true"></span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bgt-toast" role="status"><icon name="check" />@Model.SuccessMessage</div>
+}
+
+@section Scripts {
+    <script src="~/_content/PaGetto.Web/lib/sortablejs/Sortable.min.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var list = document.getElementById('feed-list');
+            if (!list) return;
+
+            var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenInput ? tokenInput.value : '';
+
+            new Sortable(list, {
+                draggable: '.bgt-feed-item',
+                handle: '.bgt-grip',
+                animation: 150,
+                onEnd: function (evt) {
+                    if (evt.oldIndex === evt.newIndex) return;
+
+                    var order = [];
+                    list.querySelectorAll('.bgt-feed-item').forEach(function (item) {
+                        order.push(item.getAttribute('data-feed-id'));
+                    });
+
+                    fetch(window.location.pathname + '?handler=Reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(order)
+                    }).then(function (response) {
+                        // Save failed => DB unchanged; reload to show the real order.
+                        if (!response.ok) location.reload();
+                    }).catch(function () {
+                        location.reload();
+                    });
+                }
+            });
+        })();
+    </script>
+}

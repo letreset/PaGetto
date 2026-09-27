@@ -1,0 +1,11 @@
+# Contoso.Search
+
+Full-text search client.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Search
+```
+
+Maintained by the Contoso platform team.

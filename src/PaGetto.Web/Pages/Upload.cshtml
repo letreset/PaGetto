@@ -1,0 +1,129 @@
+@page
+@model UploadModel
+@using PaGetto.Core
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using Microsoft.Extensions.Options
+@inject IUrlGenerator URL
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    ViewData["Title"] = "Upload · " + FeedContext.CurrentFeed.Name;
+
+    var baseUrl = Url.PageLink("/Index");
+    var publishUrl = URL.GetPackagePublishResourceUrl();
+    var serviceIndexUrl = URL.GetServiceIndexUrl();
+
+    var authMode = AuthOptions.Value.Mode;
+    var hasEntra = authMode is AuthenticationMode.Entra or AuthenticationMode.Hybrid;
+    var hasLocal = authMode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
+    var requiresAuth = authMode != AuthenticationMode.Config;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+@if (requiresAuth && !isAuthenticated)
+{
+    // Generic on purpose: anonymous visitors must not learn feed or package names.
+    ViewData["Title"] = "Sign in required";
+    <div class="bgt-message">
+        <h2>Sign in required</h2>
+        <p>You need to sign in to view upload instructions.</p>
+        <a asp-page="/Login" class="btn btn-primary">Sign in</a>
+    </div>
+    return;
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Upload</h1>
+        <p class="bgt-lead">You can push packages using the service index below.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Service index · @FeedContext.CurrentFeed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-service-index-url">@serviceIndexUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-service-index-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (hasEntra || hasLocal)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    @if (hasEntra && hasLocal)
+                    {
+                        <p>Entra (Microsoft) users: sign in to the web UI to generate a personal access token (PAT), then use it as the API key.</p>
+                        <p>Local accounts: use your username and password with basic authentication.</p>
+                    }
+                    else if (hasEntra)
+                    {
+                        <p>Sign in with your Microsoft account to generate a personal access token (PAT), then use it as the API key when pushing packages.</p>
+                    }
+                    else
+                    {
+                        <p>Use your local account username and password with basic authentication when pushing packages.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation" x-text="`${active.name} documentation ↗`"></a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = [
+        {
+            name: ".NET CLI",
+            content: ["dotnet nuget push -s @serviceIndexUrl -k YOUR_API_KEY package.nupkg"],
+            documentation: "https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-nuget-push",
+        },
+
+        {
+            name: "NuGet",
+            content: ["nuget push -Source @serviceIndexUrl -ApiKey YOUR_API_KEY package.nupkg"],
+            documentation: "https://docs.microsoft.com/en-us/nuget/tools/cli-ref-push",
+        },
+
+        {
+            name: "Paket",
+            content: ["paket push --url @baseUrl package.nupkg"],
+            documentation: "https://fsprojects.github.io/Paket/paket-push.html",
+        },
+
+        // TODO: This is broken...
+        {
+            name: "PowerShellGet",
+            content: [
+                "Register-PSRepository -Name \"PaGetto\" -SourceLocation \"@serviceIndexUrl\" "
+                  + "-PublishLocation \"@publishUrl\" -InstallationPolicy \"Trusted\"",
+                "Publish-Module -Name PS-Module -Repository PaGetto"
+            ],
+            documentation: "https://docs.microsoft.com/en-us/powershell/module/powershellget/publish-module",
+        },
+    ];
+</script>

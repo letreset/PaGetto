@@ -1,0 +1,11 @@
+# Contoso.FeatureFlags
+
+Feature flag evaluation.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.FeatureFlags
+```
+
+Maintained by the Contoso platform team.

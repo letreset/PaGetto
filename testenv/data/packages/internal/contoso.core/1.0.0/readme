@@ -1,0 +1,11 @@
+# Contoso.Core
+
+Shared primitives used by all Contoso libraries.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Core
+```
+
+Maintained by the Contoso platform team.

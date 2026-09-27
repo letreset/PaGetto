@@ -1,0 +1,74 @@
+.hero {
+  padding: clamp(28px, 4.5vw, 48px) 24px;
+}
+
+.heroInner {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(28px, 4vw, 56px);
+}
+
+.heroText {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 76px;
+  height: 76px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(38px, 5vw, 52px);
+}
+
+.tagline {
+  margin: 14px 0 0;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.4;
+  max-width: 32ch;
+}
+
+.subtitle {
+  margin: 10px 0 0;
+  max-width: 52ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #b4c8de;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.buttons :global(.button) {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+}
+
+.buttons :global(.button--primary) {
+  font-weight: 600;
+}
+
+.buttons :global(.button--secondary:hover) {
+  --ifm-button-border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}

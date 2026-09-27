@@ -1,0 +1,11 @@
+# Contoso.Data
+
+Database access helpers and migrations support.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Data
+```
+
+Maintained by the Contoso platform team.

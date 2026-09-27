@@ -1,0 +1,286 @@
+name: Release
+
+# Push a tag like v1.0.0 (or v1.1.0-rc.1 for a prerelease) on main to publish:
+#   - a GitHub release with changelog, zip and checksums
+#   - the Docker image letreset/pagetto on Docker Hub (linux/amd64 + linux/arm64)
+#   - the Helm chart at oci://ghcr.io/letreset/charts/pagetto
+#   - the PaGetto.* library packages on nuget.org
+#
+# Required secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (Docker Hub access token, Read & Write;
+# "Read, Write, Delete" is needed to also update the Docker Hub description).
+# Required variable: NUGET_USER, the nuget.org profile name (not the email) that owns the
+# Trusted Publishing policy for this repository and release.yml. No API key is stored.
+
+on:
+  push:
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE: letreset/pagetto
+  CHART_REGISTRY: ghcr.io/letreset/charts
+  CHART_DIR: deployment templates/chart/pagetto
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      previous: ${{ steps.version.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Ensure the tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME does not point to a commit on main."
+            exit 1
+          fi
+
+      - id: version
+        name: Parse tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$version" == *-* ]]; then prerelease=true; else prerelease=false; fi
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version (prerelease: $prerelease, changes since ${previous:-the first commit})"
+
+  test:
+    name: Test
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore
+      - run: dotnet build --no-restore --configuration Release
+      - run: dotnet test --no-build --configuration Release
+
+  docker:
+    name: Docker image
+    needs: [ version, test ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # latest, X.Y and X only move for stable releases; prereleases get just their full version tag.
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          flavor: |
+            latest=${{ needs.version.outputs.prerelease == 'false' }}
+          labels: |
+            org.opencontainers.image.title=PaGetto
+            org.opencontainers.image.description=Lightweight NuGet and symbol server with multi-feed, per-feed permissions and Entra ID sign-in
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            Version=${{ needs.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update Docker Hub description
+        if: needs.version.outputs.prerelease == 'false'
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKER_IMAGE }}
+          short-description: Lightweight NuGet and symbol server with multi-feed, per-feed permissions and Entra ID sign-in.
+          readme-filepath: ./DOCKERHUB.md
+
+  helm:
+    name: Helm chart
+    needs: [ version, test ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-helm@v5
+
+      - name: Package chart
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          # Pin the chart's default image to this release instead of "latest".
+          yq -i ".controllers.pagetto.containers.pagetto.image.tag = \"$VERSION\"" "$CHART_DIR/values.yaml"
+          helm dependency update "$CHART_DIR"
+          helm lint "$CHART_DIR"
+          helm package "$CHART_DIR" --version "$VERSION" --app-version "$VERSION" --destination dist
+
+      - name: Push chart to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          helm push dist/*.tgz "oci://$CHART_REGISTRY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: helm-chart
+          path: dist/*.tgz
+
+  nuget:
+    name: NuGet packages
+    needs: [ version, test ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token that nuget.org exchanges for a short-lived API key
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Packs every library under src/ (the PaGetto host and the samples aren't packable),
+      # each with its .snupkg symbol package.
+      - name: Pack
+        run: dotnet pack PaGetto.sln --configuration Release -p:Version="$VERSION" --output nupkgs
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: nupkgs/
+
+      # Requested right before the push: the key is valid for one hour.
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      # The .snupkg next to each .nupkg is pushed to the nuget.org symbol server along with it.
+      # --skip-duplicate lets a re-run finish after a partly successful push.
+      - name: Push to nuget.org
+        run: >-
+          dotnet nuget push "nupkgs/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+  github-release:
+    name: GitHub release
+    needs: [ version, docker, helm, nuget ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      PREVIOUS: ${{ needs.version.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish zip
+        run: |
+          dotnet publish src/PaGetto --configuration Release --output publish -p:Version="$VERSION" -p:DebugType=none
+          (cd publish && zip -qr "../pagetto-$VERSION.zip" .)
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: helm-chart
+          path: .
+
+      - name: Checksums
+        run: sha256sum pagetto-*.zip pagetto-*.tgz > SHA256SUMS.txt
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          # The first release has no previous tag, so it covers the whole history up to the tag.
+          args: ${{ env.PREVIOUS && format('{0}..{1} ', env.PREVIOUS, github.ref_name) || '' }}--tag ${{ github.ref_name }} --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Write release notes
+        run: |
+          {
+            cat CHANGELOG.md
+            cat <<EOF
+
+          ### 📦 Install
+
+          **Docker**
+          \`\`\`bash
+          docker run -d -p 8080:8080 -v pagetto-data:/data $DOCKER_IMAGE:$VERSION
+          \`\`\`
+
+          **Helm**
+          \`\`\`bash
+          helm install pagetto oci://$CHART_REGISTRY/pagetto --version $VERSION
+          \`\`\`
+
+          **NuGet** (client library; the server libraries are \`PaGetto.Core\`, \`PaGetto.Web\` and the provider packages)
+          \`\`\`bash
+          dotnet add package PaGetto.Protocol --version $VERSION
+          \`\`\`
+
+          **Zip** (needs the [ASP.NET Core 10 runtime](https://dotnet.microsoft.com/download/dotnet/10.0)): download \`pagetto-$VERSION.zip\` below, extract it and run \`dotnet PaGetto.dll\`.
+
+          Verify downloads with \`SHA256SUMS.txt\`.
+          EOF
+          } > release-notes.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          if [[ "${{ needs.version.outputs.prerelease }}" == "true" ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            "${flags[@]}" \
+            "pagetto-$VERSION.zip" pagetto-*.tgz SHA256SUMS.txt

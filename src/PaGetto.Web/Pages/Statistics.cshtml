@@ -1,0 +1,114 @@
+@page "/stats"
+
+@model StatisticsModel
+
+@using System.Globalization
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Statistics
+@using PaGetto.Web.Extensions
+@using PaGetto.Web.Helper
+@using Microsoft.Extensions.Options
+
+@inject IOptionsSnapshot<StatisticsOptions> Options
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IStatisticsService StatisticsService
+@inject ApplicationVersion Version
+
+@{
+    ViewData["Title"] = "Stats · " + Model.FeedName;
+    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Config;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+@if (requiresAuth && !isAuthenticated)
+{
+    // Generic on purpose: anonymous visitors must not learn feed or package names.
+    ViewData["Title"] = "Sign in required";
+    <div class="bgt-message">
+        <h2>Sign in required</h2>
+        <p>You need to sign in to view statistics.</p>
+        <a asp-page="/Login" class="btn btn-primary">Sign in</a>
+    </div>
+    return;
+}
+
+@{
+    var stats = Model.FeedStatistics;
+    var topDownloads = Math.Max(1, stats.MostDownloaded.Select(p => p.Downloads).DefaultIfEmpty(0).Max());
+}
+
+<div class="bgt-page-head-title" style="margin-bottom: 20px">
+    <h1>Statistics</h1>
+    <span class="bgt-chip bgt-chip-lg bgt-chip-outline">@Model.FeedName</span>
+</div>
+
+<div class="bgt-stat-grid">
+    <div class="bgt-card bgt-stat">
+        <div class="bgt-stat-label">Packages</div>
+        <div class="bgt-stat-value">@Model.PackagesTotal.ToString("N0", CultureInfo.InvariantCulture)</div>
+        <div class="bgt-stat-sub">@stats.UnlistedVersions.ToString("N0", CultureInfo.InvariantCulture) unlisted @(stats.UnlistedVersions == 1 ? "version" : "versions")</div>
+    </div>
+    <div class="bgt-card bgt-stat">
+        <div class="bgt-stat-label">Versions</div>
+        <div class="bgt-stat-value">@Model.VersionsTotal.ToString("N0", CultureInfo.InvariantCulture)</div>
+        <div class="bgt-stat-sub">@stats.StableVersions stable · @stats.PrereleaseVersions prerelease</div>
+    </div>
+    <div class="bgt-card bgt-stat">
+        <div class="bgt-stat-label">Total downloads</div>
+        <div class="bgt-stat-value">@stats.TotalDownloads.ToString("N0", CultureInfo.InvariantCulture)</div>
+        <div class="bgt-stat-sub">All time</div>
+    </div>
+    <div class="bgt-card bgt-stat">
+        <div class="bgt-stat-label">Stored size</div>
+        <div class="bgt-stat-value">@stats.TotalSizeBytes.ToFileSize()</div>
+        <div class="bgt-stat-sub">Package files</div>
+    </div>
+</div>
+
+<div class="bgt-card bgt-meta-strip">
+    <span><span class="k">Server version</span>@Version.InformationalVersion</span>
+    @if (Options.Value.ListConfiguredServices)
+    {
+        <span><span class="k">Services</span>@string.Join(", ", StatisticsService.GetKnownServices())</span>
+    }
+</div>
+
+<div class="bgt-list-grid">
+    <section class="bgt-card bgt-card-clip">
+        <h2 class="bgt-card-head m-0">Most downloaded</h2>
+        @if (stats.MostDownloaded.Count == 0)
+        {
+            <div class="bgt-list-empty">No downloads yet.</div>
+        }
+        else
+        {
+            @foreach (var package in stats.MostDownloaded)
+            {
+                var percent = (int)Math.Round(package.Downloads * 100.0 / topDownloads);
+                <div class="bgt-list-row">
+                    <a class="bgt-list-name bgt-stretched" href="@Url.Page("/Package", new { id = package.Id })">@package.Id</a>
+                    <div class="bgt-bar bgt-bar-lg" aria-hidden="true"><div style="width: @(percent)%"></div></div>
+                    <span class="bgt-list-num">@package.Downloads.ToString("N0", CultureInfo.InvariantCulture)</span>
+                </div>
+            }
+        }
+    </section>
+    <section class="bgt-card bgt-card-clip">
+        <h2 class="bgt-card-head m-0">Recently published</h2>
+        @if (stats.RecentlyPublished.Count == 0)
+        {
+            <div class="bgt-list-empty">No packages yet.</div>
+        }
+        else
+        {
+            @foreach (var version in stats.RecentlyPublished)
+            {
+                <div class="bgt-list-row">
+                    <a class="bgt-list-name bgt-stretched" href="@Url.Page("/Package", new { id = version.Id, version = version.Version })">@version.Id</a>
+                    <span class="bgt-version">@version.Version</span>
+                    <span class="bgt-list-date">@Html.DisplayDate(version.Published)</span>
+                </div>
+            }
+        }
+    </section>
+</div>

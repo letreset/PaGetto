@@ -1,0 +1,11 @@
+# Contoso.Preview.Ai
+
+Experimental AI helpers.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Preview.Ai
+```
+
+Maintained by the Contoso platform team.

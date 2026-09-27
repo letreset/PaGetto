@@ -1,0 +1,11 @@
+# Contoso.Caching
+
+Distributed cache helpers on top of IDistributedCache.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Caching
+```
+
+Maintained by the Contoso platform team.

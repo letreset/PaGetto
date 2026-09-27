@@ -1,0 +1,11 @@
+# Contoso.Jobs
+
+Background jobs and schedules.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Jobs
+```
+
+Maintained by the Contoso platform team.

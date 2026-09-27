@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PaGetto.Database.Sqlite\PaGetto.Database.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\PaGetto.Web\PaGetto.Web.csproj" />
+  </ItemGroup>
+
+</Project>

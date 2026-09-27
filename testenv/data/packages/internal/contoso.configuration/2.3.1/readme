@@ -1,0 +1,11 @@
+# Contoso.Configuration
+
+Typed configuration and secret loading for Contoso apps.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Configuration
+```
+
+Maintained by the Contoso platform team.

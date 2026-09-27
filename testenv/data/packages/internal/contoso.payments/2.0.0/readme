@@ -1,0 +1,11 @@
+# Contoso.Payments
+
+Payment provider integration.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Payments
+```
+
+Maintained by the Contoso platform team.

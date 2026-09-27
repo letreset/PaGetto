@@ -1,0 +1,86 @@
+.terminal {
+  flex: 1 1 440px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0d1117;
+  border: 1px solid #2a303a;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+}
+
+.titleBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  background: #161b22;
+  border-bottom: 1px solid #2a303a;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: #8b98ab;
+  pointer-events: none;
+}
+
+.body {
+  margin: 0;
+  padding: 16px 18px 18px;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 13px !important;
+  line-height: 1.75;
+  color: #e6edf6;
+  overflow-x: auto;
+  text-align: left;
+}
+
+/* On a phone the commands wrap instead of scrolling out of sight. */
+@media (max-width: 600px) {
+  .body {
+    padding: 14px;
+    font-size: 12px !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+.comment {
+  color: #6b7a90;
+}
+
+.output {
+  color: #8b98ab;
+}
+
+.home,
+.success {
+  color: #5fd28f;
+}
+
+.dollar {
+  color: #f2a444;
+}
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: #e6edf6;
+  vertical-align: -2px;
+}

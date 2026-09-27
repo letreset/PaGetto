@@ -1,0 +1,11 @@
+# Contoso.Maps
+
+Geocoding and map tiles.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Maps
+```
+
+Maintained by the Contoso platform team.

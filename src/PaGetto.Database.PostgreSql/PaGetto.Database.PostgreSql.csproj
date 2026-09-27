@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <PackageTags>NuGet</PackageTags>
+    <Description>The libraries to host PaGetto on PostgreSQL.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PaGetto.Core\PaGetto.Core.csproj" />
+  </ItemGroup>
+
+</Project>

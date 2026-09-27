@@ -1,0 +1,11 @@
+# Contoso.Messaging
+
+Publish and consume integration events over the Contoso service bus.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Messaging
+```
+
+Maintained by the Contoso platform team.

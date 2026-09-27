@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <PackageTags>NuGet;Google;Cloud</PackageTags>
+    <Description>The libraries to host PaGetto on the Google Cloud Platform.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.Storage.V1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PaGetto.Core\PaGetto.Core.csproj" />
+  </ItemGroup>
+
+</Project>

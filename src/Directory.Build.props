@@ -1,0 +1,51 @@
+<Project>
+
+  <!-- Package properties -->
+  <PropertyGroup>
+    <Authors>PaGetto contributors</Authors>
+    <Copyright>Copyright (c) PaGetto contributors $([System.DateTime]::Now.ToString(yyyy))</Copyright>
+    <Product>PaGetto</Product>
+
+    <PackageIcon>packageIcon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Only a fallback for local packs: a Version passed on the command line (as the release workflow does) wins. -->
+    <PackageVersion Condition="'$(PackageVersion)' == '' and '$(Version)' == ''">0.1.0-prerelease</PackageVersion>
+    <PackageProjectUrl>https://github.com/letreset/PaGetto</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- A project can point this at its own readme. -->
+    <PackageReadmePath Condition="'$(PackageReadmePath)' == ''">$(MSBuildThisFileDirectory)package-readme.md</PackageReadmePath>
+  </PropertyGroup>
+
+  <!-- Compiler properties -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Don't warn if there are missing XMl comment for publicly visible type or member-->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- .NET source code analysis https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/overview -->
+  <PropertyGroup>
+    <AnalysisLevel>latest-Minimum</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Debugging properties -->
+  <PropertyGroup>
+    <DebugType>portable</DebugType>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../packageIcon.png" Pack="true" PackagePath="" Visible="false" />
+    <None Include="$(PackageReadmePath)" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+
+</Project>

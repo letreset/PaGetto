@@ -1,0 +1,11 @@
+# Contoso.Localization
+
+Resource-based localization.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Localization
+```
+
+Maintained by the Contoso platform team.

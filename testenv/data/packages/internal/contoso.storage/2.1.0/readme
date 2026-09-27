@@ -1,0 +1,11 @@
+# Contoso.Storage
+
+Blob storage abstraction for local disk and cloud.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Storage
+```
+
+Maintained by the Contoso platform team.

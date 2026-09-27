@@ -1,0 +1,33 @@
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
+namespace PaGetto.Protocol.Models;
+
+/// <summary>
+/// The response to a search query.
+/// </summary>
+/// <remarks>See: <see href="https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#response"/></remarks>
+public class SearchResponse
+{
+    [JsonPropertyName("@context")]
+    public SearchContext Context { get; set; }
+
+    /// <summary>
+    /// The total number of matches, disregarding skip and take.
+    /// </summary>
+    [JsonPropertyName("totalHits")]
+    public long TotalHits { get; set; }
+
+    /// <summary>
+    /// The packages that matched the search query.
+    /// </summary>
+    [JsonPropertyName("data")]
+    public IReadOnlyList<SearchResult> Data { get; set; }
+
+    /// <summary>
+    /// The filter values present in the feed (package types, frameworks and tags).
+    /// Only populated when facets were requested on the search; otherwise <c>null</c>.
+    /// </summary>
+    [JsonPropertyName("facets")]
+    public SearchFacets Facets { get; set; }
+}

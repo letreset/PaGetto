@@ -1,0 +1,11 @@
+# Contoso.Security
+
+Token validation and permission checks.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Security
+```
+
+Maintained by the Contoso platform team.

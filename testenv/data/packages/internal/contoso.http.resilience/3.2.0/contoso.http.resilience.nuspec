@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Contoso.Http.Resilience</id>
+    <version>3.2.0</version>
+    <authors>Contoso Platform Team</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <projectUrl>https://wiki.contoso.example/packages/Contoso.Http.Resilience</projectUrl>
+    <description>Retry, timeout and circuit breaker policies for HttpClient.</description>
+    <tags>http resilience polly</tags>
+    <repository type="git" url="https://git.contoso.example/platform/Contoso.Http.Resilience" commit="37b5d4f11944ea8589c0018471f142f7817374ed" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="Contoso.Logging" version="2.0.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net8.0">
+        <dependency id="Contoso.Logging" version="2.0.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Contoso.Logging" version="2.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

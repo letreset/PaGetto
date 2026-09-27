@@ -1,0 +1,12 @@
+# The snapshot and the test packages are committed on purpose, although the root .gitignore
+# excludes pagetto.db and packages/ folders.
+!/data/
+!/data/**
+!/packages/
+!/packages/**
+
+# Build output and files that seed.mjs writes before each pack.
+/seed/template/bin/
+/seed/template/obj/
+/seed/template/pkg.props
+/seed/template/README.md

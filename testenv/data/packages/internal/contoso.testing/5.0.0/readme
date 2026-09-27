@@ -1,0 +1,11 @@
+# Contoso.Testing
+
+Test fixtures and fakes shared across Contoso solutions.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Testing
+```
+
+Maintained by the Contoso platform team.

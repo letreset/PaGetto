@@ -1,0 +1,366 @@
+/* PaGetto docs theme: matches the PaGetto web UI (Bootstrap 5 theme). */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* brand */
+  --bgt-header: #0b3f73;
+  --bgt-accent: #E8962E;
+  --bgt-surface: #ffffff;
+  --bgt-bg: #f5f6f8;
+  --bgt-border: #dfe3e9;
+  --bgt-divider: #eef0f3;
+  --bgt-muted: #5d6675;
+  --bgt-chip-bg: #eef4fb;
+  --bgt-chip-border: #d3e3f4;
+  --bgt-cream: #FBF8F2;
+
+  /* Infima */
+  --ifm-color-primary: #0b4f8f;
+  --ifm-color-primary-dark: #0a4781;
+  --ifm-color-primary-darker: #09437a;
+  --ifm-color-primary-darkest: #083a6b;
+  --ifm-color-primary-light: #0c579d;
+  --ifm-color-primary-lighter: #0d5ba4;
+  --ifm-color-primary-lightest: #0f67b9;
+  --ifm-color-success: #1c7a45;
+  --ifm-color-danger: #b42323;
+  --ifm-color-warning: #b86a12;
+  --ifm-color-info: #0b4f8f;
+
+  --ifm-font-family-base: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.65;
+  --ifm-font-color-base: #141821;
+  --ifm-heading-color: #141821;
+  --ifm-heading-font-weight: 600;
+  --ifm-h1-font-size: 2.25rem;
+  --ifm-h2-font-size: 1.6rem;
+  --ifm-h3-font-size: 1.25rem;
+
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-color-emphasis-100: #f5f6f8;
+  --ifm-color-emphasis-200: #eef0f3;
+  --ifm-color-emphasis-300: #dfe3e9;
+  --ifm-toc-border-color: var(--bgt-divider);
+  --ifm-hr-border-color: var(--bgt-divider);
+  --ifm-table-border-color: var(--bgt-divider);
+  --ifm-table-stripe-background: transparent;
+  --ifm-table-head-background: var(--bgt-bg);
+
+  --ifm-global-radius: 8px;
+  --ifm-card-border-radius: 12px;
+  --ifm-button-border-radius: 8px;
+  --ifm-code-border-radius: 6px;
+  --ifm-pre-border-radius: 10px;
+  --ifm-code-font-size: 88%;
+  --ifm-code-background: #f0f2f5;
+  --ifm-code-padding-horizontal: 0.35rem;
+
+  --ifm-navbar-height: 60px;
+  --ifm-navbar-background-color: var(--bgt-header);
+  --ifm-navbar-link-color: #d4e2f1;
+  --ifm-navbar-link-hover-color: #ffffff;
+  --ifm-navbar-shadow: none;
+
+  --ifm-menu-color: #3b4452;
+  --ifm-menu-color-active: var(--ifm-color-primary);
+  --ifm-menu-color-background-active: var(--bgt-chip-bg);
+  --ifm-menu-color-background-hover: #f5f7f9;
+  --ifm-menu-link-padding-vertical: 0.4rem;
+
+  --ifm-footer-background-color: var(--bgt-bg);
+  --ifm-footer-color: var(--bgt-muted);
+  --ifm-footer-link-color: #3b4452;
+  --ifm-footer-title-color: #141821;
+
+  --docusaurus-highlighted-code-line-bg: rgba(11, 79, 143, 0.08);
+  --docusaurus-announcement-bar-height: auto;
+}
+
+html[data-theme='dark'] {
+  --bgt-header: #111822;
+  --bgt-accent: #F2A444;
+  --bgt-surface: #161a21;
+  --bgt-bg: #0e1116;
+  --bgt-border: #2a303a;
+  --bgt-divider: #222731;
+  --bgt-muted: #8d96a5;
+  --bgt-chip-bg: #172538;
+  --bgt-chip-border: #244063;
+  --bgt-cream: #1a1712;
+
+  --ifm-color-primary: #7ab4f2;
+  --ifm-color-primary-dark: #5ea4ef;
+  --ifm-color-primary-darker: #509ced;
+  --ifm-color-primary-darkest: #2685e8;
+  --ifm-color-primary-light: #96c4f5;
+  --ifm-color-primary-lighter: #a3cbf7;
+  --ifm-color-primary-lightest: #cce3fb;
+  --ifm-color-success: #5fd28f;
+  --ifm-color-danger: #f07878;
+
+  --ifm-font-color-base: #e7eaf0;
+  --ifm-heading-color: #e7eaf0;
+  --ifm-background-color: #0e1116;
+  --ifm-background-surface-color: #161a21;
+  --ifm-color-emphasis-100: #161a21;
+  --ifm-color-emphasis-200: #1f242d;
+  --ifm-color-emphasis-300: #2a303a;
+  --ifm-code-background: #1f242d;
+  --ifm-table-head-background: #161a21;
+
+  --ifm-menu-color: #c3c9d3;
+  --ifm-menu-color-background-hover: #1a1f27;
+  --ifm-footer-background-color: #0b0e12;
+  --ifm-footer-link-color: #c3c9d3;
+  --ifm-footer-title-color: #e7eaf0;
+  --docusaurus-highlighted-code-line-bg: rgba(122, 180, 242, 0.1);
+}
+
+body { -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { letter-spacing: -0.02em; }
+/* Infima sizes markdown headings with its own variables; keep them at the theme scale. */
+.markdown h1:first-child { --ifm-h1-font-size: 2.25rem; }
+.markdown > h2 { --ifm-h2-font-size: 1.6rem; }
+.markdown > h3 { --ifm-h3-font-size: 1.25rem; }
+.markdown h2 { padding-top: .5rem; border-top: 1px solid var(--bgt-divider); margin-top: 2.5rem; }
+.markdown > h2:first-of-type { border-top: 0; }
+
+/* Navbar */
+.navbar { border-bottom: 2px solid var(--bgt-accent); }
+.navbar__title { color: #fff; font-weight: 600; font-size: 1.05rem; }
+.navbar__logo { height: 2.4rem; }
+.navbar__link { font-weight: 500; font-size: .92rem; border-radius: 7px; padding: .4rem .75rem; }
+.navbar__link:hover { background: rgba(255,255,255,.08); }
+.navbar__link--active { color: #fff; background: rgba(255,255,255,.14); }
+.navbar__toggle, .navbar .clean-btn { color: #d4e2f1; }
+/* Mobile drawer. navbar--dark sets the menu colors for a dark background, but the drawer is
+   light, so its colors are set again here. The brand row keeps the header color, so the white
+   logo, title and buttons stay readable. */
+.navbar-sidebar { background: var(--ifm-background-surface-color); --ifm-menu-color: #3b4452; --ifm-navbar-link-color: #3b4452; --ifm-navbar-link-hover-color: var(--ifm-color-primary); box-shadow: 0 0 40px rgba(16, 24, 40, .25); }
+[data-theme='dark'] .navbar-sidebar { --ifm-menu-color: #c3c9d3; --ifm-navbar-link-color: #c3c9d3; }
+.navbar-sidebar__brand { background: var(--bgt-header); border-bottom: 2px solid var(--bgt-accent); box-shadow: none; padding: 0 .75rem 0 1rem; }
+.navbar-sidebar__brand .navbar__title { color: #fff; }
+.navbar-sidebar__close { color: #d4e2f1; }
+.navbar-sidebar__items .menu { padding: .75rem; }
+.navbar-sidebar .navbar__link, .navbar-sidebar .menu__link { color: var(--ifm-menu-color); font-size: .95rem; padding: .55rem .75rem; }
+.navbar-sidebar .navbar__link:hover, .navbar-sidebar .menu__link:hover { background: var(--ifm-menu-color-background-hover); color: var(--ifm-font-color-base); }
+.navbar-sidebar .menu__link--active:not(.menu__link--sublist) { color: var(--ifm-color-primary); background: var(--bgt-chip-bg); }
+.navbar .navbar-sidebar__back { color: var(--ifm-color-primary); background: transparent; font-size: .85rem; font-weight: 600; margin: 0 0 .5rem; padding: .5rem .75rem; border-radius: 7px; }
+.navbar .navbar-sidebar__back:hover { background: var(--ifm-menu-color-background-hover); }
+.navbar--dark { --ifm-navbar-background-color: var(--bgt-header); --ifm-navbar-link-color: #d4e2f1; --ifm-navbar-link-hover-color: #fff; }
+.navbar__search-input { height: 36px; border-radius: 8px; background-color: rgba(255,255,255,.1); color: #fff; font-size: .85rem; }
+.navbar__search-input:hover, .navbar__search-input:focus { background-color: rgba(255,255,255,.16); }
+.navbar__search-input::placeholder { color: #d4e2f1; opacity: 1; }
+.navbar__search kbd { font-family: var(--ifm-font-family-monospace); font-size: 11px; background: rgba(255,255,255,.12); border: 0; box-shadow: none; border-radius: 4px; color: #fff; }
+[data-theme='dark'] .navbar__search kbd { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.18); color: #e7eaf0; }
+/* Below 996px Infima shrinks the search box to 9rem, too narrow for the icon, the placeholder
+   and the "ctrl K" hint together, so they overlap. Make it wider, keep room for the hint on the
+   right, and let it grow while typing. */
+@media (max-width: 996px) {
+  .navbar__search-input { width: 12rem; padding-right: 4.75rem; }
+  .navbar__search-input:focus { width: min(22rem, calc(100vw - 15rem)); }
+}
+/* On a phone the box stays an icon until it is focused. Then it takes the room of the site
+   title (the logo stays), so the query and the clear button fit. */
+@media (max-width: 576px) {
+  .navbar__search-input:not(:focus) { width: 2.75rem; padding-right: 0; }
+  .navbar__search-input:focus { width: calc(100vw - 9rem); padding-right: 2rem; }
+  .navbar:has(.navbar__search-input:focus) .navbar__title { display: none; }
+}
+
+/* Announcement bar. Only the bar itself gets the border: its placeholder and content
+   children also have "announcementBar" in their class names. */
+.theme-announcement-bar { background: var(--bgt-cream); color: var(--ifm-font-color-base); border-bottom: 1px solid var(--bgt-border); font-size: .9rem; }
+div.theme-announcement-bar a { color: var(--ifm-color-primary); font-weight: 500; }
+[data-theme='dark'] .theme-announcement-bar .close { color: var(--ifm-font-color-base); opacity: .7; }
+[data-theme='dark'] .theme-announcement-bar .close:hover { opacity: 1; }
+
+/* Sidebar & TOC */
+.theme-doc-sidebar-container { border-right-color: var(--bgt-divider) !important; }
+.menu { padding: 1rem .75rem; }
+.menu__link { border-radius: 7px; font-size: .93rem; }
+.menu__link--active:not(.menu__link--sublist) { font-weight: 600; }
+.menu__list-item-collapsible { border-radius: 7px; }
+/* Category arrow: a 16px chevron that points right when closed and down when open. */
+.menu__caret::before,
+.menu__link--sublist-caret::after {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  background: var(--ifm-color-emphasis-600);
+  filter: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  transform: none;
+}
+.menu__list-item--collapsed .menu__caret::before,
+.menu__list-item--collapsed .menu__link--sublist::after { transform: none; }
+.menu__list-item:not(.menu__list-item--collapsed) > .menu__list-item-collapsible > .menu__caret::before,
+.menu__list-item:not(.menu__list-item--collapsed) > .menu__list-item-collapsible > .menu__link--sublist-caret::after,
+.menu__list-item:not(.menu__list-item--collapsed) > .menu__link--sublist-caret::after { transform: rotate(90deg); }
+.table-of-contents { font-size: .85rem; }
+.table-of-contents__link { color: var(--bgt-muted); }
+.table-of-contents__link--active { color: var(--ifm-color-primary); font-weight: 500; }
+.table-of-contents code { background: transparent; border: 0; padding: 0; }
+.theme-doc-toc-desktop { border-left: 1px solid var(--bgt-divider); padding-left: .5rem; }
+
+/* Breadcrumbs */
+.breadcrumbs__link { border-radius: 6px; font-size: .85rem; }
+.breadcrumbs__item--active .breadcrumbs__link { background: var(--bgt-chip-bg); color: var(--ifm-color-primary); }
+
+/* Code */
+code { border: 0; }
+pre, .prism-code { font-size: .86rem !important; }
+div[class*='codeBlockContainer'] { border: 1px solid var(--bgt-border); border-radius: var(--ifm-pre-border-radius); box-shadow: none; }
+div[class*='codeBlockTitle'] { font-size: .8rem; font-weight: 500; border-bottom: 1px solid var(--bgt-border) !important; }
+
+/* Tabs: accent underline, same as the app */
+.tabs { border-bottom: 1px solid var(--bgt-divider); }
+.tabs__item { border-radius: 0; border-bottom: 2px solid transparent; font-weight: 500; font-size: .92rem; padding: .6rem .8rem; color: var(--bgt-muted); }
+.tabs__item:hover { background: transparent; color: var(--ifm-font-color-base); }
+.tabs__item--active { color: var(--ifm-font-color-base); border-bottom: 2px solid var(--bgt-accent); }
+
+/* Tables: a table wider than the page scrolls sideways inside its own border. */
+.markdown table { display: block; width: fit-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--bgt-border); border-radius: 12px; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
+.markdown table th { font-weight: 500; font-size: .8rem; color: var(--bgt-muted); text-align: left; }
+.markdown table th, .markdown table td { border: 0; border-top: 1px solid var(--bgt-divider); padding: .65rem 1rem; }
+.markdown table thead th { border-top: 0; }
+/* Code in tables shouldn't wrap mid-token. */
+.markdown table code { white-space: nowrap; }
+/* ScrollTable wraps every markdown table. While columns are hidden on the right, a shadow on
+   that edge shows that the table scrolls; it fades out at the end of the scroll. */
+.bgt-table { position: relative; width: fit-content; max-width: 100%; margin-bottom: var(--ifm-spacing-vertical); }
+.bgt-table > table { margin-bottom: 0; }
+.bgt-table::after { content: ''; position: absolute; top: 1px; right: 1px; bottom: 1px; width: 32px; border-radius: 0 11px 11px 0; background: linear-gradient(to left, rgba(16, 24, 40, .16), rgba(16, 24, 40, 0)); opacity: 0; transition: opacity .15s; pointer-events: none; }
+[data-theme='dark'] .bgt-table::after { background: linear-gradient(to left, rgba(0, 0, 0, .8), rgba(0, 0, 0, 0)); }
+.bgt-table.bgt-table--more::after { opacity: 1; }
+/* On a phone every row becomes a card: the first cell is its title, the other cells are
+   labelled with their column header (data-label, set by ScrollTable). */
+@media (max-width: 640px) {
+  .markdown .bgt-table--stack { width: 100%; }
+  .bgt-table--stack::after { display: none; }
+  .markdown .bgt-table--stack > table { display: block; width: 100%; overflow: visible; border: 0; border-radius: 0; }
+  .markdown .bgt-table--stack thead { display: none; }
+  .markdown .bgt-table--stack tbody { display: flex; flex-direction: column; gap: .6rem; }
+  .markdown .bgt-table--stack tr { display: block; border: 1px solid var(--bgt-border); border-radius: 12px; padding: .7rem .9rem; background: var(--ifm-background-surface-color); }
+  .markdown .bgt-table--stack td { display: block; border: 0; padding: .15rem 0; }
+  .markdown .bgt-table--stack td:first-child { font-weight: 600; padding-bottom: .35rem; }
+  .markdown .bgt-table--stack td:empty { display: none; }
+  .markdown .bgt-table--stack td:not(:first-child)[data-label]:not([data-label=''])::before { content: attr(data-label); display: block; font-size: .72rem; font-weight: 500; letter-spacing: .02em; color: var(--bgt-muted); }
+  .markdown .bgt-table--stack td + td { margin-top: .3rem; }
+  .markdown .bgt-table--stack code { white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* Admonitions */
+.alert { border-radius: 10px; border: 1px solid var(--ifm-alert-border-color); box-shadow: none; }
+.alert--info, .alert--secondary { --ifm-alert-background-color: var(--bgt-chip-bg); --ifm-alert-border-color: var(--bgt-chip-border); --ifm-alert-foreground-color: var(--ifm-font-color-base); }
+.alert--success { --ifm-alert-background-color: #e4f5eb; --ifm-alert-border-color: #c6e8d3; }
+.alert--warning { --ifm-alert-background-color: #fdf3e3; --ifm-alert-border-color: #f3dcb5; }
+.alert--danger { --ifm-alert-background-color: #fff5f5; --ifm-alert-border-color: #f1d4d4; }
+[data-theme='dark'] .alert--success { --ifm-alert-background-color: #133222; --ifm-alert-border-color: #1e4a33; }
+[data-theme='dark'] .alert--warning { --ifm-alert-background-color: #2a2012; --ifm-alert-border-color: #4a3818; }
+[data-theme='dark'] .alert--danger { --ifm-alert-background-color: #1c1416; --ifm-alert-border-color: #40232a; }
+
+/* Buttons */
+.button { font-weight: 500; }
+.button--primary { --ifm-button-background-color: #0b4f8f; --ifm-button-border-color: #0b4f8f; color: #fff; }
+[data-theme='dark'] .button--primary { --ifm-button-background-color: #2a6fb8; --ifm-button-border-color: #2a6fb8; }
+.button--secondary { --ifm-button-background-color: var(--ifm-background-surface-color); --ifm-button-border-color: var(--bgt-border); color: var(--ifm-font-color-base); }
+.button--secondary:hover { --ifm-button-border-color: var(--ifm-color-primary); }
+
+/* Doc page bottom spacing */
+.theme-doc-footer { margin-top: 1.5rem; }
+.pagination-nav { margin-top: 1.25rem; }
+main .container.margin-vert--lg { margin-bottom: 1.5rem !important; }
+
+/* Cards & pagination */
+.card, .pagination-nav__link { border: 1px solid var(--bgt-border); border-radius: 12px; box-shadow: none; background: var(--ifm-background-surface-color); }
+.pagination-nav__link:hover { border-color: var(--ifm-color-primary); }
+.pagination-nav__sublabel { font-size: .8rem; color: var(--bgt-muted); }
+
+/* Images in docs (screenshots) */
+.markdown img { border: 1px solid var(--bgt-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(16,24,40,.08); }
+
+/* Homepage hero */
+.hero { background: var(--bgt-header); color: #fff; border-bottom: 2px solid var(--bgt-accent); padding: 2.75rem 0 2.5rem; }
+.hero__title { font-size: 3.25rem; font-weight: 700; letter-spacing: -0.04em; color: #fff; }
+.hero__subtitle { color: #d4e2f1; font-size: 1.35rem; }
+.hero .button--secondary { --ifm-button-background-color: transparent; --ifm-button-border-color: rgba(255,255,255,.35); color: #fff; }
+.hero .button--primary { --ifm-button-background-color: #fff; --ifm-button-border-color: #fff; color: #0b3f73; }
+@media (max-width: 996px) {
+  .hero { padding-inline: 16px; }
+}
+
+/* Footer */
+.footer { border-top: 1px solid var(--bgt-border); padding: 1.1rem var(--ifm-spacing-horizontal) .75rem; }
+.footer__links { margin-bottom: .6rem; }
+.footer__item { line-height: 1.5; padding: 1px 0; }
+.footer__title { font-size: .85rem; font-weight: 600; }
+.footer__link-item { font-size: .85rem; }
+.footer__copyright { font-size: .82rem; color: var(--bgt-muted); }
+/* Below 996px Docusaurus stacks the link columns full width; keep the three side by side. */
+@media (max-width: 996px) {
+  .footer__links { flex-wrap: nowrap; }
+  .footer__links > .footer__col { flex: 1 1 auto; width: auto; max-width: none; margin-bottom: 0; padding-inline: .4rem; }
+  .footer__title { font-size: .8rem; margin-bottom: .35rem; }
+  .footer__link-item { font-size: .8rem; }
+  .footer__link-item svg { width: 10px; height: 10px; }
+  .footer__bottom { margin-top: .5rem; }
+  .footer__copyright { font-size: .75rem; }
+}
+
+/* Icon-only navbar links (GitHub, Docker Hub). */
+.header-github-link,
+.header-docker-link {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 996px) {
+  .navbar__items--right .header-github-link,
+  .navbar__items--right .header-docker-link {
+    display: none;
+  }
+}
+
+/* In the mobile drawer the icon links get a label next to the icon. */
+.navbar-sidebar .header-github-link,
+.navbar-sidebar .header-docker-link {
+  gap: .6rem;
+}
+
+.navbar-sidebar .header-github-link::after { content: 'GitHub'; }
+.navbar-sidebar .header-docker-link::after { content: 'Docker Hub'; }
+.navbar-sidebar .header-github-link::before,
+.navbar-sidebar .header-docker-link::before {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+}
+
+.header-github-link:hover,
+.header-docker-link:hover {
+  opacity: 0.6;
+}
+
+.header-github-link::before,
+.header-docker-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background-color: var(--ifm-navbar-link-color);
+  -webkit-mask: var(--pagetto-icon) no-repeat center / contain;
+  mask: var(--pagetto-icon) no-repeat center / contain;
+}
+
+.header-github-link {
+  --pagetto-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E");
+}
+
+.header-docker-link {
+  --pagetto-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.186m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.185.185 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 0 0 .185-.185V9.006a.185.185 0 0 0-.185-.186h-2.119a.186.186 0 0 0-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 0 0-.75.748 11.376 11.376 0 0 0 .692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 0 0 3.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z'/%3E%3C/svg%3E");
+}

@@ -1,0 +1,464 @@
+@page "/Admin/Feeds/{slug}/Settings"
+@model PaGetto.Web.Pages.Admin.FeedSettingsModel
+@using PaGetto.Core.Configuration
+@using PaGetto.Web.Pages.Admin
+
+@{
+    // Renders one mirror of the list. The index is a number for stored mirrors and "__index__" in
+    // the template for new ones; the script renumbers rows so posted indexes follow display order.
+    void MirrorRow(string index, FeedSettingsModel.MirrorInput mirror)
+    {
+        var prefix = $"Mirrors[{index}]";
+        var idPrefix = $"Mirrors_{index}__";
+        var authType = mirror.AuthType?.ToString() ?? string.Empty;
+        <div class="bgt-mirror mirror-row">
+            <div class="bgt-mirror-head">
+                <span class="bgt-mirror-title mirror-title">Mirror</span>
+                <span class="bgt-mirror-host"></span>
+                <button type="button" class="btn btn-secondary btn-icon btn-xs mirror-up" title="Move up" aria-label="Move up">&uarr;</button>
+                <button type="button" class="btn btn-secondary btn-icon btn-xs mirror-down" title="Move down" aria-label="Move down">&darr;</button>
+                <button type="button" class="btn btn-outline-danger btn-xs mirror-remove">Remove</button>
+            </div>
+            <div class="bgt-mirror-body">
+                <input type="hidden" name="@(prefix).Id" value="@mirror.Id" />
+                <label class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" role="switch" name="@(prefix).Enabled" value="true" checked="@mirror.Enabled" />
+                    <span class="form-check-label">Enabled</span>
+                </label>
+                <div>
+                    <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="https://api.nuget.org/v3/index.json" required />
+                </div>
+                <div class="bgt-mirror-fields">
+                    <div>
+                        <label for="@(idPrefix)DownloadTimeoutSeconds" class="form-label">Download timeout</label>
+                        <div class="bgt-with-unit">
+                            <input id="@(idPrefix)DownloadTimeoutSeconds" name="@(prefix).DownloadTimeoutSeconds" value="@mirror.DownloadTimeoutSeconds" type="number" min="1" class="form-control" style="max-width: 140px" />
+                            <span class="bgt-unit">seconds</span>
+                        </div>
+                        @Html.ValidationMessage(prefix + ".DownloadTimeoutSeconds", new { @class = "text-danger" })
+                    </div>
+                    <div>
+                        <label for="@(idPrefix)AuthType" class="form-label">Authentication</label>
+                        <select id="@(idPrefix)AuthType" name="@(prefix).AuthType" class="form-select mirror-auth">
+                            <!option value="">None</!option>
+                            <!option value="@MirrorAuthenticationType.Basic" selected="@(mirror.AuthType == MirrorAuthenticationType.Basic)">Basic</!option>
+                            <!option value="@MirrorAuthenticationType.Bearer" selected="@(mirror.AuthType == MirrorAuthenticationType.Bearer)">Bearer token</!option>
+                            <!option value="@MirrorAuthenticationType.Custom" selected="@(mirror.AuthType == MirrorAuthenticationType.Custom)">Custom headers</!option>
+                        </select>
+                    </div>
+                </div>
+                @* Only the fields of the chosen authentication type are shown. Hidden fields are still posted, as before. *@
+                <div class="bgt-mirror-fields" data-auth="@MirrorAuthenticationType.Basic" hidden="@(authType != nameof(MirrorAuthenticationType.Basic))">
+                    <div>
+                        <label for="@(idPrefix)AuthUsername" class="form-label">Username</label>
+                        <input id="@(idPrefix)AuthUsername" name="@(prefix).AuthUsername" value="@mirror.AuthUsername" class="form-control" autocomplete="off" />
+                    </div>
+                    <div>
+                        <label for="@(idPrefix)AuthPasswordNew" class="form-label">Password</label>
+                        <input id="@(idPrefix)AuthPasswordNew" name="@(prefix).AuthPasswordNew" type="password" class="form-control" autocomplete="new-password" placeholder="Leave blank to keep existing" />
+                        @if (mirror.HasAuthPassword)
+                        {
+                            <div class="form-text">A password is currently set.</div>
+                        }
+                    </div>
+                </div>
+                <div data-auth="@MirrorAuthenticationType.Bearer" hidden="@(authType != nameof(MirrorAuthenticationType.Bearer))">
+                    <label for="@(idPrefix)AuthTokenNew" class="form-label">Bearer token</label>
+                    <input id="@(idPrefix)AuthTokenNew" name="@(prefix).AuthTokenNew" type="password" class="form-control" autocomplete="new-password" placeholder="Leave blank to keep existing" />
+                    @if (mirror.HasAuthToken)
+                    {
+                        <div class="form-text">A token is currently set.</div>
+                    }
+                </div>
+                <div data-auth="@MirrorAuthenticationType.Custom" hidden="@(authType != nameof(MirrorAuthenticationType.Custom))">
+                    <label for="@(idPrefix)AuthCustomHeaders" class="form-label">Custom headers (JSON)</label>
+                    <textarea id="@(idPrefix)AuthCustomHeaders" name="@(prefix).AuthCustomHeaders" class="form-control mono" rows="3" placeholder='{"X-Header": "value"}'>@mirror.AuthCustomHeaders</textarea>
+                </div>
+                <label class="form-check">
+                    <input type="checkbox" class="form-check-input" name="@(prefix).Legacy" value="true" checked="@mirror.Legacy" />
+                    <span class="form-check-label">Use NuGet V2 (legacy) protocol</span>
+                </label>
+            </div>
+        </div>
+    }
+
+    // The "Use global default" checkbox under an inheritable setting.
+    void Inherit(string useGlobalName, bool useGlobal, string controls, string globalLabel)
+    {
+        <label class="bgt-inherit">
+            <input type="checkbox" class="form-check-input" id="@useGlobalName" name="@useGlobalName" value="true" checked="@useGlobal" data-controls="@controls" />
+            <input type="hidden" name="@useGlobalName" value="false" />
+            Use global default <span class="bgt-inherit-value">· @globalLabel</span>
+        </label>
+    }
+
+    string Limit(uint? value)
+    {
+        return value?.ToString() ?? "Unlimited";
+    }
+}
+
+@{
+    ViewData["Title"] = "Feed Settings · " + Model.Feed?.Slug;
+
+    var global = Model.GlobalOptions;
+    var overwriteLabel = global.AllowPackageOverwrites switch
+    {
+        PackageOverwriteAllowed.False => "Disallow",
+        PackageOverwriteAllowed.PrereleaseOnly => "Prerelease only",
+        _ => "Allow all"
+    };
+    var deletionLabel = global.PackageDeletionBehavior == PackageDeletionBehavior.HardDelete ? "Hard delete" : "Unlist";
+
+    // A post that comes back without "saved" was refused, and the form holds the values it didn't save.
+    var hasUnsavedInput = Microsoft.AspNetCore.Http.HttpMethods.IsPost(ViewContext.HttpContext.Request.Method) && string.IsNullOrEmpty(Model.SuccessMessage);
+}
+
+@await Html.PartialAsync("_AdminTabs", "Feeds")
+
+<a asp-page="/Admin/Feeds" class="bgt-back">&larr; All feeds</a>
+<div class="bgt-page-head-title" style="margin-bottom: 22px">
+    <h1>Feed settings</h1>
+    <span class="bgt-slug bgt-slug-lg">@Model.Feed?.Slug</span>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid && string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">Some settings are not valid. Check the highlighted fields.</div>
+}
+
+<div class="bgt-settings">
+    <nav class="bgt-settings-nav" aria-label="Sections">
+        <a href="#general">General</a>
+        <a href="#package-behavior">Package behavior</a>
+        <a href="#retention">Retention</a>
+        <a href="#mirrors">Mirrors</a>
+    </nav>
+
+    <form method="post" class="bgt-settings-body" id="feed-settings-form">
+        @Html.AntiForgeryToken()
+
+        <section id="general" class="bgt-card bgt-card-clip">
+            <div class="bgt-section-head">
+                <div>
+                    <h2>General</h2>
+                    <p>Name and availability of this feed.</p>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="Name">Display name</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="Name" class="form-control" required maxlength="256" />
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="Description">Description</label></div>
+                <div class="bgt-setting-control">
+                    <textarea asp-for="Description" class="form-control" rows="3" maxlength="4000"></textarea>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <span class="title">Read-only mode</span>
+                    <div class="bgt-setting-help">Packages cannot be pushed to this feed.</div>
+                </div>
+                <div class="bgt-setting-control">
+                    <label class="form-check form-switch">
+                        <input asp-for="IsReadOnlyMode" class="form-check-input" role="switch" data-global-value="@(global.IsReadOnlyMode ? "true" : "false")" />
+                        <span class="form-check-label">Read-only</span>
+                    </label>
+                    @{ Inherit(nameof(Model.UseGlobalReadOnly), Model.UseGlobalReadOnly, nameof(Model.IsReadOnlyMode), global.IsReadOnlyMode ? "Enabled" : "Disabled"); }
+                </div>
+            </div>
+        </section>
+
+        <section id="package-behavior" class="bgt-card bgt-card-clip">
+            <div class="bgt-section-head">
+                <div>
+                    <h2>Package behavior</h2>
+                    <p>What happens when a package is pushed again or deleted, and how large it can be.</p>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <label asp-for="AllowPackageOverwrites">Package overwrite policy</label>
+                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.</div>
+                </div>
+                <div class="bgt-setting-control">
+                    <select asp-for="AllowPackageOverwrites" class="form-select" data-global-value="@global.AllowPackageOverwrites">
+                        <option value="@PackageOverwriteAllowed.False">Disallow (recommended)</option>
+                        <option value="@PackageOverwriteAllowed.PrereleaseOnly">Prerelease only</option>
+                        <option value="@PackageOverwriteAllowed.True">Allow all</option>
+                    </select>
+                    @{ Inherit(nameof(Model.UseGlobalOverwrite), Model.UseGlobalOverwrite, nameof(Model.AllowPackageOverwrites), overwriteLabel); }
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <label asp-for="PackageDeletionBehavior">Deletion behavior</label>
+                    <div class="bgt-setting-help">Unlist keeps the file; hard delete removes it.</div>
+                </div>
+                <div class="bgt-setting-control">
+                    <select asp-for="PackageDeletionBehavior" class="form-select" data-global-value="@global.PackageDeletionBehavior">
+                        <option value="@PackageDeletionBehavior.Unlist">Unlist (recommended)</option>
+                        <option value="@PackageDeletionBehavior.HardDelete">Hard delete</option>
+                    </select>
+                    @{ Inherit(nameof(Model.UseGlobalDeletion), Model.UseGlobalDeletion, nameof(Model.PackageDeletionBehavior), deletionLabel); }
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="MaxPackageSizeGiB">Max package size</label></div>
+                <div class="bgt-setting-control">
+                    <div class="bgt-with-unit">
+                        <input asp-for="MaxPackageSizeGiB" type="number" min="1" class="form-control bgt-num" placeholder="@global.MaxPackageSizeGiB" />
+                        <span class="bgt-unit">GiB</span>
+                    </div>
+                    <span asp-validation-for="MaxPackageSizeGiB" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalMaxSize), Model.UseGlobalMaxSize, nameof(Model.MaxPackageSizeGiB), global.MaxPackageSizeGiB + " GiB"); }
+                </div>
+            </div>
+        </section>
+
+        <section id="retention" class="bgt-card bgt-card-clip">
+            <div class="bgt-section-head">
+                <div>
+                    <h2>Retention</h2>
+                    <p>Older versions beyond these limits are removed when a new version is pushed. Empty means unlimited.</p>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="RetentionMaxMajorVersions">Max major versions to keep</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="RetentionMaxMajorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxMajorVersions)" />
+                    <span asp-validation-for="RetentionMaxMajorVersions" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalRetentionMajor), Model.UseGlobalRetentionMajor, nameof(Model.RetentionMaxMajorVersions), Limit(global.Retention?.MaxMajorVersions)); }
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="RetentionMaxMinorVersions">Max minor versions per major</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="RetentionMaxMinorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxMinorVersions)" />
+                    <span asp-validation-for="RetentionMaxMinorVersions" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalRetentionMinor), Model.UseGlobalRetentionMinor, nameof(Model.RetentionMaxMinorVersions), Limit(global.Retention?.MaxMinorVersions)); }
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="RetentionMaxPatchVersions">Max patch versions per minor</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="RetentionMaxPatchVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxPatchVersions)" />
+                    <span asp-validation-for="RetentionMaxPatchVersions" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalRetentionPatch), Model.UseGlobalRetentionPatch, nameof(Model.RetentionMaxPatchVersions), Limit(global.Retention?.MaxPatchVersions)); }
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="RetentionMaxPrereleaseVersions">Max prerelease versions per patch</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="RetentionMaxPrereleaseVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxPrereleaseVersions)" />
+                    <span asp-validation-for="RetentionMaxPrereleaseVersions" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalRetentionPrerelease), Model.UseGlobalRetentionPrerelease, nameof(Model.RetentionMaxPrereleaseVersions), Limit(global.Retention?.MaxPrereleaseVersions)); }
+                </div>
+            </div>
+        </section>
+
+        <section id="mirrors" class="bgt-card bgt-card-clip">
+            <div class="bgt-section-head">
+                <div style="flex: 1; min-width: 0">
+                    <h2>Mirrors</h2>
+                    <p>
+                        Upstream package sources, queried in order. Version lists from every mirror are merged
+                        (an earlier mirror wins for the same version), and a package is downloaded from the first
+                        mirror that has it.
+                    </p>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="mirror-add"><icon name="plus" size="13" />Add mirror</button>
+            </div>
+            <div class="bgt-mirrors">
+                <div id="mirror-empty" class="bgt-mirror-empty" hidden="@(Model.Mirrors.Count > 0)">No mirrors. This feed only serves packages pushed to it.</div>
+                <div id="mirror-list" class="d-flex flex-column gap-3">
+                    @for (var i = 0; i < Model.Mirrors.Count; i++)
+                    {
+                        MirrorRow(i.ToString(), Model.Mirrors[i]);
+                    }
+                </div>
+            </div>
+
+            <template id="mirror-template">
+                @{ MirrorRow("__index__", new FeedSettingsModel.MirrorInput { Enabled = true }); }
+            </template>
+
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <label asp-for="UpstreamListingCacheSeconds">Upstream listing cache</label>
+                    <div class="bgt-setting-help">
+                        How long the mirrors' version lists are reused before asking the upstreams again.
+                        New upstream versions show up after at most this delay. 0 turns the cache off.
+                    </div>
+                </div>
+                <div class="bgt-setting-control">
+                    <div class="bgt-with-unit">
+                        <input asp-for="UpstreamListingCacheSeconds" type="number" min="0" class="form-control bgt-num" placeholder="@global.UpstreamListingCacheSeconds" />
+                        <span class="bgt-unit">seconds</span>
+                    </div>
+                    <span asp-validation-for="UpstreamListingCacheSeconds" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalListingCache), Model.UseGlobalListingCache, nameof(Model.UpstreamListingCacheSeconds), global.UpstreamListingCacheSeconds + " seconds"); }
+                </div>
+            </div>
+        </section>
+
+        @* Hidden until the first change. A save that failed validation comes back with the posted, still unsaved values, so it starts visible. *@
+        <div class="bgt-savebar @(hasUnsavedInput ? "show" : null)" id="save-bar" role="region" aria-label="Unsaved changes">
+            <span class="bgt-savebar-status dirty">You have unsaved changes</span>
+            <a asp-page="/Admin/Feeds" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><span class="bgt-desktop-only">Save settings</span><span class="bgt-mobile-only">Save</span></button>
+        </div>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bgt-toast" role="status"><icon name="check" />@Model.SuccessMessage</div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    // While "Use global default" is checked, the control is disabled and shows the global value.
+    // Its own value is kept aside and comes back when the box is unchecked.
+    function applyGlobalDefault(checkbox) {
+        var targetId = checkbox.dataset.controls;
+        if (!targetId) return;
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        var isToggle = target.type === 'checkbox';
+        target.disabled = checkbox.checked;
+        if (checkbox.checked) {
+            if (!('savedValue' in target.dataset)) {
+                target.dataset.savedValue = isToggle ? String(target.checked) : target.value;
+            }
+            if (isToggle) {
+                target.checked = target.dataset.globalValue === 'true';
+            } else if (target.tagName === 'SELECT') {
+                target.value = target.dataset.globalValue;
+            } else {
+                // Number fields show the global value as their placeholder.
+                target.value = '';
+            }
+        } else if ('savedValue' in target.dataset) {
+            // Only restore a value stashed by an earlier toggle. On page load the field already
+            // holds the feed's stored override, and clearing it would save the feed without it.
+            if (isToggle) target.checked = target.dataset.savedValue === 'true';
+            else target.value = target.dataset.savedValue;
+            delete target.dataset.savedValue;
+        }
+    }
+
+    document.querySelectorAll('input[data-controls]').forEach(function (cb) {
+        if (cb.checked) applyGlobalDefault(cb);
+        cb.addEventListener('change', function () { applyGlobalDefault(cb); });
+    });
+})();
+
+(function () {
+    var list = document.getElementById('mirror-list');
+    var template = document.getElementById('mirror-template');
+    var empty = document.getElementById('mirror-empty');
+
+    function updateHost(row) {
+        var source = row.querySelector('.mirror-source').value;
+        var host = '';
+        try { host = source ? new URL(source).host : ''; } catch (e) { host = source; }
+        row.querySelector('.bgt-mirror-host').textContent = host;
+    }
+
+    function updateAuth(row) {
+        var type = row.querySelector('.mirror-auth').value;
+        row.querySelectorAll('[data-auth]').forEach(function (el) {
+            el.hidden = el.getAttribute('data-auth') !== type;
+        });
+    }
+
+    // Rewrites Mirrors[n] and Mirrors_n__ in names, ids and labels so the posted indexes are
+    // always 0..count-1 in display order. The saved mirror priority follows that order.
+    function renumber() {
+        var rows = list.querySelectorAll('.mirror-row');
+        rows.forEach(function (row, index) {
+            row.querySelector('.mirror-title').textContent = 'Mirror ' + (index + 1);
+            row.querySelectorAll('[name], [id], label[for]').forEach(function (el) {
+                ['name', 'id', 'for'].forEach(function (attr) {
+                    var value = el.getAttribute(attr);
+                    if (!value) return;
+                    el.setAttribute(attr, value
+                        .replace(/^Mirrors\[[^\]]+\]/, 'Mirrors[' + index + ']')
+                        .replace(/^Mirrors_(\d+|__index__)__/, 'Mirrors_' + index + '__'));
+                });
+            });
+            row.querySelector('.mirror-up').disabled = index === 0;
+            row.querySelector('.mirror-down').disabled = index === rows.length - 1;
+        });
+        empty.hidden = rows.length > 0;
+    }
+
+    document.getElementById('mirror-add').addEventListener('click', function () {
+        list.appendChild(template.content.cloneNode(true));
+        renumber();
+        markDirty();
+        var added = list.lastElementChild;
+        added.querySelector('.mirror-source').focus();
+    });
+
+    list.addEventListener('click', function (e) {
+        var row = e.target.closest('.mirror-row');
+        if (!row) return;
+
+        if (e.target.closest('.mirror-remove')) {
+            row.remove();
+        } else if (e.target.closest('.mirror-up') && row.previousElementSibling) {
+            list.insertBefore(row, row.previousElementSibling);
+        } else if (e.target.closest('.mirror-down') && row.nextElementSibling) {
+            list.insertBefore(row.nextElementSibling, row);
+        } else {
+            return;
+        }
+        renumber();
+        markDirty();
+    });
+
+    list.addEventListener('input', function (e) {
+        var row = e.target.closest('.mirror-row');
+        if (row && e.target.classList.contains('mirror-source')) updateHost(row);
+    });
+
+    list.addEventListener('change', function (e) {
+        var row = e.target.closest('.mirror-row');
+        if (row && e.target.classList.contains('mirror-auth')) updateAuth(row);
+    });
+
+    list.querySelectorAll('.mirror-row').forEach(function (row) { updateHost(row); });
+    renumber();
+
+    // The save bar slides in with the first change. The space kept free for it under the
+    // sections (and the scroll padding) follows its height while it is visible.
+    var form = document.getElementById('feed-settings-form');
+    var bar = document.getElementById('save-bar');
+    function updateReservedSpace() {
+        var height = bar.offsetHeight;
+        document.documentElement.style.setProperty('--bgt-savebar-own', height + 'px');
+        document.documentElement.style.setProperty('--bgt-savebar-h', (bar.classList.contains('show') ? height : 0) + 'px');
+    }
+    new ResizeObserver(updateReservedSpace).observe(bar);
+    function markDirty() {
+        if (bar.classList.contains('show')) return;
+        bar.classList.add('show');
+        updateReservedSpace();
+    }
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+    updateReservedSpace();
+})();
+</script>
+}

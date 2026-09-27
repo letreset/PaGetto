@@ -1,0 +1,11 @@
+# Contoso.Metrics
+
+Metrics and health checks.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Metrics
+```
+
+Maintained by the Contoso platform team.

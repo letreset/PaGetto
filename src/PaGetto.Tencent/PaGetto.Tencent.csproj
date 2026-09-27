@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>The libraries to host PaGetto on Tencent Cloud.</Description>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tencent.QCloud.Cos.Sdk"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PaGetto.Core\PaGetto.Core.csproj" />
+  </ItemGroup>
+</Project>

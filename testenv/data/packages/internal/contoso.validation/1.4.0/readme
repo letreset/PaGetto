@@ -1,0 +1,11 @@
+# Contoso.Validation
+
+Validation rules for requests and commands.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Validation
+```
+
+Maintained by the Contoso platform team.

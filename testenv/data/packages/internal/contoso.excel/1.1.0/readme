@@ -1,0 +1,11 @@
+# Contoso.Excel
+
+Excel import and export.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Excel
+```
+
+Maintained by the Contoso platform team.

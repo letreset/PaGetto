@@ -1,0 +1,76 @@
+name: Bug report
+description: Report something that is not working
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search the [existing issues](https://github.com/letreset/PaGetto/issues) first.
+
+        **Security vulnerabilities must not be reported here.** See the [security policy](https://github.com/letreset/PaGetto/security/policy).
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The commands, requests or UI steps that trigger the bug.
+      placeholder: |
+        1. Push package '...' to feed '...'
+        2. Open '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PaGetto version
+      description: Release, Docker image tag or commit.
+      placeholder: e.g. 1.0.0, letreset/pagetto:latest
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker
+        - Helm chart
+        - IIS
+        - dotnet run / self-hosted binary
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Configuration
+      description: Authentication mode, database, storage, reverse proxy and the NuGet client in use. Remove passwords, keys and tokens.
+      placeholder: |
+        Authentication:Mode: Local
+        Database: PostgreSql
+        Storage: FileSystem
+        Client: dotnet 10.0.100
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant server log output or client errors. Remove secrets.
+      render: shell
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots or anything else that helps.

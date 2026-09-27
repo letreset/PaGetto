@@ -1,0 +1,11 @@
+# Contoso.Logging
+
+Structured logging defaults and enrichers for Contoso services.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Logging
+```
+
+Maintained by the Contoso platform team.

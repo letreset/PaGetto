@@ -1,0 +1,24 @@
+apiVersion: v1
+name: pagetto
+description: A Helm chart for PaGetto nuget package server
+type: application
+
+# Chart and app versions move together. The release workflow overrides both with the git tag
+# (helm package --version/--app-version), so these values only matter for local installs.
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - nuget
+  - pagetto
+
+home: https://letreset.github.io/PaGetto/
+
+sources:
+  - https://github.com/letreset/PaGetto
+  - https://hub.docker.com/r/letreset/pagetto
+
+dependencies:
+  - name: common
+    repository: https://bjw-s-labs.github.io/helm-charts
+    version: 3.0.3

@@ -1,0 +1,11 @@
+# Contoso.Legacy
+
+Old helpers kept for existing applications.
+
+## Getting started
+
+```shell
+dotnet add package Contoso.Legacy
+```
+
+Maintained by the Contoso platform team.
