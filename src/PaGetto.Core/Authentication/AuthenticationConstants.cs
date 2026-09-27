@@ -9,4 +9,7 @@ public static class AuthenticationConstants
 
     /// <summary>Claim stamped into the cookie that indicates whether the user is an admin.</summary>
     public const string IsAdminClaim = "pagetto:is_admin";
+
+    /// <summary>Claim stamped into the cookie while the user still has to change their password.</summary>
+    public const string MustChangePasswordClaim = "pagetto:must_change_password";
 }

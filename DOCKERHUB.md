@@ -37,7 +37,7 @@ docker run -d -p 5000:8080 -v pagetto-data:/data \
   letreset/pagetto:latest
 ```
 
-Secrets can also be mounted as files under `/run/secrets` (key-per-file). User accounts, groups and Entra ID sign-in are enabled with `Authentication__Mode` (`Config`, `Local`, `Entra` or `Hybrid`). In `Local` mode, set `Authentication__InitialAdmin__Username` and `Authentication__InitialAdmin__Password` (ideally as a secret) to create the first administrator on startup; see the [authentication docs](https://letreset.github.io/PaGetto/docs/authentication) and the full [configuration docs](https://letreset.github.io/PaGetto/docs/configuration).
+Secrets can also be mounted as files under `/run/secrets` (key-per-file). User accounts, groups and Entra ID sign-in are enabled with `Authentication__Mode` (`Config`, `Local`, `Entra` or `Hybrid`). In `Local` mode PaGetto creates the administrator `admin` with the password `admin` on the first start and asks for a new password on the first sign-in; see the [authentication docs](https://letreset.github.io/PaGetto/docs/authentication) and the full [configuration docs](https://letreset.github.io/PaGetto/docs/configuration).
 
 ## Tags
 

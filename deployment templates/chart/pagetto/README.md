@@ -19,7 +19,7 @@ See [`values.yaml`](values.yaml) for all options. Common ones:
 | Key | Default | Description |
 |-----|---------|-------------|
 | `configMaps.pagetto-env.data` | SQLite + FileSystem on `/data` | Environment variables passed to PaGetto. See the [configuration docs](https://letreset.github.io/PaGetto/docs/configuration). Put secrets in a Secret instead. |
-| `controllers.pagetto.containers.pagetto.env` | unset | Secret-backed environment variables, e.g. `Authentication__InitialAdmin__Password` from a Secret for the [first administrator](https://letreset.github.io/PaGetto/docs/authentication#the-first-administrator) in `Local` mode |
+| `controllers.pagetto.containers.pagetto.env` | unset | Secret-backed environment variables, e.g. `Database__ConnectionString` from a Secret |
 | `controllers.pagetto.containers.pagetto.image.repository` | `letreset/pagetto` | Image repository |
 | `controllers.pagetto.containers.pagetto.image.tag` | release version | Image tag |
 | `controllers.pagetto.containers.pagetto.probes` | `/livez` liveness, `/health` readiness | Health probes |

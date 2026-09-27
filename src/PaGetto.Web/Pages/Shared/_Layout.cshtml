@@ -33,6 +33,7 @@
     var isAdmin = isAuthenticated &&
         string.Equals(User.FindFirst(AuthenticationConstants.IsAdminClaim)?.Value, "true", StringComparison.Ordinal);
     var showUser = requiresAuth && isAuthenticated;
+    var isLocalUser = string.Equals(User.FindFirst("AuthProvider")?.Value, nameof(AuthProvider.Local), StringComparison.Ordinal);
 
     // Admin links must never be scoped to a feed: use the PathBase from before
     // FeedResolutionMiddleware appended /feeds/{slug}, so they always point at the root.
@@ -185,6 +186,10 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end bgt-user-menu">
                             <li><a class="dropdown-item" href="@rootBase/Account/Tokens"><icon name="key" />My Tokens</a></li>
+                            @if (isLocalUser)
+                            {
+                                <li><a class="dropdown-item" href="@rootBase/Account/ChangePassword"><icon name="lock" />Change password</a></li>
+                            }
                             @if (isAdmin)
                             {
                                 <li><hr class="dropdown-divider" /></li>
@@ -245,6 +250,10 @@
                             </div>
                         </div>
                         <a href="@rootBase/Account/Tokens" class="@Active("/Account/Tokens")"><icon name="key" size="18" />My Tokens</a>
+                        @if (isLocalUser)
+                        {
+                            <a href="@rootBase/Account/ChangePassword" class="@Active("/Account/ChangePassword")"><icon name="lock" size="18" />Change password</a>
+                        }
                         @if (isAdmin)
                         {
                             <div class="bgt-drawer-divider"></div>

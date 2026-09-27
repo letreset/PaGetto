@@ -123,6 +123,17 @@ public class FeedAuthenticationServiceTests
         }
 
         [Fact]
+        public async Task RejectsPasswordThatMustBeChanged()
+        {
+            var target = CreateTarget(AuthenticationMode.Local);
+            await Users.CreateLocalAdminAsync("root", Password, mustChangePassword: true, Ct);
+
+            var result = await target.AuthenticateByCredentialsAsync("root", Password, Ct);
+
+            Assert.False(result.IsAuthenticated);
+        }
+
+        [Fact]
         public async Task EntraModeRejectsLocalPassword()
         {
             var target = CreateTarget(AuthenticationMode.Entra);

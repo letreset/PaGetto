@@ -21,6 +21,7 @@ const packagesOnly = args.includes('--packages-only');
 
 // Test accounts. These are test-only credentials, documented in docs/docs/Advanced/test-environment.md.
 const admin = { username: 'admin', password: 'Admin-Test-Password-1' };
+const defaultAdminPassword = 'admin';
 const userPassword = 'User-Test-Password-1';
 const users = [
     { username: 'alice', displayName: 'Alice Martin', email: 'alice@example.com', canLoginToUI: true },
@@ -173,8 +174,12 @@ async function push(feed, file) {
 async function seedServer() {
     const login = await http('/Login');
     const t = token(login.text);
-    const signIn = await http('/Login', { method: 'POST', form: { Username: admin.username, Password: admin.password, __RequestVerificationToken: t } });
+    // An empty server has the default administrator admin/admin, which has to choose a new password first.
+    const signIn = await http('/Login', { method: 'POST', form: { Username: admin.username, Password: defaultAdminPassword, __RequestVerificationToken: t } });
     if (signIn.status !== 302) throw new Error(`Sign-in as ${admin.username} failed (status ${signIn.status}). Is this an empty test server?`);
+    await postPage('/Account/ChangePassword', null, {
+        CurrentPassword: defaultAdminPassword, NewPassword: admin.password, ConfirmPassword: admin.password,
+    });
 
     for (const feed of feeds) {
         const res = await http('/api/v1/feeds', { method: 'POST', json: feed });

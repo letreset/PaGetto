@@ -89,17 +89,18 @@ public partial class UserService : IUserService
         CancellationToken cancellationToken)
     {
         return await CreateLocalUserAsync(
-            username, displayName, email, password, canLoginToUI, isAdmin: false, createdByUserId, cancellationToken);
+            username, displayName, email, password, canLoginToUI, isAdmin: false, mustChangePassword: false, createdByUserId, cancellationToken);
     }
 
     public async Task<User> CreateLocalAdminAsync(
         string username,
         string password,
+        bool mustChangePassword,
         CancellationToken cancellationToken)
     {
         // A single insert, so a crash can never leave the account behind without admin rights.
         return await CreateLocalUserAsync(
-            username, username, email: null, password, canLoginToUI: true, isAdmin: true, createdByUserId: null, cancellationToken);
+            username, username, email: null, password, canLoginToUI: true, isAdmin: true, mustChangePassword, createdByUserId: null, cancellationToken);
     }
 
     private async Task<User> CreateLocalUserAsync(
@@ -109,6 +110,7 @@ public partial class UserService : IUserService
         string password,
         bool canLoginToUI,
         bool isAdmin,
+        bool mustChangePassword,
         Guid? createdByUserId,
         CancellationToken cancellationToken)
     {
@@ -124,6 +126,7 @@ public partial class UserService : IUserService
             IsEnabled = true,
             CanLoginToUI = canLoginToUI,
             IsAdmin = isAdmin,
+            MustChangePassword = mustChangePassword,
             CreatedByUserId = createdByUserId,
             CreatedAtUtc = now,
             UpdatedAtUtc = now
@@ -153,6 +156,20 @@ public partial class UserService : IUserService
         await _context.SaveChangesAsync(cancellationToken);
 
         LogPasswordUpdated("PasswordReset", userId);
+    }
+
+    public async Task ChangeOwnPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await FindByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException($"User {userId} not found.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword, BcryptWorkFactor);
+        user.MustChangePassword = false;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        LogPasswordUpdated("PasswordChanged", userId);
     }
 
     public Task<bool> VerifyPasswordAsync(User user, string password)

@@ -60,7 +60,7 @@ public class AccountsModel : PageModel
 
     [BindProperty]
     [Required(ErrorMessage = "Password is required.")]
-    [MinLength(12, ErrorMessage = "Password must be at least 12 characters.")]
+    [MinLength(PasswordPolicy.MinPasswordLength, ErrorMessage = "Password must be at least {1} characters.")]
     [DataType(DataType.Password)]
     public string NewPassword { get; set; }
 
@@ -288,9 +288,9 @@ public class AccountsModel : PageModel
         if (!await IsCurrentUserAdminAsync(cancellationToken))
             return RedirectToPage("/Index");
 
-        if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 12)
+        if (string.IsNullOrEmpty(newPassword) || newPassword.Length < PasswordPolicy.MinPasswordLength)
         {
-            ErrorMessage = "Password must be at least 12 characters.";
+            ErrorMessage = $"Password must be at least {PasswordPolicy.MinPasswordLength} characters.";
             await LoadUsersAndGroupsAsync(cancellationToken);
             return Page();
         }

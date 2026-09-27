@@ -134,7 +134,7 @@ ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware
 
 Main keys:
 - `Database`, `Storage`, `Search`: each has a `Type`. `Database:ServerVersion` (MySQL only, optional) skips server version detection, which otherwise runs once per connection string (`MySqlServerVersionResolver`).
-- `Authentication`: `Mode`, `Entra`, `InitialAdmin` (`Username`, `Password`; `InitialAdminSeeder` creates this local admin at startup, after migrations, while no admin exists in `Local`/`Hybrid`), token and lockout limits.
+- `Authentication`: `Mode`, `Entra`, token and lockout limits. In `Local`/`Hybrid`, `InitialAdminSeeder` creates the local admin `admin`/`admin` at startup, after migrations, while no admin exists; `User.MustChangePassword` keeps it on `/Account/ChangePassword` (`MustChangePasswordMiddleware`) and out of basic auth until the password is changed.
 - `Email`, `PatExpiryNotification`.
 - `MaxPackageSizeGiB`, `RegistrationPageSize`, `UpstreamListingCacheSeconds` (default 300, per-feed override), `Cors` (`AllowedOrigins`, `AllowCredentials`), `SecurityHeaders` (`Enabled`, `EnableHsts`, `HstsMaxAgeDays`), `RequestRateLimit` (`Enabled`, `PermitLimit`, `WindowSeconds`, `QueueLimit`; off by default).
 - `HealthCheck`, `Statistics`.

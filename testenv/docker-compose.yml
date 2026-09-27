@@ -37,9 +37,6 @@ services:
       # host name, and no HSTS. Never use this for a real server.
       ASPNETCORE_ENVIRONMENT: Development
       Authentication__Mode: Local
-      # Only used when the database has no administrator (TESTENV_EMPTY=1).
-      Authentication__InitialAdmin__Username: admin
-      Authentication__InitialAdmin__Password: Admin-Test-Password-1
       Logging__Console__LogLevel__Default: Information
     volumes:
       - data:/data

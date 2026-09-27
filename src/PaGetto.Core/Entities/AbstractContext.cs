@@ -343,6 +343,10 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         user.Property(u => u.CanLoginToUI)
             .IsRequired();
 
+        user.Property(u => u.MustChangePassword)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         user.Property(u => u.FailedLoginCount)
             .IsRequired()
             .HasDefaultValue(0);

@@ -48,4 +48,4 @@ rm -rf testenv/data/dataprotection
 docker compose -f testenv/docker-compose.yml down -v
 ```
 
-`TESTENV_EMPTY=1` starts without the snapshot, and PaGetto creates the `admin` account from `Authentication:InitialAdmin`. The Data Protection keys are left out of the snapshot on purpose, so every environment creates its own. Delete a file in `packages/` to have the seed script pack it again.
+`TESTENV_EMPTY=1` starts without the snapshot, and PaGetto creates the default `admin` account (password `admin`, which has to be changed on the first sign-in). The Data Protection keys are left out of the snapshot on purpose, so every environment creates its own. Delete a file in `packages/` to have the seed script pack it again.
