@@ -34,7 +34,7 @@ In every other mode those settings are ignored: there is no anonymous access, ev
 Administrators manage feeds, accounts, groups and permissions, and can pull, push and delete on every feed. How you get the first one depends on the mode:
 
 - **`Entra` and `Hybrid`**: assign the `Admin` app role to yourself in Entra ID (see [Step 3](#step-3-define-app-roles-recommended)) and sign in. Admin status always follows the token.
-- **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters). Until then the default password is also rejected by NuGet clients.
+- **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters, or `Authentication:MinPasswordLength`). Until then the default password is also rejected by NuGet clients.
 
 The default administrator is only ever created, never changed:
 
@@ -153,19 +153,19 @@ Sign-in is refused for an Entra account that an administrator has disabled or wh
 
 ## Sessions
 
-Signing in to the web UI, with a local account or with Entra ID, issues a session cookie (`PaGetto.Auth`) with a 60-minute sliding expiration. The user is checked again on every request: disabling an account or its web sign-in signs the user out on their next request, and a change to their admin role applies without signing in again.
+Signing in to the web UI, with a local account or with Entra ID, issues a session cookie (`PaGetto.Auth`) with a sliding expiration of `Authentication:SessionTimeoutMinutes` (default 60 minutes): every request extends it. The user is checked again on every request: disabling an account or its web sign-in signs the user out on their next request, and a change to their admin role applies without signing in again.
 
 ## Local accounts
 
 When `Mode` is `Local` or `Hybrid`, administrators manage local accounts on **Admin > Accounts**. **New account** opens the create form; the other actions are in the **Actions** menu (⋮) at the end of each account's row:
 
-- **Create** an account with a username (case-insensitive: `alice` and `ALICE` are the same account, on every database), an optional display name, an optional email address (used for [token expiry notifications](#expiry-notifications)) and a password of at least 12 characters. Passwords are stored as bcrypt hashes.
+- **Create** an account with a username (case-insensitive: `alice` and `ALICE` are the same account, on every database), an optional display name, an optional email address (used for [token expiry notifications](#expiry-notifications)) and a password of at least `Authentication:MinPasswordLength` characters (default 12, between 8 and 72). Passwords are stored as bcrypt hashes.
 - **Enable account** or **Disable account**. Disabled accounts can't sign in or use their tokens.
 - **Allow web sign-in** or **Disable web sign-in** (**Can sign in to web UI** when creating the account). Turn it off for build agents that should only use NuGet clients; the row then shows **API only** instead of **Web + API**.
 - **Make admin** or **Remove admin role** for a local account. Entra accounts are administrators through the `Admin` app role instead. An **Admin** label marks administrators.
 - **Unlock** an account that is [locked](#account-lockout) after too many failed sign-ins; a **Locked until** label shows when the lock ends.
 - **Edit account**: change the username, display name and email in a dialog. After a rename the user signs in with the new username. Personal access tokens stay valid, but a `nuget.config` that sends the old username together with a token has to be updated.
-- **Reset password**: set a new password (at least 12 characters) in a dialog. This also ends a [lockout](#account-lockout).
+- **Reset password**: set a new password (at least `MinPasswordLength` characters) in a dialog. This also ends a [lockout](#account-lockout).
 - **New token**: create a [personal access token](#personal-access-tokens-pats) for the account in a dialog.
 - **Delete account**. The action only appears after the account has been disabled.
 
@@ -341,6 +341,8 @@ When a PAT is used as a password, the username must be the token owner's usernam
         "MaxTokenExpiryDays": 365,
         "MaxFailedAttempts": 5,
         "LockoutMinutes": 15,
+        "SessionTimeoutMinutes": 60,
+        "MinPasswordLength": 12,
         "Credentials": [
             {
                 "Username": "legacy-user",
@@ -378,6 +380,8 @@ All authentication settings can be provided via environment variables using the 
 | `Authentication__MaxTokenExpiryDays` | Maximum PAT lifetime in days |
 | `Authentication__MaxFailedAttempts` | Failed login threshold for lockout |
 | `Authentication__LockoutMinutes` | Lockout duration in minutes |
+| `Authentication__SessionTimeoutMinutes` | Web sign-in lifetime without activity, in minutes (default 60) |
+| `Authentication__MinPasswordLength` | Minimum local account password length (default 12, 8 to 72) |
 
 ## Docker Compose example
 

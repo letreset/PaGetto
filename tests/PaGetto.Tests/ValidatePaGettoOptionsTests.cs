@@ -234,6 +234,36 @@ public class ValidatePaGettoOptionsTests
         }
     }
 
+    public class ValidateAuthenticationLimits
+    {
+        private static bool HasFailure(NugetAuthenticationOptions authentication, string setting)
+        {
+            var options = new PaGettoOptions { Authentication = authentication };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed && result.Failures.Any(f => f.Contains(setting));
+        }
+
+        [Theory]
+        [InlineData(7, true)]
+        [InlineData(8, false)]
+        [InlineData(72, false)]
+        [InlineData(73, true)]
+        public void ChecksMinPasswordLength(int length, bool fails)
+        {
+            var authentication = new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, MinPasswordLength = length };
+
+            Assert.Equal(fails, HasFailure(authentication, nameof(NugetAuthenticationOptions.MinPasswordLength)));
+        }
+
+        [Fact]
+        public void RejectsSessionTimeoutBelowOneMinute()
+        {
+            var authentication = new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, SessionTimeoutMinutes = 0 };
+
+            Assert.True(HasFailure(authentication, nameof(NugetAuthenticationOptions.SessionTimeoutMinutes)));
+        }
+    }
+
     public class ValidateDataProtection
     {
         private static bool HasFailure(KeyProtectionOptions keyProtection)

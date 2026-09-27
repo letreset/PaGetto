@@ -23,9 +23,11 @@ public class WebUiChangePasswordTests
         protected const string NewPassword = "BrandNewPassword456!";
 
         protected readonly PaGettoApplication _app;
+        protected readonly ITestOutputHelper _output;
 
         protected FactsBase(ITestOutputHelper output)
         {
+            _output = output;
             _app = new PaGettoApplication(output, null, dict =>
             {
                 dict["Authentication:Mode"] = "Local";
@@ -154,6 +156,25 @@ public class WebUiChangePasswordTests
             using var change = await ChangePasswordAsync(session, DefaultPassword, NewPassword, "SomethingElse123!");
 
             Assert.Contains("don&#x27;t match", await change.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task UsesTheConfiguredMinimumLength()
+        {
+            using var app = new PaGettoApplication(_output, null, dict =>
+            {
+                dict["Authentication:Mode"] = "Local";
+                dict["Authentication:MinPasswordLength"] = "24";
+            });
+            using (var scope = app.Services.CreateScope())
+            {
+                await scope.ServiceProvider.GetRequiredService<InitialAdminSeeder>().SeedAsync(CancellationToken.None);
+            }
+
+            using var session = await WebUiSession.SignInAsync(app, InitialAdminSeeder.DefaultUsername, DefaultPassword);
+            using var change = await ChangePasswordAsync(session, DefaultPassword, NewPassword);
+
+            Assert.Contains("at least 24 characters", await change.Content.ReadAsStringAsync());
         }
 
         [Fact]

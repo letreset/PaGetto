@@ -43,6 +43,11 @@ public class ValidatePaGettoOptions
             "Null",
         };
 
+    // The range accepted for Authentication:MinPasswordLength. bcrypt only reads the first 72 bytes
+    // of a password, so a longer minimum would add nothing.
+    private const int MinAllowedPasswordLength = 8;
+    private const int MaxAllowedPasswordLength = 72;
+
     private static readonly HashSet<string> _validEmailTypes
         = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -234,5 +239,11 @@ public class ValidatePaGettoOptions
 
         if (auth.LockoutMinutes < 1)
             failures.Add($"The '{nameof(NugetAuthenticationOptions.LockoutMinutes)}' config must be at least 1");
+
+        if (auth.SessionTimeoutMinutes < 1)
+            failures.Add($"The '{nameof(NugetAuthenticationOptions.SessionTimeoutMinutes)}' config must be at least 1");
+
+        if (auth.MinPasswordLength is < MinAllowedPasswordLength or > MaxAllowedPasswordLength)
+            failures.Add($"The '{nameof(NugetAuthenticationOptions.MinPasswordLength)}' config must be between {MinAllowedPasswordLength} and {MaxAllowedPasswordLength}");
     }
 }

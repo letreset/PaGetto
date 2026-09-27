@@ -74,6 +74,7 @@ internal static partial class ServiceCollectionExtensions
 		if (mode == AuthenticationMode.Legacy)
             return app;
 
+        var sessionTimeoutMinutes = authSection.GetValue(nameof(NugetAuthenticationOptions.SessionTimeoutMinutes), new NugetAuthenticationOptions().SessionTimeoutMinutes);
         var entraSection = authSection.GetSection("Entra");
         var entraOptions = entraSection.Get<EntraOptions>() ?? new EntraOptions();
 
@@ -119,7 +120,7 @@ internal static partial class ServiceCollectionExtensions
                 ? Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest //For development, allow non-secure cookies over HTTP to simplify testing.
                 : Microsoft.AspNetCore.Http.CookieSecurePolicy.Always; //In production, require secure cookies to ensure they are only sent over HTTPS.
             options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
             options.SlidingExpiration = true;
 
             options.Events ??= new CookieAuthenticationEvents();
