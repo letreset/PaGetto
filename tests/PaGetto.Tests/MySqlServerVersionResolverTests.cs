@@ -2,7 +2,7 @@ using System;
 using PaGetto.Core.Configuration;
 using PaGetto.Database.MySql;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using Microting.EntityFrameworkCore.MySql.Infrastructure;
 using Xunit;
 
 namespace PaGetto.Tests;
