@@ -4,6 +4,7 @@ using PaGetto.Aws;
 using PaGetto.Azure;
 using PaGetto.DataProtection;
 using PaGetto.Core;
+using PaGetto.Core.Audit;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Email;
 using PaGetto.Core.Entities;
@@ -68,6 +69,9 @@ public class Startup
 
         // Fills size, copyright and license expression of packages stored before they were recorded.
         services.AddHostedService<PackageMetadataBackfillService>();
+
+        // Deletes audit events older than Audit:RetentionDays.
+        services.AddHostedService<AuditRetentionService>();
 
         services.AddHealthChecks();
 

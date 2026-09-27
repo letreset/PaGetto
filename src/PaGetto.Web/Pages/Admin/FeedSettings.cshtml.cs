@@ -206,7 +206,7 @@ public class FeedSettingsModel : PageModel
     /// Applies the posted mirror list to the feed: posted rows are updated or added in list order,
     /// and stored mirrors missing from the list are removed.
     /// </summary>
-    private void ApplyMirrors()
+    private async Task ApplyMirrorsAsync()
     {
         var existing = Feed.Mirrors.ToDictionary(m => m.Id);
         var mirrors = new List<FeedMirror>();
@@ -234,13 +234,13 @@ public class FeedSettingsModel : PageModel
             if (!string.IsNullOrEmpty(input.AuthPasswordNew))
             {
                 mirror.AuthPassword = input.AuthPasswordNew;
-                _audit.Admin(HttpContext, "feed_mirror_credentials_changed", Feed.Slug, $"source={mirror.PackageSource} secret=password");
+                await _audit.AdminAsync(HttpContext, "feed_mirror_credentials_changed", Feed.Slug, $"source={mirror.PackageSource} secret=password");
             }
 
             if (!string.IsNullOrEmpty(input.AuthTokenNew))
             {
                 mirror.AuthToken = input.AuthTokenNew;
-                _audit.Admin(HttpContext, "feed_mirror_credentials_changed", Feed.Slug, $"source={mirror.PackageSource} secret=token");
+                await _audit.AdminAsync(HttpContext, "feed_mirror_credentials_changed", Feed.Slug, $"source={mirror.PackageSource} secret=token");
             }
 
             mirrors.Add(mirror);
@@ -353,10 +353,10 @@ public class FeedSettingsModel : PageModel
 
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
 
-        ApplyMirrors();
+        await ApplyMirrorsAsync();
 
         await _feedService.UpdateFeedAsync(Feed, cancellationToken);
-        _audit.Admin(HttpContext, "feed_settings_updated", Feed.Slug, $"mirrors={Feed.Mirrors.Count}");
+        await _audit.AdminAsync(HttpContext, "feed_settings_updated", Feed.Slug, $"mirrors={Feed.Mirrors.Count}");
 
         SuccessMessage = "Settings saved.";
         PopulateFromFeed(Feed);

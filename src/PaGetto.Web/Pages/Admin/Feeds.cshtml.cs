@@ -125,7 +125,7 @@ public partial class FeedsModel : PageModel
         };
 
         await _feedService.CreateFeedAsync(feed, cancellationToken);
-        _audit.Admin(HttpContext, "feed_created", slug);
+        await _audit.AdminAsync(HttpContext, "feed_created", slug);
 
         SuccessMessage = $"Feed '{slug}' created successfully.";
         Feeds = await _feedService.GetAllFeedsAsync(cancellationToken);
@@ -147,7 +147,7 @@ public partial class FeedsModel : PageModel
             }
             else
             {
-                _audit.Admin(HttpContext, "feed_deleted", slug ?? feedId.ToString());
+                await _audit.AdminAsync(HttpContext, "feed_deleted", slug ?? feedId.ToString());
                 SuccessMessage = "Feed deleted successfully.";
             }
         }
@@ -179,7 +179,7 @@ public partial class FeedsModel : PageModel
             return BadRequest();
 
         await _feedService.ReorderFeedsAsync(orderedFeedIds, cancellationToken);
-        _audit.Admin(HttpContext, "feeds_reordered", "feeds");
+        await _audit.AdminAsync(HttpContext, "feeds_reordered", "feeds");
         return new OkResult();
     }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using PaGetto.Core.Configuration;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Storage;
+using PaGetto.Web.Audit;
 using PaGetto.Web.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +29,7 @@ public partial class SymbolController : Controller
     private readonly ISymbolIndexingService _indexer;
     private readonly ISymbolStorageService _storage;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
+    private readonly WebAuditLog _audit;
     private readonly ILogger<SymbolController> _logger;
 
     public SymbolController(
@@ -40,6 +41,7 @@ public partial class SymbolController : Controller
         ISymbolIndexingService indexer,
         ISymbolStorageService storage,
         IOptionsSnapshot<PaGettoOptions> options,
+        WebAuditLog audit,
         ILogger<SymbolController> logger)
     {
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
@@ -50,6 +52,7 @@ public partial class SymbolController : Controller
         _indexer = indexer ?? throw new ArgumentNullException(nameof(indexer));
         _storage = storage ?? throw new ArgumentNullException(nameof(storage));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -83,7 +86,7 @@ public partial class SymbolController : Controller
             var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
             if (uploadStream.Length > maxBytes)
             {
-                LogSymbolUploadTooLarge("symbol_upload_too_large", _feedContext.CurrentFeed.Slug, HttpContext.User.Identity?.Name ?? "anonymous", HttpContext.Connection.RemoteIpAddress);
+                await _audit.SymbolAsync(HttpContext, LogLevel.Warning, "symbol_upload_too_large", _feedContext.CurrentFeed.Slug, HttpContext.User.Identity?.Name ?? "anonymous");
                 HttpContext.Response.StatusCode = 413;
                 return;
             }
@@ -155,7 +158,4 @@ public partial class SymbolController : Controller
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Exception thrown during symbol upload")]
     private partial void LogUploadException(Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "AUDIT {Event} feed={Feed} actor={Actor} ip={Ip}")]
-    private partial void LogSymbolUploadTooLarge(string @event, string feed, string actor, IPAddress ip);
 }

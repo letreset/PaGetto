@@ -12,6 +12,7 @@ using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Web.Audit;
+using PaGetto.Web.Tests.Audit;
 using PaGetto.Web.Pages;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -408,7 +409,7 @@ public class UploadModelFacts
                 Indexer.Object,
                 SymbolIndexer.Object,
                 Packages.Object,
-                new WebAuditLog(AuditLogger.Object),
+                TestWebAuditLog.Create(AuditLogger.Object),
                 Mock.Of<ILogger<UploadModel>>())
             {
                 PageContext = new PageContext { HttpContext = httpContext },

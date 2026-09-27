@@ -1,9 +1,10 @@
 @model string
-@* The model is the active tab: "Accounts", "Groups" or "Feeds". *@
+@* The model is the active tab: "Accounts", "Groups", "Feeds" or "Audit". *@
 
 <div class="bgt-admin-eyebrow">Administration</div>
 <nav class="bgt-tabs bgt-admin-tabs" aria-label="Administration">
     <a asp-page="/Admin/Accounts" class="bgt-tab @(Model == "Accounts" ? "active" : null)" aria-current="@(Model == "Accounts" ? "page" : null)">Accounts</a>
     <a asp-page="/Admin/Groups" class="bgt-tab @(Model == "Groups" ? "active" : null)" aria-current="@(Model == "Groups" ? "page" : null)">Groups &amp; permissions</a>
     <a asp-page="/Admin/Feeds" class="bgt-tab @(Model == "Feeds" ? "active" : null)" aria-current="@(Model == "Feeds" ? "page" : null)">Feeds</a>
+    <a asp-page="/Admin/Audit" class="bgt-tab @(Model == "Audit" ? "active" : null)" aria-current="@(Model == "Audit" ? "page" : null)">Audit log</a>
 </nav>

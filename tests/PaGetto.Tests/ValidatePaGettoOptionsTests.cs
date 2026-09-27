@@ -85,6 +85,24 @@ public class ValidatePaGettoOptionsTests
         }
 
         [Fact]
+        public void RejectsNegativeAuditRetentionDays()
+        {
+            var options = new PaGettoOptions { Audit = new AuditOptions { RetentionDays = -1 } };
+
+            Assert.True(HasFailure(options, $"{nameof(PaGettoOptions.Audit)}:{nameof(AuditOptions.RetentionDays)}"));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(30)]
+        public void AcceptsAuditRetentionDaysOfZeroOrMore(int days)
+        {
+            var options = new PaGettoOptions { Audit = new AuditOptions { RetentionDays = days } };
+
+            Assert.False(HasFailure(options, $"{nameof(PaGettoOptions.Audit)}:{nameof(AuditOptions.RetentionDays)}"));
+        }
+
+        [Fact]
         public void RejectsCorsCredentialsWithoutOrigins()
         {
             var options = new PaGettoOptions { Cors = new CorsPolicyOptions { AllowCredentials = true } };

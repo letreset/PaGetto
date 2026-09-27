@@ -108,4 +108,6 @@ public class PaGettoOptions
     public EmailOptions Email { get; set; }
 
     public PatExpiryNotificationOptions PatExpiryNotification { get; set; }
+
+    public AuditOptions Audit { get; set; } = new();
 }

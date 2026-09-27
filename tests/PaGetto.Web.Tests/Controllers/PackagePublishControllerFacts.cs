@@ -7,15 +7,19 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core;
+using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Web.Audit;
 using PaGetto.Web.Controllers;
+using PaGetto.Web.Tests.Audit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NuGet.Versioning;
@@ -244,13 +248,14 @@ public class PackagePublishControllerFacts
         protected readonly Mock<IPackageIndexingService> Indexer = new();
         protected readonly Mock<IPackageDatabase> Packages = new();
         protected readonly Mock<IPackageDeletionService> Deletion = new();
-        protected readonly Mock<ILogger<PackagePublishController>> Logger = new();
+        protected readonly Mock<ILogger<WebAuditLog>> AuditLogger = new();
+        protected readonly Mock<IAuditEventService> AuditEvents = new();
 
         protected FactsBase()
         {
             FeedContext.Setup(f => f.CurrentFeed).Returns(Feed);
             FeedSettings.Setup(s => s.GetMaxPackageSizeMiB(Feed)).Returns(8192);
-            Logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+            AuditLogger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
             Authentication
                 .Setup(a => a.AuthenticateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((string apiKey, CancellationToken _) => apiKey == ValidApiKey);
@@ -288,7 +293,8 @@ public class PackagePublishControllerFacts
                 Packages.Object,
                 Deletion.Object,
                 options.Object,
-                Logger.Object)
+                TestWebAuditLog.Create(AuditLogger.Object, AuditEvents.Object),
+                NullLogger<PackagePublishController>.Instance)
             {
                 ControllerContext = new ControllerContext { HttpContext = httpContext },
             };
@@ -299,7 +305,7 @@ public class PackagePublishControllerFacts
             var expected = $"AUDIT {eventName} feed=default package_id={packageId} " +
                 $"package_version={packageVersion} actor={actor} ip=10.0.0.1";
 
-            Logger.Verify(
+            AuditLogger.Verify(
                 l => l.Log(
                     level,
                     It.IsAny<EventId>(),
@@ -307,6 +313,21 @@ public class PackagePublishControllerFacts
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
+
+            // Only successful actions are stored for the audit page.
+            if (level == LogLevel.Information)
+            {
+                AuditEvents.Verify(
+                    a => a.AddAsync(
+                        It.Is<AuditEvent>(e => e.Event == eventName && e.Feed == "default" && e.PackageId == packageId
+                            && e.PackageVersion == packageVersion && e.Actor == actor && e.IpAddress == "10.0.0.1"),
+                        It.IsAny<CancellationToken>()),
+                    Times.Once);
+            }
+            else
+            {
+                AuditEvents.Verify(a => a.AddAsync(It.IsAny<AuditEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+            }
         }
 
         protected static ClaimsPrincipal CreateUser(string name, Guid userId)

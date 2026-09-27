@@ -313,24 +313,24 @@ public class PackageModel : PageModel
 
         if (!NuGetVersion.TryParse(version, out var nugetVersion))
         {
-            _audit.Package(HttpContext, LogLevel.Warning, $"package_{action}_not_found", feed, id, version);
+            await _audit.PackageAsync(HttpContext, LogLevel.Warning, $"package_{action}_not_found", feed, id, version);
             return NotFound();
         }
 
         if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
         {
-            _audit.Package(HttpContext, LogLevel.Warning, $"package_{action}_read_only", feed, id, version);
+            await _audit.PackageAsync(HttpContext, LogLevel.Warning, $"package_{action}_read_only", feed, id, version);
             return StatusCode(StatusCodes.Status403Forbidden);
         }
 
         if (!await CanDeleteCurrentFeedAsync(cancellationToken))
         {
-            _audit.Package(HttpContext, LogLevel.Warning, $"package_{action}_unauthorized", feed, id, version);
+            await _audit.PackageAsync(HttpContext, LogLevel.Warning, $"package_{action}_unauthorized", feed, id, version);
             return StatusCode(StatusCodes.Status403Forbidden);
         }
 
         var found = await operation(nugetVersion);
-        _audit.Package(
+        await _audit.PackageAsync(
             HttpContext,
             found ? LogLevel.Information : LogLevel.Warning,
             found ? $"package_{action}_succeeded" : $"package_{action}_not_found",

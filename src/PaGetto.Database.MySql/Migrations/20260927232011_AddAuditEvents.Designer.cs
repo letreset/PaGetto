@@ -2,68 +2,72 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using PaGetto.Database.PostgreSql;
+using PaGetto.Database.MySql;
 
 #nullable disable
 
-namespace PaGetto.Database.PostgreSql.Migrations
+namespace PaGetto.Database.MySql.Migrations
 {
-    [DbContext(typeof(PostgreSqlContext))]
-    partial class PostgreSqlContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(MySqlContext))]
+    [Migration("20260927232011_AddAuditEvents")]
+    partial class AddAuditEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .UseCollation("utf8mb4_unicode_ci")
                 .HasAnnotation("ProductVersion", "10.0.12")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4", DelegationModes.ApplyToDatabases);
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
             modelBuilder.Entity("PaGetto.Core.Entities.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Actor")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("Detail")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("Event")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Feed")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("IpAddress")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("PackageId")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("PackageVersion")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Target")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<DateTime>("TimestampUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -76,59 +80,59 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<int?>("AllowPackageOverwrites")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<bool?>("IsReadOnlyMode")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
-                    b.Property<long?>("MaxPackageSizeMiB")
-                        .HasColumnType("bigint");
+                    b.Property<uint?>("MaxPackageSizeMiB")
+                        .HasColumnType("int unsigned");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<int?>("PackageDeletionBehavior")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("RetentionMaxMajorVersions")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("RetentionMaxMinorVersions")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("RetentionMaxPatchVersions")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("RetentionMaxPrereleaseVersions")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasDefaultValue(0);
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int?>("UpstreamListingCacheSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -142,43 +146,43 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AuthCustomHeaders")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("AuthPassword")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("AuthToken")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("AuthType")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("AuthUsername")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("DownloadTimeoutSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<Guid>("FeedId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("Legacy")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("PackageSource")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -191,35 +195,35 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("CanDelete")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<bool>("CanPull")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<bool>("CanPush")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<Guid>("FeedId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("PrincipalId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("PrincipalType")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("Source")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasDefaultValue(0);
 
                     b.HasKey("Id");
@@ -234,27 +238,27 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AppRoleValue")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
 
@@ -271,124 +275,124 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<string>("Authors")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("CachedFrom")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Copyright")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<long>("Downloads")
                         .HasColumnType("bigint");
 
                     b.Property<Guid>("FeedId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("HasEmbeddedIcon")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasReadme")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("IconUrl")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Id")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("citext");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<bool>("IsPrerelease")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Language")
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("LicenseExpression")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("LicenseUrl")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("Listed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MinClientVersion")
                         .HasMaxLength(44)
-                        .HasColumnType("character varying(44)");
+                        .HasColumnType("varchar(44)");
 
                     b.Property<string>("NormalizedVersionString")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("citext")
+                        .HasColumnType("varchar(64)")
                         .HasColumnName("Version");
 
                     b.Property<string>("OriginalVersionString")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("varchar(64)")
                         .HasColumnName("OriginalVersion");
 
                     b.Property<string>("ProjectUrl")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("Published")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("ReleaseNotes")
-                        .HasColumnType("text")
+                        .HasColumnType("longtext")
                         .HasColumnName("ReleaseNotes");
 
                     b.Property<string>("RepositoryType")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("RepositoryUrl")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("RequireLicenseAcceptance")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<DateTime?>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("timestamp(6)");
 
                     b.Property<int>("SemVerLevel")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<long?>("Size")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Summary")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Tags")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Key");
 
@@ -404,24 +408,24 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<string>("Id")
                         .HasMaxLength(128)
-                        .HasColumnType("citext");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<int?>("PackageKey")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("TargetFramework")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("VersionRange")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Key");
 
@@ -436,20 +440,20 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<string>("Name")
                         .HasMaxLength(512)
-                        .HasColumnType("citext");
+                        .HasColumnType("varchar(512)");
 
                     b.Property<int>("PackageKey")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Version")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.HasKey("Key");
 
@@ -464,45 +468,45 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int?>("ExpiryNotificationThresholdDays")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<DateTime?>("LastUsedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<DateTime?>("RevokedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("TokenPrefix")
                         .IsRequired()
                         .HasMaxLength(8)
-                        .HasColumnType("character varying(8)");
+                        .HasColumnType("varchar(8)");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -519,16 +523,16 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<string>("Moniker")
                         .HasMaxLength(256)
-                        .HasColumnType("citext");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<int>("PackageKey")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("Key");
 
@@ -543,71 +547,71 @@ namespace PaGetto.Database.PostgreSql.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("AuthProvider")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("CanLoginToUI")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("EntraObjectId")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<int>("FailedLoginCount")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasDefaultValue(0);
 
                     b.Property<bool>("IsAdmin")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true);
 
                     b.Property<DateTime?>("LockedUntilUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<bool>("MustChangePassword")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
                     b.Property<string>("NormalizedUsername")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("PasswordHash")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
 
@@ -625,10 +629,10 @@ namespace PaGetto.Database.PostgreSql.Migrations
             modelBuilder.Entity("PaGetto.Core.Entities.UserGroup", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("GroupId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.HasKey("UserId", "GroupId");
 

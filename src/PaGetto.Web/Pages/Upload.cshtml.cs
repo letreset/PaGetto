@@ -128,25 +128,25 @@ public partial class UploadModel : PageModel
         {
             using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
             if (uploadStream == null)
-                return Audited(StatusCodes.Status400BadRequest, "package_upload_invalid_package", "invalid", "The file is not a valid package.");
+                return await AuditedAsync(StatusCodes.Status400BadRequest, "package_upload_invalid_package", "invalid", "The file is not a valid package.");
 
             var identity = TryReadPackageIdentity(uploadStream);
             var packageId = identity?.Id;
             var packageVersion = identity?.Version?.ToNormalizedString();
 
             if (uploadStream.Length > MaxUploadBytes())
-                return Audited(StatusCodes.Status413PayloadTooLarge, "package_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
+                return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "package_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
 
             var result = await _packageIndexer.IndexAsync(
                 _feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, uploadStream, cacheFeedUrl: null, published: null, cancellationToken);
 
             return result switch
             {
-                PackageIndexingResult.Success => Audited(
+                PackageIndexingResult.Success => await AuditedAsync(
                     StatusCodes.Status201Created, "package_upload_succeeded", "published", "Published.", packageId, packageVersion),
-                PackageIndexingResult.PackageAlreadyExists => Audited(
+                PackageIndexingResult.PackageAlreadyExists => await AuditedAsync(
                     StatusCodes.Status409Conflict, "package_upload_already_exists", "exists", "This version already exists in the feed.", packageId, packageVersion),
-                _ => Audited(
+                _ => await AuditedAsync(
                     StatusCodes.Status400BadRequest, "package_upload_invalid_package", "invalid", "The file is not a valid package.", packageId, packageVersion),
             };
         }
@@ -166,25 +166,25 @@ public partial class UploadModel : PageModel
         {
             using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
             if (uploadStream == null)
-                return Audited(StatusCodes.Status400BadRequest, "symbol_upload_invalid_package", "invalid", "The file is not a valid symbol package.");
+                return await AuditedAsync(StatusCodes.Status400BadRequest, "symbol_upload_invalid_package", "invalid", "The file is not a valid symbol package.");
 
             var identity = TryReadPackageIdentity(uploadStream);
             var packageId = identity?.Id;
             var packageVersion = identity?.Version?.ToNormalizedString();
 
             if (uploadStream.Length > MaxUploadBytes())
-                return Audited(StatusCodes.Status413PayloadTooLarge, "symbol_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
+                return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "symbol_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
 
             var result = await _symbolIndexer.IndexAsync(
                 _feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, uploadStream, cancellationToken);
 
             return result switch
             {
-                SymbolIndexingResult.Success => Audited(
+                SymbolIndexingResult.Success => await AuditedAsync(
                     StatusCodes.Status201Created, "symbol_upload_succeeded", "published", "Published.", packageId, packageVersion),
-                SymbolIndexingResult.PackageNotFound => Audited(
+                SymbolIndexingResult.PackageNotFound => await AuditedAsync(
                     StatusCodes.Status404NotFound, "symbol_upload_package_not_found", "not_found", "Upload the package before its symbols.", packageId, packageVersion),
-                _ => Audited(
+                _ => await AuditedAsync(
                     StatusCodes.Status400BadRequest, "symbol_upload_invalid_package", "invalid", "The file is not a valid symbol package.", packageId, packageVersion),
             };
         }
@@ -226,19 +226,19 @@ public partial class UploadModel : PageModel
         if (authMode == AuthenticationMode.Legacy)
         {
             if (!await _authentication.AuthenticateAsync(Request.GetApiKey(), cancellationToken))
-                return Audited(StatusCodes.Status401Unauthorized, $"{kind}_upload_unauthorized", "unauthorized", "The API key is missing or wrong.");
+                return await AuditedAsync(StatusCodes.Status401Unauthorized, $"{kind}_upload_unauthorized", "unauthorized", "The API key is missing or wrong.");
         }
         else if (FeedAccessGuard.RequiresSignIn(HttpContext, authMode))
         {
-            return Audited(StatusCodes.Status401Unauthorized, $"{kind}_upload_unauthorized", "unauthorized", "Sign in to upload packages.");
+            return await AuditedAsync(StatusCodes.Status401Unauthorized, $"{kind}_upload_unauthorized", "unauthorized", "Sign in to upload packages.");
         }
         else if (!await FeedAccessGuard.CanPushToCurrentFeedAsync(HttpContext, _feedContext, _permissions, authMode, cancellationToken))
         {
-            return Audited(StatusCodes.Status403Forbidden, $"{kind}_upload_unauthorized", "unauthorized", "You can't push to this feed.");
+            return await AuditedAsync(StatusCodes.Status403Forbidden, $"{kind}_upload_unauthorized", "unauthorized", "You can't push to this feed.");
         }
 
         if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
-            return Audited(StatusCodes.Status403Forbidden, $"{kind}_upload_read_only", "read_only", "This feed is read-only.");
+            return await AuditedAsync(StatusCodes.Status403Forbidden, $"{kind}_upload_read_only", "read_only", "This feed is read-only.");
 
         return null;
     }
@@ -253,7 +253,7 @@ public partial class UploadModel : PageModel
         return $"The file is larger than this feed's {_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed).ToSizeLimit()} limit.";
     }
 
-    private JsonResult Audited(int statusCode, string eventName, string outcome, string message, string packageId = null, string packageVersion = null)
+    private async Task<JsonResult> AuditedAsync(int statusCode, string eventName, string outcome, string message, string packageId = null, string packageVersion = null)
     {
         var level = statusCode < 400 ? LogLevel.Information : LogLevel.Warning;
 
@@ -261,7 +261,7 @@ public partial class UploadModel : PageModel
         var actor = _authOptions.Value.Mode == AuthenticationMode.Legacy && !string.IsNullOrEmpty(Request.GetApiKey())
             ? "api-key"
             : null;
-        _audit.Package(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageId, packageVersion, actor);
+        await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageId, packageVersion, actor);
 
         return Outcome(statusCode, outcome, message, packageId, packageVersion);
     }
