@@ -131,7 +131,7 @@ public class ReadOnlyFeedTests : IDisposable
         _app = new PaGettoApplication(_output, null, dict =>
         {
             dict["Authentication:Mode"] = authMode;
-            dict["ApiKey"] = ConfigApiKey;
+            dict["Authentication:ApiKeys:0:Key"] = ConfigApiKey;
             dict["IsReadOnlyMode"] = "true";
         });
         _client = _app.CreateClient();

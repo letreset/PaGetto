@@ -129,7 +129,7 @@ The tradeoff is freshness: a version newly published to an upstream shows up in 
 
 :::info
 
-The global `Mirror` configuration section is obsolete. It is only read once, on the first start, to fill in the default feed's mirror settings. After that, edit mirrors per feed in **Admin > Feeds**.
+Mirrors are only configured per feed, in **Admin > Feeds**. The global `Mirror` configuration section of older versions is no longer read.
 
 :::
 

@@ -30,7 +30,7 @@ To listen on another address or port, pass `--urls`, for example `dotnet PaGetto
 
 ## Configure PaGetto
 
-Edit `appsettings.json` in the extracted folder, or set environment variables (`Database__Type`, `ApiKey`, …). By default PaGetto uses SQLite (`pagetto.db`) and stores packages in the directory you start it from. Set `Storage:Path` to an absolute path to keep them somewhere else. For the full list of settings, see [Configuration](../configuration.md).
+Edit `appsettings.json` in the extracted folder, or set environment variables (`Database__Type`, `Authentication__Mode`, …). By default PaGetto uses SQLite (`pagetto.db`) and stores packages in the directory you start it from. Set `Storage:Path` to an absolute path to keep them somewhere else. For the full list of settings, see [Configuration](../configuration.md).
 
 :::warning
 

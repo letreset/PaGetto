@@ -46,12 +46,6 @@ public partial class PackageIndexingService : IPackageIndexingService
         _feedService = feedService ?? throw new ArgumentNullException(nameof(feedService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _packageDeletionService = packageDeletionService ?? throw new ArgumentNullException(nameof(packageDeletionService));
-#pragma warning disable CS0618 // Type or member is obsolete
-        if (_options.Value.MaxVersionsPerPackage > 0)
-        {
-            LogMaxVersionsPerPackageDeprecated();
-        }
-#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     public async Task<PackageIndexingResult> IndexAsync(Guid feedId, string feedSlug, Stream packageStream, string cacheFeedUrl, DateTime? published, CancellationToken cancellationToken)
@@ -206,9 +200,6 @@ public partial class PackageIndexingService : IPackageIndexingService
 
         return PackageIndexingResult.Success;
     }
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "MaxVersionsPerPackage is deprecated and is not used. Please use MaxMajorVersions, MaxMinorVersions, MaxPatchVersions, and MaxPrereleaseVersions instead.")]
-    private partial void LogMaxVersionsPerPackageDeprecated();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Uploaded package is invalid")]
     private partial void LogInvalidPackage(Exception exception);

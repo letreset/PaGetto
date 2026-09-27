@@ -82,9 +82,6 @@ public static partial class DependencyInjectionExtensions
         services.AddPaGettoOptions<PaGettoOptions>();
         services.AddPaGettoOptions<DatabaseOptions>(nameof(PaGettoOptions.Database));
         services.AddPaGettoOptions<FileSystemStorageOptions>(nameof(PaGettoOptions.Storage));
-#pragma warning disable CS0618 // Still bound so the default feed can be seeded from it.
-        services.AddPaGettoOptions<MirrorOptions>(nameof(PaGettoOptions.Mirror));
-#pragma warning restore CS0618
         services.AddPaGettoOptions<RetentionOptions>(nameof(PaGettoOptions.Retention));
         services.AddPaGettoOptions<SearchOptions>(nameof(PaGettoOptions.Search));
         services.AddPaGettoOptions<StorageOptions>(nameof(PaGettoOptions.Storage));
@@ -101,7 +98,6 @@ public static partial class DependencyInjectionExtensions
         services.TryAddSingleton<IPackageDownloadsSource, PackageDownloadsJsonSource>();
 
         services.TryAddSingleton<ISearchResponseBuilder, SearchResponseBuilder>();
-        services.TryAddSingleton<NuGetClient>();
         services.TryAddSingleton<NullSearchIndexer>();
         services.TryAddSingleton<NullSearchService>();
         services.TryAddSingleton<RegistrationBuilder>();
@@ -110,7 +106,6 @@ public static partial class DependencyInjectionExtensions
         services.TryAddSingleton<ValidateStartupOptions>();
 
         services.TryAddSingleton(HttpClientFactory);
-        services.TryAddSingleton(NuGetClientFactoryFactory);
 
         services.TryAddScoped<DownloadsImporter>();
         services.TryAddScoped<InitialAdminSeeder>();
@@ -141,8 +136,6 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();
         services.TryAddTransient<PackageService>();
-        services.TryAddTransient<V2UpstreamClient>();
-        services.TryAddTransient<V3UpstreamClient>();
         services.TryAddTransient<DisabledUpstreamClient>();
         services.TryAddSingleton<NullStorageService>();
         services.TryAddSingleton<PackageMirrorLock>();
@@ -231,8 +224,6 @@ public static partial class DependencyInjectionExtensions
 
     private static HttpClient HttpClientFactory(IServiceProvider provider)
     {
-        var options = provider.GetRequiredService<IOptions<MirrorOptions>>().Value;
-
         var assembly = Assembly.GetEntryAssembly();
         var assemblyName = assembly.GetName().Name;
         var assemblyVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
@@ -243,40 +234,9 @@ public static partial class DependencyInjectionExtensions
         });
 
         client.DefaultRequestHeaders.Add("User-Agent", $"{assemblyName}/{assemblyVersion}");
-        client.Timeout = TimeSpan.FromSeconds(options.PackageDownloadTimeoutSeconds);
+        // The same timeout as a feed mirror without its own download timeout.
+        client.Timeout = TimeSpan.FromSeconds(new MirrorOptions().PackageDownloadTimeoutSeconds);
 
         return client;
-    }
-
-    private static NuGetClientFactory NuGetClientFactoryFactory(IServiceProvider provider)
-    {
-        var httpClient = provider.GetRequiredService<HttpClient>();
-        var options = provider.GetRequiredService<IOptions<MirrorOptions>>().Value;
-
-        if (options.Authentication is { } auth)
-        {
-            switch (auth.Type)
-            {
-                case MirrorAuthenticationType.Basic:
-                    var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{auth.Username}:{auth.Password}"));
-                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-                    break;
-
-                case MirrorAuthenticationType.Bearer:
-                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
-                    break;
-
-                case MirrorAuthenticationType.Custom:
-                    foreach (var (header, value) in auth.CustomHeaders)
-                    {
-                        httpClient.DefaultRequestHeaders.Add(header, value);
-                    }
-                    break;
-            }
-        }
-
-        return new NuGetClientFactory(
-            httpClient,
-            options.PackageSource.ToString());
     }
 }

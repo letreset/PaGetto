@@ -206,6 +206,22 @@ public class ValidatePaGettoOptionsTests
         }
     }
 
+    public class ValidateRemovedApiKey
+    {
+        [Fact]
+        public void RejectsTopLevelApiKey()
+        {
+            var options = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string> { ["ApiKey"] = "secret" })
+                .Build()
+                .Get<PaGettoOptions>();
+
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+
+            Assert.Contains(result.Failures, f => f.Contains("'ApiKey' config is no longer supported"));
+        }
+    }
+
     public class ValidateDatabaseType
     {
         private static IEnumerable<string> DatabaseTypeFailures(string type)
