@@ -8,7 +8,7 @@ name: Release
 #
 # Required secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (Docker Hub access token, Read & Write;
 # "Read, Write, Delete" is needed to also update the Docker Hub description).
-# Required variable: NUGET_USER, the nuget.org profile name (not the email) that owns the
+# NUGET_USER secret: the nuget.org profile name (not the email) that owns the
 # Trusted Publishing policy for this repository and release.yml. No API key is stored.
 
 on:
@@ -191,7 +191,7 @@ jobs:
         id: login
         uses: NuGet/login@v1
         with:
-          user: ${{ vars.NUGET_USER }}
+          user: ${{ secrets.NUGET_USER }}
 
       # The .snupkg next to each .nupkg is pushed to the nuget.org symbol server along with it.
       # --skip-duplicate lets a re-run finish after a partly successful push.
