@@ -94,6 +94,8 @@ public class PaGettoOptions
 
     public ProxyTrustOptions ForwardedHeaders { get; set; } = new();
 
+    public KeyProtectionOptions DataProtection { get; set; } = new();
+
     public NugetAuthenticationOptions Authentication { get; set; }
 
     public EmailOptions Email { get; set; }

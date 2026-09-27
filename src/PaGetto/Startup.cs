@@ -89,19 +89,29 @@ public class Startup
         var securityHeaders = Configuration.GetSection(nameof(PaGettoOptions.SecurityHeaders)).Get<SecurityHeadersOptions>() ?? new SecurityHeadersOptions();
         services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(securityHeaders.HstsMaxAgeDays));
 
-        ConfigureDataProtection(services);
+        ConfigureDataProtection(services, Configuration.GetSection(nameof(PaGettoOptions.DataProtection)).Get<KeyProtectionOptions>());
     }
 
-    private static void ConfigureDataProtection(IServiceCollection services)
+    private static void ConfigureDataProtection(IServiceCollection services, KeyProtectionOptions keyProtection)
     {
         // Persist the Data Protection key ring through PaGetto's storage abstraction so it survives
         // container restarts and new revisions, for every storage backend (FileSystem, Azure Blob,
         // S3, GCS, OSS, COS). Without persistence the key ring lives in the container's ephemeral
         // filesystem and is regenerated on every restart, invalidating all existing antiforgery and
         // auth cookies — form POSTs then fail with HTTP 400 until users clear their cookies.
-        services
+        var dataProtection = services
             .AddDataProtection()
             .SetApplicationName("PaGetto");
+
+        // Encrypt the keys at rest when a certificate is configured. The same certificate decrypts
+        // them, also when it was loaded from a file rather than from a certificate store.
+        var certificate = DataProtectionCertificate.Load(keyProtection);
+        if (certificate != null)
+        {
+            dataProtection
+                .ProtectKeysWithCertificate(certificate)
+                .UnprotectKeysWithAnyCertificate(certificate);
+        }
 
         services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(
             sp => new ConfigureStorageXmlRepository(sp));
