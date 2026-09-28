@@ -52,6 +52,16 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
         await base.HandleChallengeAsync(properties);
     }
 
+    /// <summary>
+    /// A signed-in caller without pull access gets 404, the same as for a feed that doesn't
+    /// exist, so feed slugs can't be probed.
+    /// </summary>
+    protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
+    {
+        Response.StatusCode = (int)HttpStatusCode.NotFound;
+        return Task.CompletedTask;
+    }
+
     private Task<AuthenticateResult> HandleStaticAuthAsync()
     {
         if (IsOpenAccessAllowed())

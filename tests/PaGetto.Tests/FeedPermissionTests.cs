@@ -88,7 +88,7 @@ public class FeedPermissionTests : IDisposable
         var request = BuildGetRequest($"feeds/{FeedB}/v3/search", token);
         using var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // --- Basic-auth flow ---
@@ -115,7 +115,7 @@ public class FeedPermissionTests : IDisposable
         SetBasicAuth();
         using var response = await _client.GetAsync($"feeds/{FeedB}/v3/search");
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

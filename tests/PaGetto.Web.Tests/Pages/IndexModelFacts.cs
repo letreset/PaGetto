@@ -130,25 +130,20 @@ public class IndexModelFacts
         }
 
         [Fact]
-        public async Task FeedRouteRedirectsWhenUserCannotPull()
+        public async Task FeedRouteReturns404WhenUserCannotPull()
         {
-            // Explicit /feeds/{slug} the user can't pull falls back to the first accessible feed.
+            // Explicit /feeds/{slug} the user can't pull looks the same as a slug that doesn't exist.
             AuthMode = AuthenticationMode.Entra;
             IsDefaultRoute = false;
             CurrentFeed = new Feed { Id = Guid.NewGuid(), Slug = "team-b", Name = "Team B" };
 
             var userId = Guid.NewGuid();
-            var accessible = new Feed { Id = Guid.NewGuid(), Slug = "team-a", Name = "Team A" };
             Permissions.Setup(p => p.CanPullAsync(userId, CurrentFeed.Id, Cancellation)).ReturnsAsync(false);
-            FeedService
-                .Setup(f => f.GetAllFeedsAsync(Cancellation))
-                .ReturnsAsync(new List<Feed> { accessible, CurrentFeed });
-            Permissions.Setup(p => p.CanPullAsync(userId, accessible.Id, Cancellation)).ReturnsAsync(true);
 
             var result = await Build(AuthenticatedUser(userId)).OnGetAsync(Cancellation);
 
-            var redirect = Assert.IsType<RedirectResult>(result);
-            Assert.Equal("/feeds/team-a/", redirect.Url);
+            Assert.IsType<NotFoundResult>(result);
+            FeedService.Verify(f => f.GetAllFeedsAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]

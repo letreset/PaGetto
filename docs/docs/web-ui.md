@@ -22,7 +22,7 @@ A **Docs** link opens this documentation. Signed-in users also get a user menu w
 
 The button next to the user menu switches between the light and the dark theme. Until you pick one, the UI follows the system setting; your choice is remembered per browser. On screens narrower than 760 px, the links and the user menu move into a menu behind the menu button.
 
-In the `Local`, `Entra` and `Hybrid` modes, a signed-in user who opens the root URL lands on the first feed, in the order set on **Admin > Feeds**, that they can pull from. A user who opens a feed they can't pull from is sent to that feed as well.
+In the `Local`, `Entra` and `Hybrid` modes, a signed-in user who opens the root URL lands on the first feed, in the order set on **Admin > Feeds**, that they can pull from. A feed they can't pull from returns `404 Not Found`, the same as a feed that doesn't exist.
 
 ## Search and filters
 

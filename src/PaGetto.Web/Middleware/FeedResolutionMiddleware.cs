@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using Microsoft.AspNetCore.Http;
 
@@ -49,8 +51,16 @@ public class FeedResolutionMiddleware
             var feed = await feedService.GetFeedBySlugAsync(slug, cancellationToken);
             if (feed == null)
             {
-                context.Response.StatusCode = 404;
-                return;
+                if (slug.Length == 0 || context.User.Identity?.IsAuthenticated == true)
+                {
+                    context.Response.StatusCode = 404;
+                    return;
+                }
+
+                // A 404 here would tell an anonymous caller that the slug doesn't exist, while an
+                // existing feed asks for credentials. Continue with a stand-in feed instead, so the
+                // request gets the same challenge or sign-in prompt as a protected feed.
+                feed = new Feed { Id = Guid.NewGuid(), Slug = slug, Name = slug };
             }
 
             context.Items[RootPathBaseItemKey] = context.Request.PathBase;

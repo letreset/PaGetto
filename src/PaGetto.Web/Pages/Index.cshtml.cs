@@ -95,16 +95,19 @@ public class IndexModel : PageModel
         // For Local/Entra/Hybrid modes, decide which feed the signed-in user lands on.
         // On the root route, feed ordering always wins: redirect to the first feed (by
         // SortOrder) the user can pull, even when they could access the default-slug feed.
-        // On an explicit /feeds/{slug} route, only redirect away when the user can't pull
-        // the requested feed. Unauthenticated visitors returned above; the view renders a
-        // "Sign in required" prompt for them.
+        // On an explicit /feeds/{slug} route the user gets 404 when they can't pull the
+        // feed, the same answer as for a slug that doesn't exist. Unauthenticated visitors
+        // returned above; the view renders a "Sign in required" prompt for them.
         if (authMode != AuthenticationMode.Legacy)
         {
-            var mustSelectLandingFeed = _feedContext.IsDefaultRoute
-                || currentFeed == null
-                || !await _permissions.CanPullAsync(GetUserIdOrEmpty(), currentFeed.Id, cancellationToken);
-
-            if (mustSelectLandingFeed)
+            if (!_feedContext.IsDefaultRoute)
+            {
+                if (!await _permissions.CanPullAsync(GetUserIdOrEmpty(), currentFeed.Id, cancellationToken))
+                {
+                    return NotFound();
+                }
+            }
+            else
             {
                 var allFeeds = await _feedService.GetAllFeedsAsync(cancellationToken);
                 var accessible = await FeedAccessGuard.FilterAccessibleFeedsAsync(

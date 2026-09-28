@@ -70,7 +70,7 @@ public class FeedAuthenticationIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task LocalAccount_WithValidCredentialsButNoPullPermission_ReturnsForbidden()
+    public async Task LocalAccount_WithValidCredentialsButNoPullPermission_ReturnsNotFound()
     {
         // Arrange
         await SeedLocalUserWithPermissionsAsync(canPull: false, canPush: false);
@@ -79,8 +79,8 @@ public class FeedAuthenticationIntegrationTests : IDisposable
         // Act
         using var response = await _client.GetAsync("v3/search");
 
-        // Assert
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // Assert: 404 rather than 403, the same as for a feed that doesn't exist.
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
