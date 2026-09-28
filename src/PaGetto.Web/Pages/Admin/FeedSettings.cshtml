@@ -169,9 +169,11 @@
                 </div>
                 <div class="bgt-setting-control">
                     <label class="form-check form-switch">
-                        <input asp-for="IsReadOnlyMode" class="form-check-input" role="switch" data-global-value="@(global.IsReadOnlyMode ? "true" : "false")" />
+                        @* Rendered by hand: asp-for renders a bool? as a text input, which a switch can't toggle. *@
+                        <input type="checkbox" class="form-check-input" role="switch" id="@nameof(Model.IsReadOnlyMode)" name="@nameof(Model.IsReadOnlyMode)" value="true" checked="@(Model.IsReadOnlyMode == true)" data-global-value="@(global.IsReadOnlyMode ? "true" : "false")" />
                         <span class="form-check-label">Read-only</span>
                     </label>
+                    <input type="hidden" name="@nameof(Model.IsReadOnlyMode)" value="false" />
                     @{ Inherit(nameof(Model.UseGlobalReadOnly), Model.UseGlobalReadOnly, nameof(Model.IsReadOnlyMode), global.IsReadOnlyMode ? "Enabled" : "Disabled"); }
                 </div>
             </div>

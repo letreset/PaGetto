@@ -124,6 +124,7 @@ For every page you open, the browser console should show no errors.
 | FS4 | `admin` | Default > Settings > Mirrors | One mirror, `https://api.nuget.org/v3/index.json`, enabled |
 | FS5 | `admin` | Add a mirror with the URL `not a url` and save | "the package source must be an absolute http(s) URL" |
 | FS6 | `admin` | Add two mirrors, move the second up with the arrow, remove one | Titles renumber (Mirror 1, Mirror 2); do `down -v` afterwards |
+| FS7 | `admin` | Experimental > Settings: clear **Use global default** for Read-only mode, turn **Read-only** on, save and reload; then tick **Use global default** again and save | The switch toggles and stays on after the reload, and a push to Experimental gets 403; with the global default the feed is writable again |
 
 ## Admin > Accounts
 

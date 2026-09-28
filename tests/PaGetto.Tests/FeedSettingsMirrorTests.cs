@@ -232,6 +232,60 @@ public class FeedSettingsMirrorTests : IDisposable
         Assert.Equal(3, feed.RetentionMaxMajorVersions);
     }
 
+    [Fact]
+    public async Task GetRendersReadOnlyModeAsSwitch()
+    {
+        using var client = await SignInAsAdminAsync();
+
+        var body = await client.GetStringAsync(SettingsUrl);
+
+        Assert.Matches("<input type=\"checkbox\"[^>]*id=\"IsReadOnlyMode\" name=\"IsReadOnlyMode\" value=\"true\"", body);
+        Assert.Contains("<input type=\"hidden\" name=\"IsReadOnlyMode\" value=\"false\" />", body);
+    }
+
+    [Theory]
+    [InlineData(new[] { "true", "false" }, true)]
+    [InlineData(new[] { "false" }, false)]
+    public async Task PostSavesReadOnlyOverride(string[] postedValues, bool expected)
+    {
+        using var client = await SignInAsAdminAsync();
+
+        var form = await BaseFormAsync(client);
+        form.RemoveAll(f => f.Key == "UseGlobalReadOnly");
+        form.Add(new("UseGlobalReadOnly", "false"));
+        form.AddRange(postedValues.Select(v => new KeyValuePair<string, string>("IsReadOnlyMode", v)));
+
+        using var response = await client.PostAsync(SettingsUrl, new FormUrlEncodedContent(form));
+
+        Assert.Contains("Settings saved.", await response.Content.ReadAsStringAsync());
+        Assert.Equal(expected, (await GetDefaultFeedAsync()).IsReadOnlyMode);
+        Assert.Contains(
+            expected ? "value=\"true\" checked=\"checked\"" : "name=\"IsReadOnlyMode\" value=\"true\" data-global-value",
+            await client.GetStringAsync(SettingsUrl));
+    }
+
+    [Fact]
+    public async Task PostWithGlobalReadOnlyClearsOverride()
+    {
+        using (var scope = _app.Services.CreateScope())
+        {
+            var feedService = scope.ServiceProvider.GetRequiredService<IFeedService>();
+            var feed = await feedService.GetDefaultFeedAsync(CancellationToken.None);
+            feed.IsReadOnlyMode = true;
+            await feedService.UpdateFeedAsync(feed, CancellationToken.None);
+        }
+        using var client = await SignInAsAdminAsync();
+
+        // A disabled switch isn't posted, so only the hidden "false" arrives.
+        var form = await BaseFormAsync(client);
+        form.Add(new("IsReadOnlyMode", "false"));
+
+        using var response = await client.PostAsync(SettingsUrl, new FormUrlEncodedContent(form));
+
+        Assert.Contains("Settings saved.", await response.Content.ReadAsStringAsync());
+        Assert.Null((await GetDefaultFeedAsync()).IsReadOnlyMode);
+    }
+
     private async Task<Feed> GetDefaultFeedAsync()
     {
         using var scope = _app.Services.CreateScope();
