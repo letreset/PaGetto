@@ -645,6 +645,8 @@ AUDIT account_disabled target=bob detail= actor=admin ip=10.0.0.12
 | `account_admin_granted`, `account_admin_revoked` | Username | |
 | `account_unlocked`, `account_password_reset`, `account_deleted` | Username | |
 | `account_token_created` | Username | Token prefix and expiry date |
+| `token_revoked` | Username of the token's owner | `token=<name> prefix=<prefix>` |
+| `tokens_revoked_all` | Username of the tokens' owner | `count=<number of revoked tokens>` |
 | `group_created`, `group_deleted` | Group name | |
 | `group_updated` | The group's old name | `name=<new name>` |
 | `group_member_added`, `group_member_removed` | Group name | `user=<username>` |

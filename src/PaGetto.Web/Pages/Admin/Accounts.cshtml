@@ -155,13 +155,11 @@
                             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#password-modal" data-user-id="@user.Id" data-username="@user.Username" data-initials="@displayName.ToNameInitials()">Reset password…</button></li>
                             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#token-modal" data-user-id="@user.Id" data-username="@user.Username" data-initials="@displayName.ToNameInitials()">New token…</button></li>
                         }
+                        <li><a class="dropdown-item" asp-page="/Admin/UserTokens" asp-route-userId="@user.Id">Tokens</a></li>
                         @* The signed-in administrator can't lock themselves out, so their own row has no Disable, web sign-in or admin toggle. *@
                         @if (!isSelf)
                         {
-                            @if (isLocal)
-                            {
-                                <li><hr class="dropdown-divider" /></li>
-                            }
+                            <li><hr class="dropdown-divider" /></li>
                             <li>
                                 <form method="post" asp-page-handler="ToggleCanLoginToUI">
                                     @Html.AntiForgeryToken()
