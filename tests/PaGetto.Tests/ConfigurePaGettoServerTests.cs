@@ -1,5 +1,6 @@
 using System.Net;
 using PaGetto.Core.Configuration;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -38,6 +39,23 @@ public class ConfigurePaGettoServerTests
 
             Assert.Equal(IPAddress.Parse("10.0.0.5"), Assert.Single(options.KnownProxies));
             Assert.Equal(System.Net.IPNetwork.Parse("192.168.0.0/16"), Assert.Single(options.KnownIPNetworks));
+        }
+    }
+
+    public class ConfigureAntiforgeryOptions
+    {
+        [Theory]
+        [InlineData(null, "/")]
+        [InlineData("", "/")]
+        [InlineData("/base", "/")]
+        public void PinsTheCookieToTheRootPath(string pathBase, string expected)
+        {
+            var target = new ConfigurePaGettoServer(Options.Create(new PaGettoOptions { PathBase = pathBase }));
+            var options = new AntiforgeryOptions();
+
+            target.Configure(options);
+
+            Assert.Equal(expected, options.Cookie.Path);
         }
     }
 }

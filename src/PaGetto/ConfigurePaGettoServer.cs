@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
 using PaGetto.Core.Configuration;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +15,8 @@ using Microsoft.Extensions.Options;
 namespace PaGetto;
 
 public class ConfigurePaGettoServer
-    : IConfigureOptions<CorsOptions>
+    : IConfigureOptions<AntiforgeryOptions>
+    , IConfigureOptions<CorsOptions>
     , IConfigureOptions<FormOptions>
     , IConfigureOptions<ForwardedHeadersOptions>
     , IConfigureOptions<IISServerOptions>
@@ -28,6 +30,15 @@ public class ConfigurePaGettoServer
         _paGettoOptions = paGettoOptions.Value;
     }
 
+
+    public void Configure(AntiforgeryOptions options)
+    {
+        // By default the cookie path follows the request's PathBase, which on /feeds/{slug} pages
+        // includes the feed. A second cookie per feed then shadows the root one, and once the two
+        // disagree (e.g. after the key ring changed) every form POST fails with 400.
+        // "/" rather than the configured PathBase: UsePathBase also serves requests outside it.
+        options.Cookie.Path = "/";
+    }
 
     public void Configure(CorsOptions options)
     {
