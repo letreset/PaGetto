@@ -199,7 +199,7 @@
                             }
                             <li><hr class="dropdown-divider" /></li>
                             <li>
-                                <form asp-page="/Logout" method="post" id="logout-form">
+                                <form action="@rootBase/Logout" method="post" id="logout-form">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="dropdown-item"><icon name="sign-out" />Sign out</button>
                                 </form>

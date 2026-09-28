@@ -1021,6 +1021,61 @@ public class WebUiSignOutTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("/Login", "/")]
+    [InlineData("/Login", "/feeds/dev/")]
+    [InlineData("/Login", "/feeds/dev/packages/TestData")]
+    [InlineData("/feeds/dev/Login", "/feeds/dev/")]
+    [InlineData("/feeds/dev/Login", "/")]
+    public async Task SignOutFromTheLayoutMenuEndsTheSession(string loginPage, string page)
+    {
+        await _app.CreateFeedAsync("dev");
+        await WebUiSession.SeedLocalUserAsync(_app, "signout-admin", "SignOutAdminPass1!", isAdmin: true);
+        using var client = _app.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true,
+        });
+        using (var login = await client.PostAsync(loginPage, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            { "Username", "signout-admin" },
+            { "Password", "SignOutAdminPass1!" },
+            { "__RequestVerificationToken", ExtractAntiforgeryToken(await client.GetStringAsync(loginPage)) },
+        })))
+        {
+            Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        }
+
+        // Visit both the root and a feed route, as a user switching feeds would.
+        await client.GetStringAsync("/");
+        await client.GetStringAsync("/feeds/dev/");
+
+        var body = await client.GetStringAsync(page);
+        var form = body[body.LastIndexOf("<form", body.IndexOf("id=\"logout-form\"", StringComparison.Ordinal), StringComparison.Ordinal)..];
+        var action = System.Text.RegularExpressions.Regex.Match(form, "action=\"([^\"]+)\"").Groups[1].Value;
+
+        using var response = await client.PostAsync(action, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            { "__RequestVerificationToken", ExtractAntiforgeryToken(form) },
+        }));
+
+        Assert.Equal("/Logout", action);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/", response.Headers.Location?.ToString());
+        Assert.Contains("Sign in required", await client.GetStringAsync(page));
+    }
+
+    [Fact]
+    public async Task FeedPageSetsTheAntiforgeryCookieOnTheRootPath()
+    {
+        await _app.CreateFeedAsync("dev");
+
+        using var response = await _client.GetAsync("/feeds/dev/Login");
+
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal));
+        Assert.Contains("path=/;", cookie + ";", StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task Logout_Get_ReturnsMethodNotAllowed()
     {
