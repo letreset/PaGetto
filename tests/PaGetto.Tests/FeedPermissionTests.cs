@@ -63,7 +63,8 @@ public class FeedPermissionTests : IDisposable
         var request = BuildPushRequest($"feeds/{FeedB}/api/v2/package", token);
         using var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // No permission at all on feed B: 404, the same as for a feed that doesn't exist.
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -145,7 +146,8 @@ public class FeedPermissionTests : IDisposable
         request.Content = new ByteArrayContent([]);
         using var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // No permission at all on feed B: 404, the same as for a feed that doesn't exist.
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // --- Helpers ---

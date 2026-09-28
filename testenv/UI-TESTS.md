@@ -175,6 +175,7 @@ For every page you open, the browser console should show no errors.
 | X1a | none | Open `/feeds/internal/` and `/feeds/does-not-exist/`; then `curl -i http://localhost:5000/feeds/internal/v3/search` and the same for `does-not-exist` | Both pages show the same sign-in prompt; both `curl` calls get 401 with `WWW-Authenticate: Basic realm="NuGet Server"` |
 | X2a | `build-agent` | `curl -i -u build-agent:<password> http://localhost:5000/feeds/archive/v3/search` (no pull permission there), and the same for `/feeds/does-not-exist/v3/search` | 404 for both, without a `WWW-Authenticate` header |
 | X3 | none | `curl -u carol:<password> -X PUT -F package=@testenv/packages/Contoso.Mail.1.0.0.nupkg http://localhost:5000/feeds/internal/api/v2/package` | 403 (the same request without `-u` gets 401) |
+| X3a | `build-agent` | `curl -i -u build-agent:<password> -X PUT -F package=@testenv/packages/Contoso.Mail.1.0.0.nupkg http://localhost:5000/feeds/archive/api/v2/package` (no permission there), and the same for `/feeds/does-not-exist/api/v2/package` | 404 for both |
 
 ## Mirror
 

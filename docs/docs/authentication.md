@@ -221,11 +221,11 @@ In the `Local`, `Entra` and `Hybrid` modes every [feed](feeds.md) has its own pe
 
 Administrators have all three on every feed. Feeds a user can't pull from are hidden from them in the UI.
 
-- NuGet requests get `401 Unauthorized` when not signed in. A signed-in user without pull permission gets `404 Not Found`, the same as for a feed that doesn't exist; a signed-in user without push or delete permission gets `403 Forbidden` on push, delete and relist.
+- NuGet requests get `401 Unauthorized` when not signed in. A signed-in user without pull permission gets `404 Not Found` on reads, the same as for a feed that doesn't exist. On push, delete and relist, a signed-in user without the permission gets `403 Forbidden` when they have some other permission on the feed, and `404 Not Found` when they have none.
 - The feed's package list, package, Connect and Statistics pages and the Atom feed return `404 Not Found` to a signed-in user without pull permission, so they don't reveal that the feed exists or what it contains.
-- On a feed in [read-only mode](feeds.md#feed-settings), NuGet push, delete and relist requests with valid credentials get `403 Forbidden`, as the web UI does. Requests without valid credentials still get `401 Unauthorized`.
+- On a feed in [read-only mode](feeds.md#feed-settings), NuGet push, delete and relist requests with valid credentials get `403 Forbidden` (or `404 Not Found` for a user with no permission on the feed), as the web UI does. Requests without valid credentials still get `401 Unauthorized`.
 
-An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not the feed exists: the service index, a `401` challenge on the other NuGet endpoints, and the "Sign in required" prompt in the web UI. Once signed in, a feed the user can't pull from and a missing feed both return `404`. Push, delete and relist are the exception: a signed-in user without the permission gets `403` from an existing feed and `404` from a missing one, so don't put anything sensitive in a feed's slug.
+An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not the feed exists: the service index, a `401` challenge on the other NuGet endpoints, and the "Sign in required" prompt in the web UI. Once signed in, a feed the user has no permission on and a missing feed both return `404`.
 
 ## Personal access tokens (PATs)
 

@@ -45,7 +45,7 @@ Most client problems show up in the service index. Open `https://your-server/v3/
 - **URLs use `http` or an internal host name behind a reverse proxy**: the proxy must send `X-Forwarded-Proto` and `X-Forwarded-Host`, which PaGetto reads.
 - **URLs miss a path prefix**: set `PathBase`, see [Hosting on a different path](../configuration.md#hosting-on-a-different-path).
 - **`401 Unauthorized`**: see [NuGet client returns 401 Unauthorized](../authentication.md#nuget-client-returns-401-unauthorized). The audit lines in the log show who was denied a push or delete, and why.
-- **`403 Forbidden` on push or delete**: the credentials are valid, but the user has no push or delete [permission](../authentication.md#feed-permissions) on that feed. The audit lines in the log show the denied attempt.
+- **`403 Forbidden` on push or delete**: the credentials are valid, but the user has no push or delete [permission](../authentication.md#feed-permissions) on that feed. A user with no permission at all on the feed gets `404 Not Found`, as for a feed that doesn't exist. The audit lines in the log show the denied attempt.
 - **`409 Conflict` on push**: that version already exists and the feed doesn't allow [overwrites](../configuration.md#enable-package-overwrites).
 - **A large package fails to upload** (`413 Payload Too Large`): raise the [maximum package size](../configuration.md#maximum-package-size) of the server or the feed, and the request size limit of any reverse proxy in front of PaGetto.
 

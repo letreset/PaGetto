@@ -76,7 +76,7 @@ Retention now runs as soon as any of the four limits is set, not only `MaxMajorV
 | `Entra` | Everyone signs in with Microsoft Entra ID |
 | `Hybrid` | You want Entra ID for people and local accounts for build agents or external users |
 
-Switching away from `Legacy` turns off anonymous access, `ApiKeys` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`.
+Switching away from `Legacy` turns off anonymous access, `ApiKeys` and `Credentials`. Plan the switch before you make it; see [Authentication](authentication.md). In the user modes, a valid account or token without the push or delete permission gets `403 Forbidden` instead of `401 Unauthorized`, or `404 Not Found` when it has no permission on the feed at all.
 
 ## Data Protection keys
 

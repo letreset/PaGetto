@@ -3,8 +3,13 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Authentication;
+using PaGetto.Core.Entities;
+using PaGetto.Core.Feeds;
 using PaGetto.Tests.Support;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -127,6 +132,95 @@ public class FeedEnumerationTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         Assert.Null(forbidden.Headers.Location);
         Assert.False(forbidden.Headers.Contains("WWW-Authenticate"));
+    }
+
+    [Theory]
+    [InlineData("PUT", "api/v2/package")]
+    [InlineData("DELETE", "api/v2/package/Contoso.Logging/1.0.0")]
+    [InlineData("POST", "api/v2/package/Contoso.Logging/1.0.0")]
+    public async Task AnonymousWriteIsChallengedForExistingAndMissingFeeds(string method, string path)
+    {
+        await _app.CreateFeedAsync("secret");
+        using var client = _app.CreateClient();
+
+        using var existing = await client.SendAsync(WriteRequest(method, $"feeds/secret/{path}"));
+        using var missing = await client.SendAsync(WriteRequest(method, $"feeds/nope/{path}"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, existing.StatusCode);
+        Assert.Equal(existing.StatusCode, missing.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("PUT", "api/v2/package")]
+    [InlineData("DELETE", "api/v2/package/Contoso.Logging/1.0.0")]
+    [InlineData("POST", "api/v2/package/Contoso.Logging/1.0.0")]
+    public async Task SignedInWriteGets404ForFeedWithoutAnyPermissionAndMissingFeed(string method, string path)
+    {
+        await _app.CreateFeedAsync("secret");
+        await WebUiSession.SeedLocalUserAsync(_app, Username, Password, canPush: true);
+        using var client = CreateBasicAuthClient();
+
+        using var invisible = await client.SendAsync(WriteRequest(method, $"feeds/secret/{path}"));
+        using var missing = await client.SendAsync(WriteRequest(method, $"feeds/nope/{path}"));
+
+        Assert.Equal(HttpStatusCode.NotFound, invisible.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("PUT", "api/v2/package")]
+    [InlineData("DELETE", "api/v2/package/Contoso.Logging/1.0.0")]
+    [InlineData("POST", "api/v2/package/Contoso.Logging/1.0.0")]
+    public async Task SignedInWriteGets403ForVisibleFeedWithoutThePermission(string method, string path)
+    {
+        var feed = await _app.CreateFeedAsync("secret");
+        var user = await WebUiSession.SeedLocalUserAsync(_app, Username, Password);
+        await GrantAsync(user.Id, feed.Id, canPull: true, canPush: false);
+        using var client = CreateBasicAuthClient();
+
+        using var response = await client.SendAsync(WriteRequest(method, $"feeds/secret/{path}"));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PushOnlyAccountGets403OnReadOnlyFeed()
+    {
+        var feed = await _app.CreateFeedAsync("secret");
+        var user = await WebUiSession.SeedLocalUserAsync(_app, Username, Password);
+        await GrantAsync(user.Id, feed.Id, canPull: false, canPush: true);
+        using (var scope = _app.Services.CreateScope())
+        {
+            var feeds = scope.ServiceProvider.GetRequiredService<IFeedService>();
+            var stored = await feeds.GetFeedBySlugAsync("secret", CancellationToken.None);
+            stored.IsReadOnlyMode = true;
+            await feeds.UpdateFeedAsync(stored, CancellationToken.None);
+        }
+        using var client = CreateBasicAuthClient();
+
+        using var response = await client.SendAsync(WriteRequest("PUT", "feeds/secret/api/v2/package"));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private HttpClient CreateBasicAuthClient()
+    {
+        var client = _app.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Username}:{Password}")));
+        return client;
+    }
+
+    private async Task GrantAsync(Guid userId, Guid feedId, bool canPull, bool canPush)
+    {
+        using var scope = _app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IPermissionService>().GrantPermissionAsync(
+            userId, PrincipalType.User, feedId, canPush, canPull, CancellationToken.None);
+    }
+
+    private static HttpRequestMessage WriteRequest(string method, string path)
+    {
+        return new HttpRequestMessage(new HttpMethod(method), path) { Content = new ByteArrayContent([]) };
     }
 
     public void Dispose()

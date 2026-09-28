@@ -629,7 +629,7 @@ AUDIT package_upload_succeeded feed=default package_id=Contoso.Utils package_ver
 | `actor` | The user name (the token owner for personal access tokens), `api-key` for the shared API key in `Legacy` mode, or `anonymous` |
 | `ip` | The client IP address. Behind a reverse proxy it comes from `X-Forwarded-For`, with the same caveat as [rate limiting](#request-rate-limiting). |
 
-The `*_unauthorized` events cover both denial responses: `401 Unauthorized` for missing or wrong credentials, and `403 Forbidden` for a signed-in user without the push or delete permission.
+The `*_unauthorized` events cover all denial responses: `401 Unauthorized` for missing or wrong credentials, `403 Forbidden` for a signed-in user without the push or delete permission, and `404 Not Found` for a signed-in user with no permission on the feed.
 
 ### Administration events
 
