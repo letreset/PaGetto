@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Entities;
@@ -56,6 +57,37 @@ public class FeedResolutionMiddlewareFacts
             Assert.Equal("/v3/index.json", context.Request.Path);
             Assert.Same(feed, _feedContext.CurrentFeed);
             Assert.False(_feedContext.IsDefaultRoute);
+        }
+
+        [Fact]
+        public async Task UnknownSlugForSignedInCallerReturns404()
+        {
+            var context = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "bob")], "Test")),
+            };
+            context.Request.Path = "/feeds/nope/v3/search";
+
+            await new FeedResolutionMiddleware(_ =>
+            {
+                _nextCalled = true;
+                return Task.CompletedTask;
+            }).InvokeAsync(context, _feeds.Object, _feedContext);
+
+            Assert.Equal(404, context.Response.StatusCode);
+            Assert.False(_nextCalled);
+        }
+
+        [Fact]
+        public async Task UnknownSlugForAnonymousCallerContinuesWithStandInFeed()
+        {
+            var context = await RunAsync("/feeds/nope/v3/search");
+
+            Assert.True(_nextCalled);
+            Assert.Equal("/feeds/nope", context.Request.PathBase);
+            Assert.Equal("/v3/search", context.Request.Path);
+            Assert.Equal("nope", _feedContext.CurrentFeed.Slug);
+            Assert.NotEqual(Feed.DefaultId, _feedContext.CurrentFeed.Id);
         }
 
         [Fact]

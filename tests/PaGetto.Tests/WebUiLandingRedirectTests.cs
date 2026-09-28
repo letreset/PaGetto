@@ -1,15 +1,21 @@
+using System;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Authentication;
+using PaGetto.Core.Entities;
+using PaGetto.Core.Feeds;
 using PaGetto.Tests.Support;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace PaGetto.Tests;
 
 /// <summary>
-/// The index page redirects a signed-in user to the first feed they can pull. The redirect
-/// must keep the configured PathBase, and must not keep the /feeds/{slug} segment of the
-/// feed the user was redirected away from.
+/// The root index page redirects a signed-in user to the first feed they can pull, keeping the
+/// configured PathBase. A /feeds/{slug} page the user can't pull returns 404 instead, the same
+/// as a slug that doesn't exist.
 /// </summary>
 public class WebUiLandingRedirectTests
 {
@@ -26,9 +32,46 @@ public class WebUiLandingRedirectTests
     [Theory]
     [InlineData(null)]
     [InlineData("/base")]
-    public async Task FeedWithoutPullAccess_RedirectsToAccessibleFeedUnderPathBase(string pathBase)
+    public async Task RootRedirectsToFirstAccessibleFeedUnderPathBase(string pathBase)
     {
-        using var app = new PaGettoApplication(_output, inMemoryConfiguration: dict =>
+        using var app = CreateApp(pathBase);
+        var internalFeed = await app.CreateFeedAsync("internal");
+        var user = await WebUiSession.SeedLocalUserAsync(app, Username, Password);
+        using (var scope = app.Services.CreateScope())
+        {
+            var feeds = scope.ServiceProvider.GetRequiredService<IFeedService>();
+            await feeds.ReorderFeedsAsync([internalFeed.Id, Feed.DefaultId], CancellationToken.None);
+            await scope.ServiceProvider.GetRequiredService<IPermissionService>().GrantPermissionAsync(
+                user.Id, PrincipalType.User, internalFeed.Id, canPush: false, canPull: true, CancellationToken.None);
+        }
+        using var session = await WebUiSession.SignInAsync(app, Username, Password);
+
+        using var response = await session.Client.GetAsync($"{pathBase}/");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal($"{pathBase}/feeds/internal/", response.Headers.Location?.OriginalString);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("/base")]
+    public async Task FeedWithoutPullAccessReturns404LikeMissingFeed(string pathBase)
+    {
+        using var app = CreateApp(pathBase);
+        await app.CreateFeedAsync("internal");
+        await WebUiSession.SeedLocalUserAsync(app, Username, Password);
+        using var session = await WebUiSession.SignInAsync(app, Username, Password);
+
+        using var forbidden = await session.Client.GetAsync($"{pathBase}/feeds/internal/");
+        using var missing = await session.Client.GetAsync($"{pathBase}/feeds/nope/");
+
+        Assert.Equal(HttpStatusCode.NotFound, forbidden.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    private PaGettoApplication CreateApp(string pathBase)
+    {
+        return new PaGettoApplication(_output, inMemoryConfiguration: dict =>
         {
             dict["Authentication:Mode"] = "Local";
             if (pathBase != null)
@@ -36,13 +79,5 @@ public class WebUiLandingRedirectTests
                 dict["PathBase"] = pathBase;
             }
         });
-        await app.CreateFeedAsync("internal");
-        await WebUiSession.SeedLocalUserAsync(app, Username, Password);
-        using var session = await WebUiSession.SignInAsync(app, Username, Password);
-
-        using var response = await session.Client.GetAsync($"{pathBase}/feeds/internal/");
-
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Equal($"{pathBase}/feeds/default/", response.Headers.Location?.OriginalString);
     }
 }

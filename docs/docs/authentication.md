@@ -221,11 +221,11 @@ In the `Local`, `Entra` and `Hybrid` modes every [feed](feeds.md) has its own pe
 
 Administrators have all three on every feed. Feeds a user can't pull from are hidden from them in the UI.
 
-- NuGet requests get `401 Unauthorized` when not signed in, and `403 Forbidden` when the user is signed in but lacks the needed permission.
-- The package, Connect and Statistics pages and the Atom feed return `404 Not Found` to a signed-in user without pull permission, so they don't reveal what the feed contains.
+- NuGet requests get `401 Unauthorized` when not signed in. A signed-in user without pull permission gets `404 Not Found`, the same as for a feed that doesn't exist; a signed-in user without push or delete permission gets `403 Forbidden` on push, delete and relist.
+- The feed's package list, package, Connect and Statistics pages and the Atom feed return `404 Not Found` to a signed-in user without pull permission, so they don't reveal that the feed exists or what it contains.
 - On a feed in [read-only mode](feeds.md#feed-settings), NuGet push, delete and relist requests with valid credentials get `403 Forbidden`, as the web UI does. Requests without valid credentials still get `401 Unauthorized`.
 
-Feed slugs are not secret. NuGet clients need the service index (`/feeds/{slug}/v3/index.json`) without credentials to discover a feed, so an anonymous request can tell an existing feed (200) from a missing one (404). Pages and package data still need a signed-in user with pull permission, so don't put anything sensitive in a feed's slug.
+An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not the feed exists: the service index, a `401` challenge on the other NuGet endpoints, and the "Sign in required" prompt in the web UI. Once signed in, a feed the user can't pull from and a missing feed both return `404`. Push, delete and relist are the exception: a signed-in user without the permission gets `403` from an existing feed and `404` from a missing one, so don't put anything sensitive in a feed's slug.
 
 ## Personal access tokens (PATs)
 

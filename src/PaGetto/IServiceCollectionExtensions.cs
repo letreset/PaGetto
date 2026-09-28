@@ -106,6 +106,10 @@ internal static partial class ServiceCollectionExtensions
                 }
                 return null;
             };
+
+            // Forbid stays on this scheme (404, see NugetBasicAuthenticationHandler) instead of
+            // the cookie scheme's redirect, so browsers can't tell a forbidden feed from a missing one.
+            options.ForwardForbid = AuthenticationConstants.NugetBasicAuthenticationScheme;
         });
 
         // Configure the cookie scheme registered by AddMicrosoftIdentityWebApp
