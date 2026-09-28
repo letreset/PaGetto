@@ -23,6 +23,13 @@ public class FeedResolutionMiddleware
         {
             // Extract the slug from the next path segment
             var remainingStr = remaining.Value ?? string.Empty;
+            if (remainingStr.Length <= 1)
+            {
+                // "/feeds" or "/feeds/": there is no slug to resolve.
+                context.Response.StatusCode = 404;
+                return;
+            }
+
             var slugEnd = remainingStr.IndexOf('/', 1);
             string slug;
             string afterSlug;
