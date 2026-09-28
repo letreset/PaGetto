@@ -233,11 +233,11 @@ Personal access tokens let users authenticate from NuGet clients and CI without 
 
 - Users create tokens on **My Tokens** (in the user menu), with a name and an expiry of 30, 60, 90 (the default), 180 or 365 days.
 - Local accounts that can't sign in to the web UI (for example build agents) get their tokens from an administrator: **New token** on **Admin > Accounts**.
-- Users can only list and revoke their own tokens. There is no page to list or revoke another user's tokens; to cut off an account that only uses tokens, disable it.
+- Users can only list and revoke their own tokens on **My Tokens**. Administrators list any user's tokens with **Tokens** in the account's **Actions** menu on **Admin > Accounts**, and revoke one of them or all active ones there. A revoked token is rejected on the next request.
 - The token (it starts with `bg_`) is shown only once, at creation time.
 - Tokens are stored as SHA-256 hashes, and can be revoked at any time.
 - A token acts as its owner: it has exactly the owner's permissions, and stops working when the owner is disabled or deleted.
-- A token created with **New token** on **Admin > Accounts** is written to the [audit log](configuration.md#audit-log) as `account_token_created`. Creating and revoking tokens on **My Tokens** is not: those are logged as `Audit: TokenCreated …` and `Audit: TokenRevoked …` lines at `Information` level, in the `PaGetto.Core.Authentication.TokenService` category, which the default `appsettings.json` doesn't log.
+- A token created with **New token** on **Admin > Accounts** is written to the [audit log](configuration.md#audit-log) as `account_token_created`, and tokens an administrator revokes as `token_revoked` or `tokens_revoked_all`. Creating and revoking tokens on **My Tokens** is not: those are logged as `Audit: TokenCreated …` and `Audit: TokenRevoked …` lines at `Information` level, in the `PaGetto.Core.Authentication.TokenService` category, which the default `appsettings.json` doesn't log.
 
 ### Token expiry
 

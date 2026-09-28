@@ -1,0 +1,83 @@
+@page
+@using System.Linq
+@model PaGetto.Web.Pages.Admin.UserTokensModel
+
+@{
+    ViewData["Title"] = $"Tokens of {Model.TargetUser.Username}";
+    var activeCount = Model.Tokens.Count(Model.IsActive);
+}
+
+@await Html.PartialAsync("_AdminTabs", "Accounts")
+
+<div class="bgt-page-head">
+    <div>
+        <h1>Tokens of @Model.TargetUser.Username</h1>
+        <p class="bgt-lead">
+            <a asp-page="/Admin/Accounts">&larr; Accounts</a> ·
+            @activeCount active of @Model.Tokens.Count @(Model.Tokens.Count == 1 ? "token" : "tokens")
+        </p>
+    </div>
+    @if (activeCount > 0)
+    {
+        <form method="post" asp-page-handler="RevokeAll" asp-route-userId="@Model.TargetUser.Id" class="m-0"
+              data-confirm="@(activeCount == 1
+                  ? $"Revoke the only active token of '{Model.TargetUser.Username}'? Clients that use it can no longer sign in."
+                  : $"Revoke all {activeCount} active tokens of '{Model.TargetUser.Username}'? Clients that use them can no longer sign in.")">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">Revoke all</button>
+        </form>
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+
+<div class="bgt-card bgt-card-clip">
+    @if (Model.Tokens.Count == 0)
+    {
+        <div class="bgt-empty-row">@Model.TargetUser.Username has no personal access tokens.</div>
+    }
+    else
+    {
+        @foreach (var token in Model.Tokens)
+        {
+            var isActive = Model.IsActive(token);
+            <div class="bgt-row @(isActive ? null : "inactive")">
+                <div style="flex: 1 1 200px; min-width: 0">
+                    <div class="bgt-token-name">@token.Name <span class="bgt-slug ms-1" title="Token prefix">@token.TokenPrefix…</span></div>
+                    <div class="bgt-token-sub">
+                        Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
+                    </div>
+                </div>
+                @if (token.IsRevoked)
+                {
+                    <span class="bgt-pill">Revoked @if (token.RevokedAtUtc is { } revokedAt) { @Html.DisplayDate(revokedAt) }</span>
+                }
+                else if (!isActive)
+                {
+                    <span class="bgt-pill bgt-pill-warn">Expired @Html.DisplayDate(token.ExpiresAtUtc)</span>
+                }
+                else
+                {
+                    <span class="bgt-pill">Expires @Html.DisplayDate(token.ExpiresAtUtc)</span>
+                }
+                @if (isActive)
+                {
+                    <form method="post" asp-page-handler="Revoke" asp-route-userId="@Model.TargetUser.Id" class="m-0"
+                          data-confirm="@($"Revoke the token '{token.Name}' of '{Model.TargetUser.Username}'? Clients that use it can no longer sign in.")">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="tokenId" value="@token.Id" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Revoke the token @token.Name">Revoke</button>
+                    </form>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bgt-toast" role="status"><icon name="check" />@Model.SuccessMessage</div>
+}

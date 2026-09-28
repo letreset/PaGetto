@@ -140,6 +140,8 @@ For every page you open, the browser console should show no errors.
 | A6 | `admin` | `bob` > ⋯ > **Reset password…** with a 12+ character password (**Set password** stays disabled below 12), then sign in as `bob` with it | "Password of 'bob' reset successfully.", and the sign-in works (also right after S7's lockout) |
 | A7 | `admin` | Look at the account list | Column headers on a desktop screen; each row has the avatar, groups, an Enabled/Disabled and a "Web + API"/"API only" label, the date and a ⋯ button whose menu isn't cut off, also on the last row |
 | A8 | `admin` | Open ⋯ > **New token…** on `build-agent` (the last row), press Esc, open it again, type a name and press Enter | A dialog with the cursor in the name field; Esc closes it; Enter creates the token |
+| A9 | `admin` | Create two tokens for `build-agent` with **New token…**, push a package with one of them, then open ⋯ > **Tokens** on `build-agent` and **Revoke** that token | The list shows each token's name, prefix, created, last used (a date for the used one) and expiry, never the token itself. After revoking: the toast "Token '…' revoked.", the row shows Revoked, the next push with that token gets 401, and **Audit log** has `token_revoked` for `build-agent` |
+| A10 | `admin` | Do A9, then **Revoke all** on `build-agent`'s tokens | The confirmation names the number of active tokens; afterwards every token is revoked or expired, **Revoke all** is gone and **Audit log** has `tokens_revoked_all` with the count. As `alice`, `/admin/usertokens?userId=…` redirects to the package list |
 
 ## Admin > Groups & Permissions
 

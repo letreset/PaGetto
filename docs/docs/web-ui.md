@@ -129,6 +129,8 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 
 **New account** opens the form for a local account. The other actions are in the **Actions** menu (⋮) at the end of each row; **Edit account…**, **Reset password…**, **New token…** and **Delete account…** open a dialog. Entra accounts only have the enable, web sign-in and delete actions. See [Local accounts](authentication.md#local-accounts).
 
+**Tokens** in the same menu, for every account, lists the account's [personal access tokens](authentication.md#personal-access-tokens-pats) with their prefix, creation and last use, expiry and state (active, expired or revoked); the token itself is never shown. **Revoke** revokes one token and **Revoke all** every active one, after a confirmation. Both are written to the [audit log](configuration.md#audit-log).
+
 ### Groups & permissions
 
 ![Admin > Groups & permissions with three groups, and the permissions of the Developers group on each feed](./assets/web-ui/admin-groups.png)

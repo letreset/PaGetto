@@ -199,6 +199,38 @@ public class FeedAuthenticationIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task PatToken_RevokedAfterUse_IsRejectedOnTheNextRequest()
+    {
+        var userId = await SeedLocalUserWithPermissionsAsync(canPull: true, canPush: true);
+
+        TokenCreateResult created;
+        using (var scope = _app.Services.CreateScope())
+        {
+            created = await scope.ServiceProvider.GetRequiredService<ITokenService>().CreateTokenAsync(
+                userId, "test-token", DateTime.UtcNow.AddDays(30), CancellationToken.None);
+        }
+
+        // An empty body gets 400 once the token is accepted.
+        Assert.Equal(HttpStatusCode.BadRequest, await PushWithApiKeyAsync(created.PlaintextToken));
+
+        using (var scope = _app.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ITokenService>().RevokeTokenAsync(created.Token.Id, CancellationToken.None);
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await PushWithApiKeyAsync(created.PlaintextToken));
+    }
+
+    private async Task<HttpStatusCode> PushWithApiKeyAsync(string apiKey)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, "api/v2/package");
+        request.Headers.Add("X-NuGet-ApiKey", apiKey);
+        request.Content = new ByteArrayContent([]);
+        using var response = await _client.SendAsync(request);
+        return response.StatusCode;
+    }
+
+    [Fact]
     public async Task PatToken_WhenExpired_ReturnsUnauthorized()
     {
         // Arrange
