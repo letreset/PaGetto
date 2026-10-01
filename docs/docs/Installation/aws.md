@@ -110,7 +110,37 @@ You can use any storage service that is compatible with Amazon S3. Set `Endpoint
 }
 ```
 
-Set only one of `Region` and `Endpoint`. PaGetto fails at startup if both are set.
+At least one of `Region` and `Endpoint` must be set. When `Endpoint` is set, `Region` is optional and only sets the region used to sign requests (see [Signing region](#signing-region)).
+
+#### Signing region
+
+With a custom `Endpoint`, the AWS SDK guesses the signing region from the host name. Some services use a region that can't be derived from the URL, and reject requests with a signature error. For those, set `Region` next to `Endpoint`; for example, Cloudflare R2 expects `auto`:
+
+```json
+{
+    ...
+
+    "Storage": {
+        "Type": "AwsS3",
+        "Endpoint": "https://<account-id>.r2.cloudflarestorage.com",
+        "Region": "auto",
+        "Bucket": "nuget-packages",
+        "AccessKey": "",
+        "SecretKey": ""
+    },
+
+    ...
+}
+```
+
+Or with environment variables:
+
+```bash
+Storage__Type=AwsS3
+Storage__Endpoint=https://<account-id>.r2.cloudflarestorage.com
+Storage__Region=auto
+Storage__Bucket=nuget-packages
+```
 
 #### Path-style addressing
 
@@ -144,6 +174,33 @@ Storage__ForcePathStyle=true
 Storage__Bucket=nuget-packages
 Storage__AccessKey=minioadmin
 Storage__SecretKey=minioadmin
+```
+
+#### Chunked uploads
+
+By default, packages are uploaded with chunked encoding (`aws-chunked`), which Amazon S3 supports. Some S3-compatible services don't, and reject uploads while downloads keep working. Set `UseChunkEncoding` to `false` to upload each file in a single, non-chunked request. It defaults to `true`.
+
+```json
+{
+    ...
+
+    "Storage": {
+        "Type": "AwsS3",
+        "Endpoint": "https://s3.example.com",
+        "UseChunkEncoding": false,
+        "Bucket": "nuget-packages",
+        "AccessKey": "",
+        "SecretKey": ""
+    },
+
+    ...
+}
+```
+
+Or with an environment variable:
+
+```bash
+Storage__UseChunkEncoding=false
 ```
 
 #### Known compatible services

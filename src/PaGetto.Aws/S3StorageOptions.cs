@@ -21,6 +21,11 @@ public class S3StorageOptions : IValidatableObject
 
     public bool ForcePathStyle { get; set; }
 
+    /// <summary>
+    /// Whether uploads use chunked (aws-chunked) encoding. Turn it off for S3-compatible services that don't support it.
+    /// </summary>
+    public bool UseChunkEncoding { get; set; } = true;
+
     [Required]
     public string Bucket { get; set; }
 
@@ -32,13 +37,6 @@ public class S3StorageOptions : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (Endpoint != null && !string.IsNullOrEmpty(Region))
-        {
-            yield return new ValidationResult(
-                $"Only one of S3 {nameof(Region)} or {nameof(Endpoint)} configuration can be set, but not both.",
-                new[] { nameof(Region), nameof(Endpoint) });
-        }
-
         if(Endpoint != null && !Endpoint.IsAbsoluteUri)
         {
             yield return new ValidationResult(

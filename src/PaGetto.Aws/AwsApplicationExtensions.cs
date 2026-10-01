@@ -34,8 +34,14 @@ public static class AwsApplicationExtensions
         {
             var options = provider.GetRequiredService<IOptions<S3StorageOptions>>().Value;
 
+            // With a custom endpoint, Region only sets the signing region, for services that can't derive it from the URL.
             var config = options.Endpoint != null
-                ? new AmazonS3Config { ServiceURL = options.Endpoint.AbsoluteUri, ForcePathStyle = options.ForcePathStyle }
+                ? new AmazonS3Config
+                {
+                    ServiceURL = options.Endpoint.AbsoluteUri,
+                    ForcePathStyle = options.ForcePathStyle,
+                    AuthenticationRegion = string.IsNullOrEmpty(options.Region) ? null : options.Region,
+                }
                 : new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region) };
 
             if (options.UseInstanceProfile)
