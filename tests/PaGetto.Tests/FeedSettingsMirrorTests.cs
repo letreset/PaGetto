@@ -286,6 +286,50 @@ public class FeedSettingsMirrorTests : IDisposable
         Assert.Null((await GetDefaultFeedAsync()).IsReadOnlyMode);
     }
 
+    [Theory]
+    [InlineData(new[] { "true", "false" }, true)]
+    [InlineData(new[] { "false" }, false)]
+    public async Task PostSavesDeletePrereleasesOfOlderMajorsOverride(string[] postedValues, bool expected)
+    {
+        using var client = await SignInAsAdminAsync();
+
+        var form = await BaseFormAsync(client);
+        form.RemoveAll(f => f.Key == "UseGlobalRetentionOlderMajorPrereleases");
+        form.Add(new("UseGlobalRetentionOlderMajorPrereleases", "false"));
+        form.AddRange(postedValues.Select(v => new KeyValuePair<string, string>("RetentionDeletePrereleasesOfOlderMajors", v)));
+
+        using var response = await client.PostAsync(SettingsUrl, new FormUrlEncodedContent(form));
+
+        Assert.Contains("Settings saved.", await response.Content.ReadAsStringAsync());
+        Assert.Equal(expected, (await GetDefaultFeedAsync()).RetentionDeletePrereleasesOfOlderMajors);
+        Assert.Matches(
+            expected
+                ? "id=\"RetentionDeletePrereleasesOfOlderMajors\" name=\"RetentionDeletePrereleasesOfOlderMajors\" value=\"true\" checked=\"checked\""
+                : "id=\"RetentionDeletePrereleasesOfOlderMajors\" name=\"RetentionDeletePrereleasesOfOlderMajors\" value=\"true\" data-global-value",
+            await client.GetStringAsync(SettingsUrl));
+    }
+
+    [Fact]
+    public async Task PostWithGlobalDeletePrereleasesOfOlderMajorsClearsOverride()
+    {
+        using (var scope = _app.Services.CreateScope())
+        {
+            var feedService = scope.ServiceProvider.GetRequiredService<IFeedService>();
+            var feed = await feedService.GetDefaultFeedAsync(CancellationToken.None);
+            feed.RetentionDeletePrereleasesOfOlderMajors = true;
+            await feedService.UpdateFeedAsync(feed, CancellationToken.None);
+        }
+        using var client = await SignInAsAdminAsync();
+
+        var form = await BaseFormAsync(client);
+        form.Add(new("RetentionDeletePrereleasesOfOlderMajors", "false"));
+
+        using var response = await client.PostAsync(SettingsUrl, new FormUrlEncodedContent(form));
+
+        Assert.Contains("Settings saved.", await response.Content.ReadAsStringAsync());
+        Assert.Null((await GetDefaultFeedAsync()).RetentionDeletePrereleasesOfOlderMajors);
+    }
+
     private async Task<Feed> GetDefaultFeedAsync()
     {
         using var scope = _app.Services.CreateScope();
@@ -368,6 +412,7 @@ public class FeedSettingsMirrorTests : IDisposable
             new("UseGlobalRetentionMinor", "true"),
             new("UseGlobalRetentionPatch", "true"),
             new("UseGlobalRetentionPrerelease", "true"),
+            new("UseGlobalRetentionOlderMajorPrereleases", "true"),
             new("UseGlobalListingCache", "true"),
         ];
     }

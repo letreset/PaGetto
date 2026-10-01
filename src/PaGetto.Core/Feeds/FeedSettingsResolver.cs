@@ -58,6 +58,7 @@ public class FeedSettingsResolver : IFeedSettingsResolver
             MaxPrereleaseVersions = feed.RetentionMaxPrereleaseVersions.HasValue
                 ? (uint?)feed.RetentionMaxPrereleaseVersions.Value
                 : global.MaxPrereleaseVersions,
+            DeletePrereleasesOfOlderMajors = feed.RetentionDeletePrereleasesOfOlderMajors ?? global.DeletePrereleasesOfOlderMajors,
         };
     }
 

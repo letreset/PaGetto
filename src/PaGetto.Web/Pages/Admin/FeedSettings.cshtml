@@ -265,6 +265,21 @@
                     @{ Inherit(nameof(Model.UseGlobalRetentionPrerelease), Model.UseGlobalRetentionPrerelease, nameof(Model.RetentionMaxPrereleaseVersions), Limit(global.Retention?.MaxPrereleaseVersions)); }
                 </div>
             </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <span class="title">Prereleases of older majors</span>
+                    <div class="bgt-setting-help">Delete prereleases whose major version is lower than the latest stable major, e.g. 2.1.0-beta.1 once 3.0.0 exists.</div>
+                </div>
+                <div class="bgt-setting-control">
+                    <label class="form-check form-switch">
+                        @* Rendered by hand like the read-only switch: asp-for renders a bool? as a text input. *@
+                        <input type="checkbox" class="form-check-input" role="switch" id="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" name="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" value="true" checked="@(Model.RetentionDeletePrereleasesOfOlderMajors == true)" data-global-value="@(global.Retention?.DeletePrereleasesOfOlderMajors == true ? "true" : "false")" />
+                        <span class="form-check-label">Delete</span>
+                    </label>
+                    <input type="hidden" name="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" value="false" />
+                    @{ Inherit(nameof(Model.UseGlobalRetentionOlderMajorPrereleases), Model.UseGlobalRetentionOlderMajorPrereleases, nameof(Model.RetentionDeletePrereleasesOfOlderMajors), global.Retention?.DeletePrereleasesOfOlderMajors == true ? "Enabled" : "Disabled"); }
+                </div>
+            </div>
         </section>
 
         <section id="mirrors" class="bgt-card bgt-card-clip">

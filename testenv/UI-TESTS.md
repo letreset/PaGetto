@@ -126,6 +126,7 @@ For every page you open, the browser console should show no errors.
 | FS5 | `admin` | Add a mirror with the URL `not a url` and save | "the package source must be an absolute http(s) URL" |
 | FS6 | `admin` | Add two mirrors, move the second up with the arrow, remove one | Titles renumber (Mirror 1, Mirror 2); do `down -v` afterwards |
 | FS7 | `admin` | Experimental > Settings: clear **Use global default** for Read-only mode, turn **Read-only** on, save and reload; then tick **Use global default** again and save | The switch toggles and stays on after the reload, and a push to Experimental gets 403; with the global default the feed is writable again |
+| FS8 | `admin` | Experimental > Settings > Retention: clear **Use global default** for Prereleases of older majors, turn **Delete** on, save and reload; then tick **Use global default** again and save | The switch is disabled and shows the global value (off) while the box is ticked; once cleared it toggles and stays on after the reload; with the global default it is off again |
 
 ## Admin > Accounts
 

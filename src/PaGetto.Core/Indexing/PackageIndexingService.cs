@@ -170,7 +170,8 @@ public partial class PackageIndexingService : IPackageIndexingService
         if (retention.MaxMajorVersions.HasValue ||
             retention.MaxMinorVersions.HasValue ||
             retention.MaxPatchVersions.HasValue ||
-            retention.MaxPrereleaseVersions.HasValue)
+            retention.MaxPrereleaseVersions.HasValue ||
+            retention.DeletePrereleasesOfOlderMajors)
         {
             try
             {
@@ -184,6 +185,7 @@ public partial class PackageIndexingService : IPackageIndexingService
                     retention.MaxMinorVersions,
                     retention.MaxPatchVersions,
                     retention.MaxPrereleaseVersions,
+                    retention.DeletePrereleasesOfOlderMajors,
                     cancellationToken);
                 if (deleted > 0)
                 {

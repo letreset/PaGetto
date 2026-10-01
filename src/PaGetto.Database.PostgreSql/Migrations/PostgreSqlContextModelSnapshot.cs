@@ -102,6 +102,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<int?>("PackageDeletionBehavior")
                         .HasColumnType("integer");
 
+                    b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("RetentionMaxMajorVersions")
                         .HasColumnType("integer");
 

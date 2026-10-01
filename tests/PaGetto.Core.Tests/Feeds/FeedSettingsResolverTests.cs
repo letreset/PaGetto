@@ -212,6 +212,30 @@ public class FeedSettingsResolverTests
         }
 
         [Fact]
+        public void UsesGlobalDeletePrereleasesOfOlderMajorsWhenFeedHasNoOverride()
+        {
+            _globalOptions.Retention = new RetentionOptions { DeletePrereleasesOfOlderMajors = true };
+
+            var result = _target.GetRetentionOptions(DefaultFeed());
+
+            Assert.True(result.DeletePrereleasesOfOlderMajors);
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void FeedOverrideReplacesGlobalDeletePrereleasesOfOlderMajors(bool global, bool feedValue)
+        {
+            _globalOptions.Retention = new RetentionOptions { DeletePrereleasesOfOlderMajors = global };
+            var feed = DefaultFeed();
+            feed.RetentionDeletePrereleasesOfOlderMajors = feedValue;
+
+            var result = _target.GetRetentionOptions(feed);
+
+            Assert.Equal(feedValue, result.DeletePrereleasesOfOlderMajors);
+        }
+
+        [Fact]
         public void ReturnsDefaultsWhenNoGlobalOrFeedRetention()
         {
             _globalOptions.Retention = null;

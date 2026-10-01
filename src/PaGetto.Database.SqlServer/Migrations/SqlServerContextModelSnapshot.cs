@@ -101,6 +101,9 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<int?>("PackageDeletionBehavior")
                         .HasColumnType("int");
 
+                    b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("RetentionMaxMajorVersions")
                         .HasColumnType("int");
 

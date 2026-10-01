@@ -33,6 +33,7 @@ public class FeedResponse
     public int? RetentionMaxMinorVersions { get; set; }
     public int? RetentionMaxPatchVersions { get; set; }
     public int? RetentionMaxPrereleaseVersions { get; set; }
+    public bool? RetentionDeletePrereleasesOfOlderMajors { get; set; }
     public int? UpstreamListingCacheSeconds { get; set; }
 
     /// <summary>The feed's upstream mirrors, in priority order.</summary>
@@ -57,6 +58,7 @@ public class FeedResponse
         RetentionMaxMinorVersions = feed.RetentionMaxMinorVersions,
         RetentionMaxPatchVersions = feed.RetentionMaxPatchVersions,
         RetentionMaxPrereleaseVersions = feed.RetentionMaxPrereleaseVersions,
+        RetentionDeletePrereleasesOfOlderMajors = feed.RetentionDeletePrereleasesOfOlderMajors,
         UpstreamListingCacheSeconds = feed.UpstreamListingCacheSeconds,
         Mirrors = (feed.Mirrors ?? [])
             .OrderBy(m => m.SortOrder)
