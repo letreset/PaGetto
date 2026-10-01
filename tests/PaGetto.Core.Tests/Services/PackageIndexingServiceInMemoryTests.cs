@@ -367,6 +367,24 @@ public class PackageIndexingServiceInMemoryTests
 
             Assert.Equal(["1.0.2", "1.0.3"], await GetStoredVersionsAsync());
         }
+
+        [Fact]
+        public async Task WithOnlyDeletePrereleasesOfOlderMajors_DeletesThem()
+        {
+            RetentionOptions.DeletePrereleasesOfOlderMajors = true;
+
+            foreach (var version in new[] { "1.0.0-beta.1", "1.0.0", "2.0.0-beta.1", "2.0.0", "1.1.0-beta.1" })
+            {
+                await IndexVersionAsync(version);
+            }
+
+            // 1.1.0-beta.1 is kept by its own run; the next push of the package removes it.
+            Assert.Equal(["1.0.0", "1.1.0-beta.1", "2.0.0-beta.1", "2.0.0"], await GetStoredVersionsAsync());
+
+            await IndexVersionAsync("2.0.1");
+
+            Assert.Equal(["1.0.0", "2.0.0-beta.1", "2.0.0", "2.0.1"], await GetStoredVersionsAsync());
+        }
     }
 
     public class FactsBase

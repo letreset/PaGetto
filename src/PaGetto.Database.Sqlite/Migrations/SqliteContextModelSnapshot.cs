@@ -96,6 +96,9 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Property<int?>("PackageDeletionBehavior")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("RetentionMaxMajorVersions")
                         .HasColumnType("INTEGER");
 

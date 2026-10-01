@@ -94,6 +94,12 @@ public class FeedSettingsModel : PageModel
     [BindProperty]
     public bool UseGlobalRetentionPrerelease { get; set; }
 
+    [BindProperty]
+    public bool? RetentionDeletePrereleasesOfOlderMajors { get; set; }
+
+    [BindProperty]
+    public bool UseGlobalRetentionOlderMajorPrereleases { get; set; }
+
     // Mirrors, in priority order (the posted list order is the saved order)
     [BindProperty]
     public List<MirrorInput> Mirrors { get; set; } = [];
@@ -148,6 +154,9 @@ public class FeedSettingsModel : PageModel
 
         UseGlobalRetentionPrerelease = !feed.RetentionMaxPrereleaseVersions.HasValue;
         RetentionMaxPrereleaseVersions = feed.RetentionMaxPrereleaseVersions;
+
+        UseGlobalRetentionOlderMajorPrereleases = !feed.RetentionDeletePrereleasesOfOlderMajors.HasValue;
+        RetentionDeletePrereleasesOfOlderMajors = feed.RetentionDeletePrereleasesOfOlderMajors;
 
         UseGlobalListingCache = !feed.UpstreamListingCacheSeconds.HasValue;
         UpstreamListingCacheSeconds = feed.UpstreamListingCacheSeconds;
@@ -350,6 +359,7 @@ public class FeedSettingsModel : PageModel
         Feed.RetentionMaxMinorVersions = UseGlobalRetentionMinor ? null : RetentionMaxMinorVersions;
         Feed.RetentionMaxPatchVersions = UseGlobalRetentionPatch ? null : RetentionMaxPatchVersions;
         Feed.RetentionMaxPrereleaseVersions = UseGlobalRetentionPrerelease ? null : RetentionMaxPrereleaseVersions;
+        Feed.RetentionDeletePrereleasesOfOlderMajors = UseGlobalRetentionOlderMajorPrereleases ? null : RetentionDeletePrereleasesOfOlderMajors;
 
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
 

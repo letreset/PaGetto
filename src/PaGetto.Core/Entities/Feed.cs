@@ -24,6 +24,7 @@ public class Feed
     public int? RetentionMaxMinorVersions { get; set; }
     public int? RetentionMaxPatchVersions { get; set; }
     public int? RetentionMaxPrereleaseVersions { get; set; }
+    public bool? RetentionDeletePrereleasesOfOlderMajors { get; set; }
     public int? UpstreamListingCacheSeconds { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }

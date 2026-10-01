@@ -134,6 +134,7 @@ Packages deleted are always the oldest based on version numbers. The version tha
 - MaxMinorVersions: Maximum number of minor versions for each major version
 - MaxPatchVersions: Maximum number of patch versions for each major + minor version
 - MaxPrereleaseVersions: Maximum number of prerelease builds for each major + minor + patch version and prerelease type. If you have `beta` and `alpha` this will keep `MaxPrereleaseVersions` versions for both `beta` and `alpha`. Suffixes incompatible with [SemVer 2](https://semver.org/) will be treated as a separate type.
+- DeletePrereleasesOfOlderMajors: If `true`, every prerelease whose major version is lower than the latest stable major version of the package is deleted. For example, once `3.0.0` is published, `2.1.0-beta.1` and `1.0.0-alpha` are deleted, while `3.1.0-beta.1` and `4.0.0-alpha.1` are kept. A package without a stable version keeps all its prereleases. Defaults to `false`. It works on its own or together with the limits above, and only ever deletes more versions.
 
 ```json
 {
@@ -143,6 +144,7 @@ Packages deleted are always the oldest based on version numbers. The version tha
         "MaxMinorVersions": 5,
         "MaxPatchVersions": 5,
         "MaxPrereleaseVersions": 5,
+        "DeletePrereleasesOfOlderMajors": true
     }
     ...
 }
