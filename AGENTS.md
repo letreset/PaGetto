@@ -188,7 +188,7 @@ docker compose -f testenv/docker-compose.yml down -v   # reset to the snapshot
 PAGETTO_TAG=dev docker compose -f testenv/docker-compose.yml up -d   # your own image (docker build -t letreset/pagetto:dev .)
 ```
 
-- It runs in `Local` auth mode with four feeds (Default mirrors nuget.org, Internal, Experimental, Archive read-only), groups with different permissions and `Contoso.*` test packages. The seed script also creates a Dart feed (`contoso_*` packages from `testenv/packages/dart`, a mirror of pub.dev); the committed snapshot gets it the next time it is regenerated. The test accounts and passwords are in `testenv/README.md`; they are test-only.
+- It runs in `Local` auth mode with five feeds (Default mirrors nuget.org, Internal, Experimental, Archive read-only, and the Dart feed, which mirrors pub.dev), groups with different permissions, `Contoso.*` NuGet test packages and `contoso_*` Dart test packages (`testenv/packages/dart`). The test accounts and passwords are in `testenv/README.md`; they are test-only.
 - `testenv/data` is the committed snapshot. It's copied into a Docker volume on the first start, so testing never changes the working tree. Don't commit changes to it unless you are regenerating it on purpose.
 - To change the data set, edit `testenv/seed/seed.mjs` and regenerate the snapshot (steps in `testenv/README.md`).
 - Push test packages from `testenv/packages` with Basic auth (username and password, or username and a personal access token from **My Tokens**).

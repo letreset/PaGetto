@@ -35,8 +35,6 @@ These credentials only exist in this test data. Never use them anywhere else.
 
 ## Regenerating the snapshot
 
-> **Note:** the seed script also creates a Dart feed. The committed snapshot was made before Dart feeds existed, so it has none until it is regenerated with an image that supports them (`PAGETTO_TAG`).
-
 Do this when the data set changes, or when a new release changes the database schema in a way the snapshot can't be migrated from. Needs Docker, Node 18+ and the .NET SDK.
 
 ```bash

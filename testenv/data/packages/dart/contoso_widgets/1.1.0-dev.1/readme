@@ -1,0 +1,11 @@
+# contoso_widgets
+
+Flutter widgets in the Contoso design language.
+
+## Getting started
+
+```shell
+dart pub add contoso_widgets
+```
+
+Maintained by the Contoso platform team.

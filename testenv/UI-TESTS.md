@@ -30,7 +30,7 @@ For every page you open, the browser console should show no errors.
 
 | # | Account | Steps | Expected |
 |---|---|---|---|
-| N1 | `admin` | Open the feed switcher (the pill next to the logo) | Default, Internal, Experimental, Archive in that order, each with its type badge (NuGet), its description and a check on the current feed |
+| N1 | `admin` | Open the feed switcher (the pill next to the logo) | Default, Internal, Experimental, Archive, Dart in that order, each with its type badge (NuGet, and Dart on the last), its description and a check on the current feed |
 | N2 | `carol` | Look at the header links on Internal | Packages, Connect, Statistics, Docs. No Upload (no push permission), and no **Upload package** button on the package list |
 | N3 | `carol` | Look at the header links on Experimental | Packages, Connect, Upload, Statistics, Docs |
 | N4 | `carol` | Open `/Admin/Feeds` | Redirected to the package list |
@@ -150,9 +150,9 @@ For every page you open, the browser console should show no errors.
 
 | # | Account | Steps | Expected |
 |---|---|---|---|
-| G1 | `admin` | Open Developers > **Feed permissions** | "4 of 4 feeds"; Pull on Default, Internal, Archive; Pull, Push, Delete on Experimental |
+| G1 | `admin` | Open Developers > **Feed permissions** | "5 of 5 feeds"; Pull on Default, Internal, Archive, Dart; Pull, Push, Delete on Experimental |
 | G2 | `admin` | Create a group `Developers`, then `developers` | "already exists" both times |
-| G3 | `admin` | Remove `carol` from Developers (× on her chip), then check `carol` | `carol` sees "No feeds available"; add her back with **Add member** (the list only offers accounts that aren't members yet) and she sees all four feeds again |
+| G3 | `admin` | Remove `carol` from Developers (× on her chip), then check `carol` | `carol` sees "No feeds available"; add her back with **Add member** (the list only offers accounts that aren't members yet) and she sees all five feeds again |
 | G4 | `admin` | Open Developers > **Feed permissions**, clear Pull on Internal and **Save permissions** | The button is disabled until a box changes, then shows "Unsaved changes" next to it (ticking the box again disables it again). After saving, `bob` no longer sees Internal; restore it |
 | G5 | `admin` | Do G4, then check the container log | One `AUDIT feed_permission_revoked` line for Internal and one `feed_permission_set` line for the restore, no lines for the unchanged feeds |
 | G6 | `admin` | Create a group, open its delete confirmation in two tabs, confirm in both | The first shows the toast "Group deleted successfully.", the second "Group not found." |
@@ -163,7 +163,7 @@ For every page you open, the browser console should show no errors.
 | # | Account | Steps | Expected |
 |---|---|---|---|
 | U1 | `admin` | Create a group `Audit test`, delete it, then open **Audit log** | The newest rows are `group_deleted` and `group_created` for `Audit test`, with actor `admin`, the time in UTC and your IP address |
-| U2 | `alice` | Push a package from `testenv/packages` to Internal, then push the same version again (409); as `admin`, open **Audit log** with Feed = Internal | One `package_upload_succeeded` row with the package id and version, actor `alice`; no row for the rejected push |
+| U2 | `alice` | Push a package from `testenv/packages` to Internal, then push the same version again (409); as `admin`, open **Audit log** with Feed = Internal | The newest row is `package_upload_succeeded` with the package id and version, actor `alice`, above the uploads `admin` made when the data set was built; no row for the rejected push |
 | U3 | `admin` | Filter by Event = `group_created` and a From date after today, then **Clear** | "No audit events found." while filtered; all events again after **Clear** |
 | U4 | `alice` | Open `/admin/audit` | Redirected to the package list |
 
@@ -188,7 +188,7 @@ For every page you open, the browser console should show no errors.
 
 ## Dart feeds
 
-These checks need the Dart feed of the data set, which the committed snapshot doesn't have yet (see [README.md](README.md#regenerating-the-snapshot)). Until the snapshot is regenerated, run them against an empty environment filled by the seed script: `TESTENV_EMPTY=1 docker compose -f testenv/docker-compose.yml up -d`, then `node testenv/seed/seed.mjs`, with an image that supports Dart feeds (`PAGETTO_TAG`).
+These checks use the Dart feed of the data set. They need PaGetto 1.3.0 or later.
 
 | # | Account | Steps | Expected |
 |---|---|---|---|
