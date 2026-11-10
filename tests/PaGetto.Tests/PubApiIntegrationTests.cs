@@ -215,7 +215,13 @@ public class PubApiIntegrationTests : IDisposable
         {
         }
 
+        // The package list and the feed menu say what kind of feed this is.
         var index = await _client.GetStringAsync($"feeds/{Feed}/");
+        Assert.Contains("Dart feed", index);
+        Assert.Contains("<span class=\"bgt-badge ms-1\">Dart</span>", index);
+        Assert.Contains("<span class=\"bgt-badge ms-1\">NuGet</span>", index);
+        Assert.Contains("NuGet feed", await _client.GetStringAsync("/"));
+
         Assert.Contains("my_package", index);
         Assert.Contains("A test package.", index);
         Assert.Contains("1 package", index);

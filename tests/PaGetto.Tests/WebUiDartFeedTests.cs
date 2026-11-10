@@ -60,8 +60,10 @@ public class WebUiDartFeedTests : IDisposable
         var dartSettings = await admin.GetStringAsync("/Admin/Feeds/dart/Settings");
         var nugetSettings = await admin.GetStringAsync("/Admin/Feeds/default/Settings");
         Assert.DoesNotContain("id=\"retention\"", dartSettings);
+        Assert.DoesNotContain("Deletion behavior", dartSettings);
         Assert.Contains("https://pub.dev", dartSettings);
         Assert.Contains("id=\"retention\"", nugetSettings);
+        Assert.Contains("Deletion behavior", nugetSettings);
     }
 
     [Fact]

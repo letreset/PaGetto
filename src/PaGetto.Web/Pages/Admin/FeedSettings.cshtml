@@ -117,7 +117,7 @@
     };
     var deletionLabel = global.PackageDeletionBehavior == PackageDeletionBehavior.HardDelete ? "Hard delete" : "Unlist";
 
-    // Retention and the NuGet V2 protocol only exist for NuGet feeds.
+    // Retention, the deletion behavior of the NuGet API and the NuGet V2 protocol only exist for NuGet feeds.
     var isNuGet = Model.Feed?.Type == FeedType.NuGet;
 
     // A post that comes back without "saved" was refused, and the form holds the values it didn't save.
@@ -216,6 +216,8 @@
                     @{ Inherit(nameof(Model.UseGlobalOverwrite), Model.UseGlobalOverwrite, nameof(Model.AllowPackageOverwrites), overwriteLabel); }
                 </div>
             </div>
+            @if (isNuGet)
+            {
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="PackageDeletionBehavior">Deletion behavior</label>
@@ -229,6 +231,7 @@
                     @{ Inherit(nameof(Model.UseGlobalDeletion), Model.UseGlobalDeletion, nameof(Model.PackageDeletionBehavior), deletionLabel); }
                 </div>
             </div>
+            }
             <div class="bgt-setting">
                 <div class="bgt-setting-label"><label asp-for="MaxPackageSizeMiB">Max package size</label></div>
                 <div class="bgt-setting-control">
