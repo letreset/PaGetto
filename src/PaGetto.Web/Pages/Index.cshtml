@@ -51,7 +51,7 @@
 
 <div class="bgt-page-head" style="margin-bottom: 20px">
     <div>
-        <div class="bgt-eyebrow">Feed</div>
+        <div class="bgt-eyebrow">@FeedTypeNames.GetDisplayName(FeedContext.CurrentFeed.Type) feed</div>
         <h1>@feedName <span class="bgt-count">@Model.TotalHits.ToString("N0", CultureInfo.InvariantCulture) @(Model.TotalHits == 1 ? "package" : "packages")</span></h1>
     </div>
     @if (canPush && Model.Artifacts == null)
@@ -69,7 +69,8 @@
     <label class="bgt-search">
         <icon name="search" size="18" />
         <span class="visually-hidden">Search packages</span>
-        <input type="search" name="q" value="@Model.Query" autocomplete="off" placeholder="Search packages, tags, authors…" data-search-input />
+        @* Feeds of other types than NuGet are only searched by name and description. *@
+        <input type="search" name="q" value="@Model.Query" autocomplete="off" placeholder="@(Model.Artifacts == null ? "Search packages, tags, authors…" : "Search packages…")" data-search-input />
         <kbd class="bgt-kbd">/</kbd>
     </label>
 
@@ -345,16 +346,17 @@ else
         var feed = FeedContext.CurrentFeed;
         var feedUrl = Url.PageLink("/Index").TrimEnd('/');
 
-        if (Model.Artifacts.Count > 0)
-        {
-            <div class="bgt-filters">
-                <div class="bgt-grow"></div>
+        @* Always rendered, like on NuGet feeds, so the list keeps its distance from the search box. *@
+        <div class="bgt-filters">
+            <div class="bgt-grow"></div>
+            @if (Model.Artifacts.Count > 0)
+            {
                 <div class="bgt-segmented" role="group" aria-label="View">
                     <button type="button" class="bgt-view-list-btn" data-view="list" title="List view" aria-label="List view"><icon name="list" size="15" /></button>
                     <button type="button" class="bgt-view-grid-btn" data-view="grid" title="Grid view" aria-label="Grid view"><icon name="grid" size="15" /></button>
                 </div>
-            </div>
-        }
+            }
+        </div>
 
         if (Model.Artifacts.Count == 0 && Model.PageIndex > 1)
         {

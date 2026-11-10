@@ -128,7 +128,8 @@
                                     <li>
                                         <a class="dropdown-item @(isActive ? "active" : null)" href="@rootBase/feeds/@feed.Slug" aria-current="@(isActive ? "true" : null)">
                                             <span class="bgt-feed-option">
-                                                <span class="bgt-feed-option-name d-block">@feed.Name</span>
+                                                @* The type tells visitors what kind of packages the feed serves. *@
+                                                <span class="bgt-feed-option-name d-block">@feed.Name <span class="bgt-badge ms-1">@FeedTypeNames.GetDisplayName(feed.Type)</span></span>
                                                 @if (!string.IsNullOrWhiteSpace(feed.Description))
                                                 {
                                                     <span class="bgt-feed-option-desc d-block">@feed.Description</span>

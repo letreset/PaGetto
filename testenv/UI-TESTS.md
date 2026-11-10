@@ -30,7 +30,7 @@ For every page you open, the browser console should show no errors.
 
 | # | Account | Steps | Expected |
 |---|---|---|---|
-| N1 | `admin` | Open the feed switcher (the pill next to the logo) | Default, Internal, Experimental, Archive in that order, each with its description and a check on the current feed |
+| N1 | `admin` | Open the feed switcher (the pill next to the logo) | Default, Internal, Experimental, Archive in that order, each with its type badge (NuGet), its description and a check on the current feed |
 | N2 | `carol` | Look at the header links on Internal | Packages, Connect, Statistics, Docs. No Upload (no push permission), and no **Upload package** button on the package list |
 | N3 | `carol` | Look at the header links on Experimental | Packages, Connect, Upload, Statistics, Docs |
 | N4 | `carol` | Open `/Admin/Feeds` | Redirected to the package list |
@@ -192,8 +192,8 @@ These checks need the Dart feed of the data set, which the committed snapshot do
 
 | # | Account | Steps | Expected |
 |---|---|---|---|
-| D1 | `admin` | Admin > Feeds > **New feed**: slug `dart-test`, type **Dart**; open its **Settings**; delete it afterwards | The feed shows a **Dart** badge and its copy button copies `http://localhost:5000/feeds/dart-test` (no `/v3/index.json`). Settings have no Retention section, the mirror URL placeholder is `https://pub.dev` and there is no "Use NuGet V2" checkbox |
-| D2 | `alice` | Open Dart (`/feeds/dart/`) | 3 packages: contoso_core v2.0.0, contoso_http v1.0.0, contoso_widgets v1.0.0, each with its description and downloads. No Type, Framework, Tag or Prerelease filters. The header has no Upload link; **Publish a package** opens Connect. Searching `http` leaves contoso_http |
+| D1 | `admin` | Admin > Feeds > **New feed**: slug `dart-test`, type **Dart**; open its **Settings**; delete it afterwards | The feed shows a **Dart** badge and its copy button copies `http://localhost:5000/feeds/dart-test` (no `/v3/index.json`). Settings have no Retention section and no Deletion behavior setting, the mirror URL placeholder is `https://pub.dev` and there is no "Use NuGet V2" checkbox |
+| D2 | `alice` | Open Dart (`/feeds/dart/`), then open the feed switcher | "Dart feed" above the feed name (a NuGet feed says "NuGet feed"), and the switcher shows a **Dart** badge on this feed and **NuGet** on the others. 3 packages: contoso_core v2.0.0, contoso_http v1.0.0, contoso_widgets v1.0.0, each with its description and downloads. The search box says "Search packages…", and there are no Type, Framework, Tag or Prerelease filters. The header has no Upload link; **Publish a package** opens Connect. Searching `http` leaves contoso_http |
 | D3 | `carol` | Open contoso_http | Version 1.0.0 with a **latest** badge and an `sdk ^3.0.0` chip. Install tabs **pubspec.yaml**, **Dart** and **Flutter**, all naming `http://localhost:5000/feeds/dart`. **Dependencies** lists contoso_core `^2.0.0`, linking to its page. **Versions** lists 1.0.0, 0.9.0+2 and 0.9.0+1 with downloads and dates. **Download archive** downloads `contoso_http-1.0.0.tar.gz` |
 | D4 | `carol` | Open the version 0.9.0+1 from the Versions tab | The page shows 0.9.0+1, in the title, the URL (`0.9.0%2B1`) and the install tabs (`^0.9.0+1`), not 0.9.0 or 0.9.0+2 |
 | D5 | `carol` | Open contoso_core, then its version 1.0.0 | 1.0.0 is struck through with a **retracted** badge in the Versions tab; its page has the badge and a note. No Manage section and no **Restore** link (no delete permission) |

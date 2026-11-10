@@ -107,7 +107,7 @@ A mirror's credentials are only sent to the mirror itself, not to another host i
 
 ## In the web UI
 
-A Dart feed lists the packages stored in it, with search. A package's page shows its readme, dependencies, SDK constraints and versions, and the lines to add to `pubspec.yaml`. Packages that are only available from a mirror appear once a version has been downloaded.
+The feed menu in the header and the heading of the package list show each feed's type (NuGet or Dart), so visitors can tell what a feed is for. A Dart feed lists the packages stored in it, with search. A package's page shows its readme, dependencies, SDK constraints and versions, and the lines to add to `pubspec.yaml`. Packages that are only available from a mirror appear once a version has been downloaded.
 
 Users with the **delete** permission can **retract** a version (pub's word for unlisting: the version stays downloadable, but clients don't pick it for new installs), **restore** it, or delete it for good.
 
@@ -118,7 +118,7 @@ Raw HTML in a package's readme is shown as text.
 | | Dart feeds |
 |---|---|
 | Retention | Not available. Old versions are only removed by hand |
-| Deletion behavior | The setting applies to the NuGet API only. In the web UI, retracting and deleting are separate buttons |
+| Deletion behavior | Not available: the setting is about the NuGet delete API. In the web UI, retracting and deleting are separate buttons |
 | Upload from the browser | Not available. Publish with `dart pub publish` |
 | Symbols, Atom feed, search API | NuGet only |
 | Security advisories | Not served |
