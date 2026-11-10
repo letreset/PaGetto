@@ -1,0 +1,11 @@
+# contoso_core
+
+Shared primitives used by all Contoso Dart packages.
+
+## Getting started
+
+```shell
+dart pub add contoso_core
+```
+
+Maintained by the Contoso platform team.

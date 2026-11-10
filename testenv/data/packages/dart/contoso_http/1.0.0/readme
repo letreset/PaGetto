@@ -1,0 +1,11 @@
+# contoso_http
+
+HTTP client defaults for Contoso services.
+
+## Getting started
+
+```shell
+dart pub add contoso_http
+```
+
+Maintained by the Contoso platform team.

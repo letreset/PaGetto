@@ -50,13 +50,7 @@ These credentials exist only in the test data. Never use them for a real server.
 | Archive | Contoso.Legacy | Read-only |
 | Dart | A [Dart feed](../dart.md) with `contoso_core`, `contoso_http` (two versions that differ only in build metadata) and `contoso_widgets` (a prerelease). contoso_core 1.0.0 is retracted | A mirror of pub.dev (needs internet) |
 
-:::note
-
-The Dart feed is part of the data set from the next time the snapshot is regenerated with a PaGetto version that has Dart feeds. An older snapshot starts without it.
-
-:::
-
-Some versions have been downloaded a few times (Contoso.Core and Contoso.Logging the most), so download counts and the statistics page have data.
+Some versions have been downloaded a few times (Contoso.Core and Contoso.Logging the most), so download counts and the statistics page have data. The audit log starts with the events from building the data set (uploads, groups, permissions and feed settings by `admin`).
 
 | Group | Members | Permissions |
 |---|---|---|
