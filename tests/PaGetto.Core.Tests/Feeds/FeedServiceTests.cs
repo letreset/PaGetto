@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Storage;
@@ -183,6 +184,27 @@ public class FeedServiceTests
         }
 
         [Fact]
+        public async Task RemovesTheArtifactsOfAFeedAndTheirContent()
+        {
+            var feed = AddFeed("dart", "Dart");
+            var other = AddFeed("other", "Other");
+            feed.Type = FeedType.Pub;
+            other.Type = FeedType.Pub;
+            AddArtifact(feed.Id, "my_package", "1.0.0", "1.0.0+1");
+            AddArtifact(other.Id, "kept_package", "1.0.0");
+            await Context.SaveChangesAsync(Ct);
+
+            Assert.True(await Target.DeleteFeedAsync(feed.Id, Ct));
+
+            Assert.Equal("kept_package", (await Context.Artifacts.SingleAsync(Ct)).Name);
+            Assert.Equal(1, await Context.ArtifactVersions.CountAsync(Ct));
+
+            ArtifactStorage.Verify(s => s.DeleteAsync("dart", "my_package", "1.0.0", Ct), Times.Once);
+            ArtifactStorage.Verify(s => s.DeleteAsync("dart", "my_package", "1.0.0+1", Ct), Times.Once);
+            ArtifactStorage.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task ThrowsWhenDeletingDefaultFeed()
         {
             var feed = AddFeed(Feed.DefaultSlug, "Default");
@@ -197,6 +219,7 @@ public class FeedServiceTests
     {
         protected readonly TestDbContext Context;
         protected readonly Mock<IPackageStorageService> PackageStorage;
+        protected readonly Mock<IArtifactStorageService> ArtifactStorage;
         protected readonly FeedService Target;
         protected readonly CancellationToken Ct = CancellationToken.None;
 
@@ -204,7 +227,8 @@ public class FeedServiceTests
         {
             Context = TestDbContext.Create();
             PackageStorage = new Mock<IPackageStorageService>();
-            Target = new FeedService(Context, PackageStorage.Object, Mock.Of<ILogger<FeedService>>());
+            ArtifactStorage = new Mock<IArtifactStorageService>();
+            Target = new FeedService(Context, PackageStorage.Object, ArtifactStorage.Object, Mock.Of<ILogger<FeedService>>());
         }
 
         protected Feed AddFeed(string slug, string name, int sortOrder = 0)
@@ -239,6 +263,19 @@ public class FeedServiceTests
                 {
                     new() { Moniker = "net8.0" },
                 },
+            });
+        }
+
+        protected void AddArtifact(Guid feedId, string name, params string[] versions)
+        {
+            Context.Artifacts.Add(new Artifact
+            {
+                FeedId = feedId,
+                Name = name,
+                CreatedAtUtc = DateTime.UtcNow,
+                Versions = versions
+                    .Select(v => new ArtifactVersion { Version = v, NormalizedVersion = v, Listed = true, Published = DateTime.UtcNow })
+                    .ToList(),
             });
         }
 

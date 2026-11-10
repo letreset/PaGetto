@@ -28,6 +28,7 @@ using NuGet.Versioning;
 
 namespace PaGetto.Web.Pages;
 
+[FeedType(FeedType.NuGet)]
 public class PackageModel : PageModel
 {
     private static readonly MarkdownPipeline _markdownPipeline;

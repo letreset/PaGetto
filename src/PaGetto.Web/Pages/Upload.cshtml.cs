@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using PaGetto.Core;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
+using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Web.Audit;
@@ -26,6 +27,7 @@ namespace PaGetto.Web.Pages;
 /// same rules as <c>PUT api/v2/package</c> and <c>PUT api/v2/symbol</c> (read-only feed, push
 /// permission, feed size limit, duplicate versions) and write the same <c>AUDIT</c> events.
 /// </summary>
+[FeedType(FeedType.NuGet)]
 public partial class UploadModel : PageModel
 {
     private const long BytesPerMiB = 1024L * 1024;

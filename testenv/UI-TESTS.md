@@ -186,6 +186,25 @@ For every page you open, the browser console should show no errors.
 | R2 | `admin` | Look at the versions | Versions not stored in the feed carry a **mirror** label, no downloads, no `1900-01-01` dates and no Relist; upstream-unlisted versions aren't listed; opening a mirror-only version shows no Manage section |
 | R3 | `admin` | Download a mirror-only version, e.g. `curl -u admin:<password> -o NUL http://localhost:5000/v3/package/newtonsoft.json/12.0.1/newtonsoft.json.12.0.1.nupkg`, then reload the Newtonsoft.Json page | 12.0.1 loses the **mirror** label and keeps its publish date from nuget.org (in 2018), not today's |
 
+## Dart feeds
+
+These checks need the Dart feed of the data set, which the committed snapshot doesn't have yet (see [README.md](README.md#regenerating-the-snapshot)). Until the snapshot is regenerated, run them against an empty environment filled by the seed script: `TESTENV_EMPTY=1 docker compose -f testenv/docker-compose.yml up -d`, then `node testenv/seed/seed.mjs`, with an image that supports Dart feeds (`PAGETTO_TAG`).
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| D1 | `admin` | Admin > Feeds > **New feed**: slug `dart-test`, type **Dart**; open its **Settings**; delete it afterwards | The feed shows a **Dart** badge and its copy button copies `http://localhost:5000/feeds/dart-test` (no `/v3/index.json`). Settings have no Retention section, the mirror URL placeholder is `https://pub.dev` and there is no "Use NuGet V2" checkbox |
+| D2 | `alice` | Open Dart (`/feeds/dart/`) | 3 packages: contoso_core v2.0.0, contoso_http v1.0.0, contoso_widgets v1.0.0, each with its description and downloads. No Type, Framework, Tag or Prerelease filters. The header has no Upload link; **Publish a package** opens Connect. Searching `http` leaves contoso_http |
+| D3 | `carol` | Open contoso_http | Version 1.0.0 with a **latest** badge and an `sdk ^3.0.0` chip. Install tabs **pubspec.yaml**, **Dart** and **Flutter**, all naming `http://localhost:5000/feeds/dart`. **Dependencies** lists contoso_core `^2.0.0`, linking to its page. **Versions** lists 1.0.0, 0.9.0+2 and 0.9.0+1 with downloads and dates. **Download archive** downloads `contoso_http-1.0.0.tar.gz` |
+| D4 | `carol` | Open the version 0.9.0+1 from the Versions tab | The page shows 0.9.0+1, in the title, the URL (`0.9.0%2B1`) and the install tabs (`^0.9.0+1`), not 0.9.0 or 0.9.0+2 |
+| D5 | `carol` | Open contoso_core, then its version 1.0.0 | 1.0.0 is struck through with a **retracted** badge in the Versions tab; its page has the badge and a note. No Manage section and no **Restore** link (no delete permission) |
+| D6 | `alice` | contoso_core 1.0.0 > **Restore**; then on 1.1.0 **Retract 1.1.0**, **Restore** it, and finally **Delete 1.1.0** | Each step asks for confirmation where it changes data and shows the result; after the delete the page shows 2.0.0 and 1.1.0 is gone. The audit log has `package_relist_succeeded`, `package_unlist_succeeded` and `package_delete_succeeded` rows for feed `dart`, actor `alice`. Do `down -v` afterwards |
+| D7 | `carol` | Dart > **Connect** | Hosted URL `http://localhost:5000/feeds/dart` with a copy button, an "Authentication required" note that links to My Tokens, and the tabs **Sign in** (`dart pub token add …`), **Use a package**, **Publish** and **All packages** |
+| D8 | none | `curl -i http://localhost:5000/feeds/dart/api/packages/contoso_core`; the same with `-u carol:<password>`; then with `-u carol:<password>` for `/feeds/dart/v3/index.json` and `/feeds/internal/api/packages/contoso_core` | Without credentials: 401 with `WWW-Authenticate: Bearer realm="pub", message="…dart pub token add http://localhost:5000/feeds/dart"`. With them: 200 and JSON whose `latest.version` is `2.0.0` and whose version 1.0.0 has `"retracted":true`. The NuGet API on the Dart feed and the pub API on a NuGet feed: 404 |
+| D9 | none | `curl -i -u bob:<password> http://localhost:5000/feeds/dart/api/packages/versions/new` (pull only), then the same as `build-agent` | bob: 403 with `WWW-Authenticate: Bearer realm="pub", message="You do not have permission to publish packages to this feed."`. build-agent: 200 with the upload `url` |
+| D10 | `admin` | `curl -u admin:<password> http://localhost:5000/feeds/dart/api/packages/path` (needs internet), download the `archive_url` of its `latest` version the same way, then reload Dart | The JSON lists pub.dev's versions of `path`, with every `archive_url` on `localhost:5000`. After the download, `path` is in the package list and that version carries a **mirror** label on its page |
+| D11 | `admin` | Dart > **Statistics** | 3 packages ("1 unlisted version"), 8 versions ("7 stable · 1 prerelease") and 23 total downloads. **Most downloaded**: contoso_core (14), contoso_http (6), contoso_widgets (3), each linking to its package page |
+| D12 | `carol` | Open `/feeds/dart/packages/contoso_core`, `/feeds/dart/upload` and `/feeds/internal/artifacts/contoso_core` | 404 for all three: NuGet pages don't exist on a Dart feed, and the Dart package page doesn't exist on a NuGet feed |
+
 ## Small screens
 
 | # | Account | Steps | Expected |

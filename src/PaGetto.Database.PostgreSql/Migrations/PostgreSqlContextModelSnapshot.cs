@@ -17,11 +17,100 @@ namespace PaGetto.Database.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FeedId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("FeedId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Artifacts");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Key"));
+
+                    b.Property<int>("ArtifactKey")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CachedFrom")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ContentHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<long>("Downloads")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("HasReadme")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrerelease")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Listed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NormalizedVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("Published")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactKey", "NormalizedVersion")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactVersions");
+                });
 
             modelBuilder.Entity("PaGetto.Core.Entities.AuditEvent", b =>
                 {
@@ -123,6 +212,11 @@ namespace PaGetto.Database.PostgreSql.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Type")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
@@ -640,6 +734,28 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.ToTable("UserGroups");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
+                        .WithMany()
+                        .HasForeignKey("FeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Feed");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
+                        .WithMany("Versions")
+                        .HasForeignKey("ArtifactKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.FeedMirror", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
@@ -741,6 +857,11 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Feed", b =>

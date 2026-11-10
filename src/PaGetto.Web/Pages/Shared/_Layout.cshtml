@@ -55,6 +55,9 @@
     }
     var currentSlug = FeedContext.CurrentFeed?.Slug ?? Feed.DefaultSlug;
     var showStatistics = StatisticsOptions.Value.EnableStatisticsPage && canPull;
+
+    // Only NuGet feeds take uploads from the browser. Other feeds explain publishing on the Connect page.
+    var showUpload = canPush && FeedContext.CurrentFeed?.Type == FeedType.NuGet;
 }
 
 <!DOCTYPE html>
@@ -153,12 +156,12 @@
                 <nav class="bgt-nav" aria-label="Main">
                     @if (showContent)
                     {
-                        <a asp-area="" asp-page="/Index" class="@Active("/Index", "/Package")">Packages</a>
+                        <a asp-area="" asp-page="/Index" class="@Active("/Index", "/Package", "/Artifact")">Packages</a>
                         @if (canPull)
                         {
                             <a asp-area="" asp-page="/Connect" nav-link>Connect</a>
                         }
-                        @if (canPush)
+                        @if (showUpload)
                         {
                             <a asp-area="" asp-page="/Upload" nav-link>Upload</a>
                         }
@@ -223,12 +226,12 @@
                     <nav class="bgt-drawer-nav" aria-label="Main">
                         @if (showContent)
                         {
-                            <a asp-area="" asp-page="/Index" class="@Active("/Index", "/Package")">Packages</a>
+                            <a asp-area="" asp-page="/Index" class="@Active("/Index", "/Package", "/Artifact")">Packages</a>
                             @if (canPull)
                             {
                                 <a asp-area="" asp-page="/Connect" nav-link>Connect</a>
                             }
-                            @if (canPush)
+                            @if (showUpload)
                             {
                                 <a asp-area="" asp-page="/Upload" nav-link>Upload</a>
                             }

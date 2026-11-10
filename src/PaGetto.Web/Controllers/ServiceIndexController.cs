@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Protocol.Models;
 using Microsoft.AspNetCore.Mvc;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Controllers;
 
@@ -12,6 +13,7 @@ namespace PaGetto.Web.Controllers;
 /// This is an unauthenticated endpoint, as it is used by clients to discover the endpoint URLs for this server.
 /// </summary>
 
+[FeedType(FeedType.NuGet)]
 public class ServiceIndexController : Controller
 {
     private readonly IServiceIndexService _serviceIndex;

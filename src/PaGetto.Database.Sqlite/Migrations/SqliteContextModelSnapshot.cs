@@ -15,7 +15,92 @@ namespace PaGetto.Database.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FeedId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("FeedId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Artifacts");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ArtifactKey")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CachedFrom")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Downloads")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("HasReadme")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPrerelease")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Listed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Published")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactKey", "NormalizedVersion")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactVersions");
+                });
 
             modelBuilder.Entity("PaGetto.Core.Entities.AuditEvent", b =>
                 {
@@ -117,6 +202,11 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Type")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
@@ -624,6 +714,28 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.ToTable("UserGroups");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
+                        .WithMany()
+                        .HasForeignKey("FeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Feed");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
+                        .WithMany("Versions")
+                        .HasForeignKey("ArtifactKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.FeedMirror", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
@@ -725,6 +837,11 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Feed", b =>

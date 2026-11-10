@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 
@@ -18,6 +19,10 @@ public class FeedResponse
     public string Name { get; set; }
     public string Description { get; set; }
     public int SortOrder { get; set; }
+
+    /// <summary>The package ecosystem the feed serves: <c>"NuGet"</c> or <c>"Pub"</c>.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<FeedType>))]
+    public FeedType Type { get; set; }
 
     public PackageOverwriteAllowed? AllowPackageOverwrites { get; set; }
     public PackageDeletionBehavior? PackageDeletionBehavior { get; set; }
@@ -49,6 +54,7 @@ public class FeedResponse
         Name = feed.Name,
         Description = feed.Description,
         SortOrder = feed.SortOrder,
+        Type = feed.Type,
         AllowPackageOverwrites = feed.AllowPackageOverwrites,
         PackageDeletionBehavior = feed.PackageDeletionBehavior,
         IsReadOnlyMode = feed.IsReadOnlyMode,

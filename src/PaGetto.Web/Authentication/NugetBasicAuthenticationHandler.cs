@@ -9,8 +9,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Entities;
 using PaGetto.Web.Extensions;
 
 namespace PaGetto.Web.Authentication;
@@ -48,8 +50,23 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        Response.Headers.WWWAuthenticate = "Basic realm=\"NuGet Server\"";
+        // The pub client only reads a Bearer challenge, and shows its message to the user.
+        var isPubEndpoint = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type == FeedType.Pub;
+
+        Response.Headers.WWWAuthenticate = isPubEndpoint
+            ? PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}")
+            : "Basic realm=\"NuGet Server\"";
+
         await base.HandleChallengeAsync(properties);
+    }
+
+    /// <summary>
+    /// The <c>WWW-Authenticate</c> value the pub client expects with a 401 or 403 response.
+    /// </summary>
+    public static string PubBearerChallenge(string message)
+    {
+        // The message is a quoted string, so it can't contain quotes itself.
+        return $"Bearer realm=\"pub\", message=\"{message.Replace('"', '\'')}\"";
     }
 
     /// <summary>
@@ -113,6 +130,13 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
         try
         {
             var authHeader = AuthenticationHeaderValue.Parse(auth);
+
+            // A personal access token sent as a bearer token (dart pub token add).
+            if (string.Equals(authHeader.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+            {
+                return await HandleBearerTokenAsync(authHeader.Parameter);
+            }
+
             var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
             var credentials = Encoding.UTF8.GetString(credentialBytes).Split([':'], 2);
             username = credentials[0];
@@ -136,6 +160,19 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
         var ip = Context.Connection.RemoteIpAddress?.ToString();
         LogLoginSuccess(Logger, "LoginSuccess", result.Username, result.UserId, ip);
 
+        return await CreateUserAuthenticationResult(result.Username, result.UserId?.ToString());
+    }
+
+    private async Task<AuthenticateResult> HandleBearerTokenAsync(string token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return AuthenticateResult.Fail("Invalid Authorization Header");
+
+        var result = await _feedAuthService.AuthenticateByTokenAsync(token, Context.RequestAborted);
+        if (!result.IsAuthenticated)
+            return AuthenticateResult.Fail("Invalid token");
+
+        LogApiKeyLoginSuccess(Logger, "LoginSuccess", result.Username, result.UserId, Context.Connection.RemoteIpAddress);
         return await CreateUserAuthenticationResult(result.Username, result.UserId?.ToString());
     }
 

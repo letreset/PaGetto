@@ -13,6 +13,8 @@ public interface IContext
     DbSet<Package> Packages { get; set; }
     DbSet<PackageDependency> PackageDependencies { get; set; }
     DbSet<TargetFramework> TargetFrameworks { get; set; }
+    DbSet<Artifact> Artifacts { get; set; }
+    DbSet<ArtifactVersion> ArtifactVersions { get; set; }
     DbSet<User> Users { get; set; }
     DbSet<PersonalAccessToken> PersonalAccessTokens { get; set; }
     DbSet<Group> Groups { get; set; }

@@ -2,6 +2,7 @@
 @model PaGetto.Web.Pages.ConnectModel
 @using PaGetto.Core
 @using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
 @using Microsoft.Extensions.Options
 @inject IUrlGenerator URL
@@ -11,7 +12,6 @@
 @{
     ViewData["Title"] = "Connect · " + FeedContext.CurrentFeed.Name;
 
-    var serviceIndexUrl = URL.GetServiceIndexUrl();
     var feedSlug = FeedContext.CurrentFeed.Slug;
 
     var authMode = AuthOptions.Value.Mode;
@@ -31,6 +31,16 @@
         <a asp-page="/Login" class="btn btn-primary">Sign in</a>
     </div>
     return;
+}
+
+@if (FeedContext.CurrentFeed.Type == FeedType.Pub)
+{
+    <partial name="_ConnectPub" />
+    return;
+}
+
+@{
+    var serviceIndexUrl = URL.GetServiceIndexUrl();
 }
 
 <div class="bgt-narrow bgt-stack">

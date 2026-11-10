@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
@@ -14,6 +15,7 @@ using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Metadata;
 using PaGetto.Core.Notifications;
+using PaGetto.Core.Pub;
 using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
@@ -135,6 +137,11 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<ISymbolIndexingService, SymbolIndexingService>();
         services.TryAddTransient<ISymbolStorageService, SymbolStorageService>();
         services.TryAddTransient<IStatisticsService, StatisticsService>();
+
+        services.TryAddTransient<IArtifactDatabase, ArtifactDatabase>();
+        services.TryAddTransient<IArtifactStorageService, ArtifactStorageService>();
+        services.TryAddTransient<IPubPackageService, PubPackageService>();
+        services.TryAddTransient<PubUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

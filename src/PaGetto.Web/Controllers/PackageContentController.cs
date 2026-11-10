@@ -9,6 +9,7 @@ using PaGetto.Protocol.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NuGet.Versioning;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Controllers;
 
@@ -18,6 +19,7 @@ namespace PaGetto.Web.Controllers;
 /// </summary>
 
 [Authorize(AuthenticationSchemes = AuthenticationConstants.NugetBasicAuthenticationScheme, Policy = AuthenticationConstants.NugetUserPolicy)]
+[FeedType(FeedType.NuGet)]
 public class PackageContentController : Controller
 {
     private readonly IPackageContentService _content;

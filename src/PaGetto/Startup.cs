@@ -192,6 +192,7 @@ public class Startup
         app.UseMiddleware<MustChangePasswordMiddleware>();
         app.UseRouting();
         app.UseAuthorization();
+        app.UseMiddleware<FeedTypeMiddleware>();
 
         app.UseCors(ConfigurePaGettoServer.CorsPolicy);
 

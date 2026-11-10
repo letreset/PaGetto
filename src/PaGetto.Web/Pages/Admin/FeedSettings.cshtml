@@ -1,6 +1,8 @@
 @page "/Admin/Feeds/{slug}/Settings"
 @model PaGetto.Web.Pages.Admin.FeedSettingsModel
 @using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
+@using PaGetto.Web.Helper
 @using PaGetto.Web.Pages.Admin
 
 @{
@@ -11,6 +13,7 @@
         var prefix = $"Mirrors[{index}]";
         var idPrefix = $"Mirrors_{index}__";
         var authType = mirror.AuthType?.ToString() ?? string.Empty;
+        var isNuGetFeed = Model.Feed?.Type == FeedType.NuGet;
         <div class="bgt-mirror mirror-row">
             <div class="bgt-mirror-head">
                 <span class="bgt-mirror-title mirror-title">Mirror</span>
@@ -27,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="https://api.nuget.org/v3/index.json" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(isNuGetFeed ? "https://api.nuget.org/v3/index.json" : "https://pub.dev")" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -75,10 +78,13 @@
                     <label for="@(idPrefix)AuthCustomHeaders" class="form-label">Custom headers (JSON)</label>
                     <textarea id="@(idPrefix)AuthCustomHeaders" name="@(prefix).AuthCustomHeaders" class="form-control mono" rows="3" placeholder='{"X-Header": "value"}'>@mirror.AuthCustomHeaders</textarea>
                 </div>
-                <label class="form-check">
-                    <input type="checkbox" class="form-check-input" name="@(prefix).Legacy" value="true" checked="@mirror.Legacy" />
-                    <span class="form-check-label">Use NuGet V2 (legacy) protocol</span>
-                </label>
+                @if (isNuGetFeed)
+                {
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" name="@(prefix).Legacy" value="true" checked="@mirror.Legacy" />
+                        <span class="form-check-label">Use NuGet V2 (legacy) protocol</span>
+                    </label>
+                }
             </div>
         </div>
     }
@@ -111,6 +117,9 @@
     };
     var deletionLabel = global.PackageDeletionBehavior == PackageDeletionBehavior.HardDelete ? "Hard delete" : "Unlist";
 
+    // Retention and the NuGet V2 protocol only exist for NuGet feeds.
+    var isNuGet = Model.Feed?.Type == FeedType.NuGet;
+
     // A post that comes back without "saved" was refused, and the form holds the values it didn't save.
     var hasUnsavedInput = Microsoft.AspNetCore.Http.HttpMethods.IsPost(ViewContext.HttpContext.Request.Method) && string.IsNullOrEmpty(Model.SuccessMessage);
 }
@@ -121,6 +130,10 @@
 <div class="bgt-page-head-title" style="margin-bottom: 22px">
     <h1>Feed settings</h1>
     <span class="bgt-slug bgt-slug-lg">@Model.Feed?.Slug</span>
+    @if (Model.Feed != null)
+    {
+        <span class="bgt-badge">@FeedTypeNames.GetDisplayName(Model.Feed.Type)</span>
+    }
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -136,7 +149,10 @@
     <nav class="bgt-settings-nav" aria-label="Sections">
         <a href="#general">General</a>
         <a href="#package-behavior">Package behavior</a>
-        <a href="#retention">Retention</a>
+        @if (isNuGet)
+        {
+            <a href="#retention">Retention</a>
+        }
         <a href="#mirrors">Mirrors</a>
     </nav>
 
@@ -226,6 +242,8 @@
             </div>
         </section>
 
+        @if (isNuGet)
+        {
         <section id="retention" class="bgt-card bgt-card-clip">
             <div class="bgt-section-head">
                 <div>
@@ -281,16 +299,27 @@
                 </div>
             </div>
         </section>
+        }
 
         <section id="mirrors" class="bgt-card bgt-card-clip">
             <div class="bgt-section-head">
                 <div style="flex: 1; min-width: 0">
                     <h2>Mirrors</h2>
-                    <p>
-                        Upstream package sources, queried in order. Version lists from every mirror are merged
-                        (an earlier mirror wins for the same version), and a package is downloaded from the first
-                        mirror that has it.
-                    </p>
+                    @if (isNuGet)
+                    {
+                        <p>
+                            Upstream package sources, queried in order. Version lists from every mirror are merged
+                            (an earlier mirror wins for the same version), and a package is downloaded from the first
+                            mirror that has it.
+                        </p>
+                    }
+                    else
+                    {
+                        <p>
+                            Upstream pub servers such as https://pub.dev, queried in order. The first mirror that has a
+                            package serves all of its versions. Versions published to this feed come first.
+                        </p>
+                    }
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" id="mirror-add"><icon name="plus" size="13" />Add mirror</button>
             </div>

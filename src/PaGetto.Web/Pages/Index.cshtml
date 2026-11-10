@@ -2,10 +2,12 @@
 @using System.Globalization
 @using PaGetto.Core.Authentication
 @using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
 @using PaGetto.Protocol.Models
 @using PaGetto.Web.Authentication
 @using PaGetto.Web.Extensions
+@using PaGetto.Web.Helper
 @using Microsoft.Extensions.Options
 @model IndexModel
 @inject IOptions<NugetAuthenticationOptions> AuthOptions
@@ -52,9 +54,14 @@
         <div class="bgt-eyebrow">Feed</div>
         <h1>@feedName <span class="bgt-count">@Model.TotalHits.ToString("N0", CultureInfo.InvariantCulture) @(Model.TotalHits == 1 ? "package" : "packages")</span></h1>
     </div>
-    @if (canPush)
+    @if (canPush && Model.Artifacts == null)
     {
         <a asp-page="/Upload" class="btn btn-primary"><icon name="arrow-up" size="15" />Upload package</a>
+    }
+    else if (canPush)
+    {
+        @* Packages of other feed types are published with their own client, which the Connect page explains. *@
+        <a asp-page="/Connect" class="btn btn-primary"><icon name="arrow-up" size="15" />Publish a package</a>
     }
 </div>
 
@@ -84,6 +91,13 @@
         <input type="hidden" name="prerelease" value="False" />
     }
 </form>
+
+@if (Model.Artifacts != null)
+{
+    // Feeds of other types have no NuGet package types, frameworks or tags to filter by.
+    await ArtifactList(canPush);
+    return;
+}
 
 <div class="bgt-filters">
     <div class="dropdown">
@@ -271,47 +285,7 @@ else
         }
     </div>
 
-    if (Model.TotalPages > 1)
-    {
-        var onFirstPage = Model.PageIndex <= 1;
-        var onLastPage = Model.PageIndex >= Model.TotalPages;
-
-        <nav class="bgt-pager" aria-label="Search page navigation">
-            @if (onFirstPage)
-            {
-                <span class="disabled" aria-disabled="true">&larr; Prev</span>
-            }
-            else
-            {
-                <a href="@SearchLink(page: Model.PageIndex - 1)" rel="prev">&larr; Prev</a>
-            }
-
-            @foreach (var pageNumber in PageWindow(Model.PageIndex, Model.TotalPages))
-            {
-                if (pageNumber == 0)
-                {
-                    <span class="gap">&hellip;</span>
-                }
-                else if (pageNumber == Model.PageIndex)
-                {
-                    <span class="num current" aria-current="page">@pageNumber</span>
-                }
-                else
-                {
-                    <a class="num" href="@SearchLink(page: pageNumber)">@pageNumber</a>
-                }
-            }
-
-            @if (onLastPage)
-            {
-                <span class="disabled" aria-disabled="true">Next &rarr;</span>
-            }
-            else
-            {
-                <a href="@SearchLink(page: Model.PageIndex + 1)" rel="next">Next &rarr;</a>
-            }
-        </nav>
-    }
+    Pager();
 }
 
 @functions {
@@ -363,6 +337,163 @@ else
                 <img src="@package.IconUrl" alt="" loading="lazy" onerror="this.remove()" />
             }
         </div>
+    }
+
+    // The list and grid of a feed whose packages are artifacts (every feed type but NuGet).
+    private async Task ArtifactList(bool canPush)
+    {
+        var feed = FeedContext.CurrentFeed;
+        var feedUrl = Url.PageLink("/Index").TrimEnd('/');
+
+        if (Model.Artifacts.Count > 0)
+        {
+            <div class="bgt-filters">
+                <div class="bgt-grow"></div>
+                <div class="bgt-segmented" role="group" aria-label="View">
+                    <button type="button" class="bgt-view-list-btn" data-view="list" title="List view" aria-label="List view"><icon name="list" size="15" /></button>
+                    <button type="button" class="bgt-view-grid-btn" data-view="grid" title="Grid view" aria-label="Grid view"><icon name="grid" size="15" /></button>
+                </div>
+            </div>
+        }
+
+        if (Model.Artifacts.Count == 0 && Model.PageIndex > 1)
+        {
+            <div class="bgt-empty">
+                <h2>No packages found</h2>
+                <p>Page @Model.PageIndex is past the last page of this list.</p>
+                <div class="bgt-empty-actions">
+                    <a href="@SearchLink(page: 1)" class="btn btn-secondary">Go to the first page</a>
+                </div>
+            </div>
+        }
+        else if (Model.Artifacts.Count == 0 && !string.IsNullOrEmpty(Model.Query))
+        {
+            <div class="bgt-empty">
+                <p>No packages match “@Model.Query”.</p>
+            </div>
+        }
+        else if (Model.Artifacts.Count == 0)
+        {
+            <div class="bgt-empty">
+                <h2>Nothing in @feed.Name yet</h2>
+                <p>This @FeedTypeNames.GetDisplayName(feed.Type) feed has no packages. Publish one, or connect a client and fetch packages through the mirror.</p>
+                <div class="bgt-empty-actions">
+                    <a asp-page="/Connect" class="btn @(canPush ? "btn-primary" : "btn-secondary")">Connect a client</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="bgt-card bgt-card-clip bgt-pkg-list">
+                @foreach (var artifact in Model.Artifacts)
+                {
+                    <div class="bgt-pkg-row">
+                        <div class="bgt-tile" style="--h: @artifact.Name.ToHue()" aria-hidden="true">@artifact.Name.ToPackageInitials()</div>
+                        <div class="bgt-pkg-main">
+                            <div class="bgt-pkg-title">
+                                <a asp-page="Artifact" asp-route-id="@artifact.Name" asp-route-version="@artifact.Version"
+                                   class="bgt-pkg-name bgt-stretched @(artifact.Listed ? null : "bgt-unlisted")">@artifact.Name</a>
+                                <span class="bgt-version">v@(artifact.Version)</span>
+                                @if (!artifact.Listed)
+                                {
+                                    <span class="bgt-badge" title="This version is retracted">retracted</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(artifact.Description))
+                            {
+                                <p class="bgt-pkg-desc">@artifact.Description</p>
+                            }
+                            <div class="bgt-pkg-meta">
+                                <span><icon name="arrow-down" size="13" />@DownloadsLabel(artifact.TotalDownloads)</span>
+                            </div>
+                        </div>
+                        <button type="button" class="bgt-install-btn bgt-above bgt-desktop-only" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, artifact)">
+                            <icon name="copy" size="13" /><span class="bgt-copy-label">Install</span>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="bgt-pkg-grid">
+                @foreach (var artifact in Model.Artifacts)
+                {
+                    <div class="bgt-pkg-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bgt-tile" style="--h: @artifact.Name.ToHue()" aria-hidden="true">@artifact.Name.ToPackageInitials()</div>
+                            <div class="min-w-0" style="min-width: 0">
+                                <a asp-page="Artifact" asp-route-id="@artifact.Name" asp-route-version="@artifact.Version"
+                                   class="bgt-pkg-name bgt-stretched @(artifact.Listed ? null : "bgt-unlisted")">@artifact.Name</a>
+                                <div class="bgt-pkg-sub"><span class="mono">v@(artifact.Version)</span> · @DownloadsLabel(artifact.TotalDownloads)</div>
+                            </div>
+                        </div>
+                        <p class="bgt-pkg-desc">@artifact.Description</p>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="flex-grow-1"></span>
+                            <button type="button" class="bgt-install-btn bgt-above" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, artifact)">
+                                <icon name="copy" size="12" /><span class="bgt-copy-label">Install</span>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            Pager();
+        }
+    }
+
+    // The command copied by the Install button of an artifact, matching the first tab of its page.
+    private static string ArtifactInstallCommand(FeedType feedType, string feedUrl, IndexModel.ArtifactListItem artifact)
+    {
+        return feedType switch
+        {
+            FeedType.Pub => $"dart pub add {artifact.Name}:^{artifact.Version} --hosted-url {feedUrl}",
+            _ => artifact.Name,
+        };
+    }
+
+    // The page links under a list of packages.
+    private void Pager()
+    {
+        if (Model.TotalPages <= 1) return;
+
+        var onFirstPage = Model.PageIndex <= 1;
+        var onLastPage = Model.PageIndex >= Model.TotalPages;
+
+        <nav class="bgt-pager" aria-label="Search page navigation">
+            @if (onFirstPage)
+            {
+                <span class="disabled" aria-disabled="true">&larr; Prev</span>
+            }
+            else
+            {
+                <a href="@SearchLink(page: Model.PageIndex - 1)" rel="prev">&larr; Prev</a>
+            }
+
+            @foreach (var pageNumber in PageWindow(Model.PageIndex, Model.TotalPages))
+            {
+                if (pageNumber == 0)
+                {
+                    <span class="gap">&hellip;</span>
+                }
+                else if (pageNumber == Model.PageIndex)
+                {
+                    <span class="num current" aria-current="page">@pageNumber</span>
+                }
+                else
+                {
+                    <a class="num" href="@SearchLink(page: pageNumber)">@pageNumber</a>
+                }
+            }
+
+            @if (onLastPage)
+            {
+                <span class="disabled" aria-disabled="true">Next &rarr;</span>
+            }
+            else
+            {
+                <a href="@SearchLink(page: Model.PageIndex + 1)" rel="next">Next &rarr;</a>
+            }
+        </nav>
     }
 
     // Page numbers to render: always the first and last page, plus the pages around the current one.

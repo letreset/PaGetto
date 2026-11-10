@@ -1,0 +1,411 @@
+@page "/artifacts/{id}/{version?}"
+@using System.Globalization
+@using Humanizer
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@using PaGetto.Web.Helper
+@model ArtifactModel
+@inject IOptions<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    ViewData["Title"] = Model.Found ? Model.Name + " " + Model.Version.Version : Model.Name;
+    var requiresAuth = AuthOptions.Value.Mode != AuthenticationMode.Legacy;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+@if (requiresAuth && !isAuthenticated)
+{
+    // Generic on purpose: anonymous visitors must not learn feed or package names.
+    ViewData["Title"] = "Sign in required";
+    <div class="bgt-message">
+        <h2>Sign in required</h2>
+        <p>You need to sign in to view package details.</p>
+        <a asp-page="/Login" class="btn btn-primary">Sign in</a>
+    </div>
+    return;
+}
+
+@if (Model.VersionNotFound != null)
+{
+    <div class="bgt-message">
+        <h2>Version not found</h2>
+        <p>Package '@Model.Name' has no version '@Model.VersionNotFound' in this feed.</p>
+        <a asp-page="Artifact" asp-route-id="@Model.Name" asp-route-version="" class="btn btn-secondary">Show the latest version</a>
+    </div>
+    return;
+}
+
+@if (!Model.Found)
+{
+    <div class="bgt-message">
+        <h2>Oops, package not found...</h2>
+        <p>Could not find package '@Model.Name' in this feed.</p>
+        <p>Packages that are only available from a mirror are listed here after their first download.</p>
+    </div>
+    return;
+}
+
+@{
+    var feed = FeedContext.CurrentFeed;
+    var name = Model.Name;
+    var current = Model.Version;
+    var version = current.Version;
+    var feedUrl = Url.PageLink("/Index").TrimEnd('/');
+    var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
+    var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
+
+    // Dart calls an unlisted version "retracted".
+    var isPub = feed.Type == FeedType.Pub;
+    var unlistedLabel = isPub ? "retracted" : "unlisted";
+    var unlistVerb = isPub ? "Retract" : "Unlist";
+    var relistVerb = isPub ? "Restore" : "Relist";
+
+    var downloadUrl = isPub ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version }) : null;
+
+    var installTabs = new List<InstallTab>();
+    if (isPub)
+    {
+        installTabs.Add(new InstallTab
+        {
+            Name = "pubspec.yaml",
+            Content = ["dependencies:", $"  {name}:", $"    hosted: {feedUrl}", $"    version: ^{version}"],
+        });
+        installTabs.Add(new InstallTab { Name = "Dart", Content = [$"dart pub add {name}:^{version} --hosted-url {feedUrl}"] });
+        installTabs.Add(new InstallTab { Name = "Flutter", Content = [$"flutter pub add {name}:^{version} --hosted-url {feedUrl}"] });
+    }
+}
+
+<nav class="bgt-breadcrumb" aria-label="Breadcrumb">
+    <a asp-page="/Index">@feed.Name</a><span aria-hidden="true">/</span><span class="current">@name</span>
+</nav>
+
+<div class="bgt-detail">
+    <div class="bgt-detail-main">
+        <div class="bgt-detail-head">
+            <div class="bgt-tile bgt-tile-lg" style="--h: @name.ToHue()" aria-hidden="true">@name.ToPackageInitials()</div>
+            <div style="min-width: 0">
+                <div class="bgt-detail-title">
+                    <h1>@name</h1>
+                    <span class="bgt-detail-version">
+                        @version
+                        @if (Model.IsLatest)
+                        {
+                            <span class="bgt-badge bgt-badge-ok">latest</span>
+                        }
+                        @if (!current.Listed)
+                        {
+                            <span class="bgt-badge bgt-badge-warn">@unlistedLabel</span>
+                        }
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(current.Description))
+                {
+                    <p class="bgt-detail-desc">@current.Description</p>
+                }
+
+                @if (Model.Pubspec?.Environment.Count > 0)
+                {
+                    <div class="bgt-chips">
+                        @foreach (var constraint in Model.Pubspec.Environment)
+                        {
+                            <span class="bgt-fw" title="The @constraint.Key versions this package supports.">@constraint.Key @constraint.Value</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (current.IsPrerelease || !current.Listed)
+        {
+            <ul class="bgt-notes">
+                @if (current.IsPrerelease)
+                {
+                    <li><icon name="info" size="15" />This is a prerelease version of @name.</li>
+                }
+                @if (!current.Listed)
+                {
+                    <li><icon name="info" size="15" />This version is @unlistedLabel. Clients don't select it for new installs.</li>
+                }
+            </ul>
+        }
+
+        <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: installTabs, active: installTabs[0] }">
+            <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Install command">
+                <template x-for="tab in tabs" :key="tab.name">
+                    <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: tab.name === active.name }"
+                            x-bind:aria-selected="tab.name === active.name" x-text="tab.name" @@click="active = tab"></button>
+                </template>
+            </div>
+            <div class="bgt-cmd">
+                <code x-text="active.content.join('\n')"></code>
+                <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                    <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="bgt-card bgt-card-clip" x-data="{ tab: 'readme' }">
+            <div class="bgt-tabs" role="tablist" aria-label="Package details">
+                @{ await TabButton("readme", "Readme", null); }
+                @if (Model.Pubspec != null)
+                {
+                    await TabButton("dependencies", "Dependencies", Model.Pubspec.Dependencies.Count);
+                }
+                @{ await TabButton("versions", "Versions", Model.Versions.Count); }
+            </div>
+
+            <div class="bgt-tab-body" x-show="tab === 'readme'" role="tabpanel">
+                @if (Model.Readme == null)
+                {
+                    <div class="bgt-markdown bgt-plain">@current.Description</div>
+                }
+                else
+                {
+                    <div class="bgt-markdown">@Model.Readme</div>
+                }
+            </div>
+
+            @if (Model.Pubspec != null)
+            {
+                <div class="bgt-tab-body" x-show="tab === 'dependencies'" x-cloak role="tabpanel">
+                    @if (Model.Pubspec.Dependencies.Count == 0)
+                    {
+                        <p class="text-muted mb-0">This package has no dependencies.</p>
+                    }
+                    else
+                    {
+                        <div class="bgt-dep-group">
+                            @foreach (var dependency in Model.Pubspec.Dependencies)
+                            {
+                                <div class="bgt-dep">
+                                    <a asp-page="Artifact" asp-route-id="@dependency.Key" asp-route-version="@null">@dependency.Key</a>
+                                    <span class="bgt-dep-range">@dependency.Value</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @* The inner x-data is a separate Alpine component, so the tab condition stays on the outer element. *@
+            <div x-show="tab === 'versions'" x-cloak role="tabpanel">
+            <div class="bgt-tab-body" x-data="{ showAll: false, includePrerelease: true }">
+                <div class="bgt-table-wrap">
+                    <table class="bgt-table">
+                        <thead>
+                            <tr>
+                                <th>Version</th>
+                                <th>Downloads</th>
+                                <th>Published</th>
+                                <th><span class="visually-hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.Versions.Count; i++)
+                            {
+                                var row = Model.Versions[i];
+                                var selected = row == current;
+                                var alwaysShow = Json.Serialize(i < DefaultVisibleVersions);
+                                var isPrerelease = Json.Serialize(row.IsPrerelease);
+                                var percent = (int)Math.Round(row.Downloads * 100.0 / maxDownloads);
+
+                                <tr class="@(selected ? "current" : null)" x-show="(includePrerelease || !@isPrerelease) && (showAll || !includePrerelease || @alwaysShow)">
+                                    <td class="bgt-ver">
+                                        <a asp-page="Artifact" asp-route-version="@row.Version" class="@(row.Listed ? null : "bgt-unlisted")">@row.Version</a>
+                                        @if (selected)
+                                        {
+                                            <span class="bgt-badge bgt-badge-ok ms-2">current</span>
+                                        }
+                                        @if (!row.Listed)
+                                        {
+                                            <span class="bgt-badge ms-2">@unlistedLabel</span>
+                                            @if (Model.CanManage)
+                                            {
+                                                <form method="post" asp-page-handler="Relist"
+                                                      asp-route-id="@name"
+                                                      asp-route-version="@row.Version"
+                                                      class="d-inline ms-2">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-link-plain" style="font-size: 13px" title="@relistVerb this version">@relistVerb</button>
+                                                </form>
+                                            }
+                                        }
+                                        @if (!string.IsNullOrEmpty(row.CachedFrom))
+                                        {
+                                            <span class="bgt-badge ms-2" title="Downloaded from the mirror @row.CachedFrom">mirror</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="bgt-bar-cell">
+                                            <div class="bgt-bar" aria-hidden="true"><div style="width: @(percent)%"></div></div>
+                                            @row.Downloads.ToString("N0", CultureInfo.InvariantCulture)
+                                        </div>
+                                    </td>
+                                    <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
+                                    <td class="text-end">
+                                        @if (isPub)
+                                        {
+                                            <a href="@Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = row.Version })" class="text-muted" style="font-size: 13px">Download</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (hasPrerelease || Model.Versions.Count > DefaultVisibleVersions)
+                {
+                    <div class="bgt-table-tools">
+                        @if (hasPrerelease)
+                        {
+                            <label class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" role="switch" x-model="includePrerelease" />
+                                <span class="form-check-label" style="font-size: 13px">Include prerelease</span>
+                            </label>
+                        }
+                        else
+                        {
+                            <span></span>
+                        }
+                        @if (Model.Versions.Count > DefaultVisibleVersions)
+                        {
+                            @* Hiding prereleases lifts the row cap, so the toggle is only needed with them shown. *@
+                            <button type="button" class="btn-link-plain" style="font-size: 13px" x-show="includePrerelease" @@click="showAll = !showAll"
+                                    x-text="showAll ? 'Show fewer versions' : 'Show all @Model.Versions.Count versions'">Show all versions</button>
+                        }
+                    </div>
+                }
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="bgt-detail-aside">
+        <div class="bgt-card bgt-stats3">
+            <div>
+                <div class="value">@Model.TotalDownloads.ToString("N0", CultureInfo.InvariantCulture)</div>
+                <div class="label">Total</div>
+            </div>
+            <div>
+                <div class="value">@current.Downloads.ToString("N0", CultureInfo.InvariantCulture)</div>
+                <div class="label">This version</div>
+            </div>
+            <div>
+                <div class="value">@Model.Versions.Count.ToString("N0", CultureInfo.InvariantCulture)</div>
+                <div class="label">Versions</div>
+            </div>
+        </div>
+
+        <div class="bgt-card bgt-side-card">
+            <div class="bgt-card-label">About</div>
+            <div class="bgt-kv">
+                <div><span>Type</span><span>@FeedTypeNames.GetDisplayName(feed.Type)</span></div>
+                <div><span>Updated</span><span>@Html.DisplayDate(Model.LastUpdated, Model.LastUpdated.Humanize(culture: CultureInfo.InvariantCulture))</span></div>
+                <div><span>Size</span><span>@current.Size.ToFileSize()</span></div>
+                @if (!string.IsNullOrEmpty(current.ContentHash))
+                {
+                    <div><span>SHA-256</span><span class="mono" title="@current.ContentHash">@current.ContentHash[..12]&hellip;</span></div>
+                }
+            </div>
+            @if (Model.Pubspec?.Links.Count > 0)
+            {
+                <div class="bgt-side-links">
+                    @foreach (var link in Model.Pubspec.Links)
+                    {
+                        <a href="@link.Value" rel="noopener noreferrer">@LinkLabel(link.Key) &#x2197;</a>
+                    }
+                </div>
+            }
+            @if (downloadUrl != null)
+            {
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download archive</a>
+            }
+        </div>
+
+        @if (Model.Pubspec?.Topics.Count > 0)
+        {
+            <div class="bgt-card bgt-side-card">
+                <div class="bgt-card-label">Topics</div>
+                <div class="bgt-chips">
+                    @foreach (var topic in Model.Pubspec.Topics)
+                    {
+                        <span class="bgt-chip bgt-chip-lg">@topic</span>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (Model.CanManage)
+        {
+            <div class="bgt-danger-zone">
+                <div class="bgt-card-label mb-1">Manage</div>
+                <p>@(unlistVerb)ing keeps the file, but clients no longer select this version for new installs. Deleting permanently removes this version and its files.</p>
+                <div class="bgt-actions">
+                    @if (current.Listed)
+                    {
+                        <form method="post" asp-page-handler="Unlist"
+                              asp-route-id="@name"
+                              asp-route-version="@version"
+                              data-confirm="@($"{unlistVerb} {name} {version}? You can undo this later.")">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-secondary btn-sm">@unlistVerb @version</button>
+                        </form>
+                    }
+                    <form method="post" asp-page-handler="Delete"
+                          asp-route-id="@name"
+                          asp-route-version="@version"
+                          data-confirm="@($"Permanently delete {name} {version}? This removes the package and its files and cannot be undone.")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete @version</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </aside>
+</div>
+
+@* Serialized as JSON, so characters such as the '+' of a version reach the script unchanged. *@
+<script type="text/javascript">
+    let installTabs = @Json.Serialize(installTabs);
+</script>
+
+@functions {
+
+    private const int DefaultVisibleVersions = 5;
+
+    // One tab of the install command card.
+    private sealed class InstallTab
+    {
+        public string Name { get; init; }
+        public string[] Content { get; init; }
+    }
+
+    private async Task TabButton(string key, string label, int? count)
+    {
+        <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: tab === '@key' }" x-bind:aria-selected="tab === '@key'" @@click="tab = '@key'">
+            @label
+            @if (count.HasValue)
+            {
+                <span class="bgt-tab-count">@count.Value.ToString(CultureInfo.InvariantCulture)</span>
+            }
+        </button>
+    }
+
+    private static string LinkLabel(string pubspecField)
+    {
+        return pubspecField switch
+        {
+            "homepage" => "Homepage",
+            "repository" => "Source repository",
+            "issue_tracker" => "Issue tracker",
+            "documentation" => "Documentation",
+            _ => pubspecField,
+        };
+    }
+}

@@ -15,6 +15,11 @@ public class Feed
     public string Description { get; set; }
     public int SortOrder { get; set; }
 
+    /// <summary>
+    /// The package ecosystem the feed serves. Set when the feed is created and never changed.
+    /// </summary>
+    public FeedType Type { get; set; }
+
     // Per-feed overrides — null means "use global default"
     public PackageOverwriteAllowed? AllowPackageOverwrites { get; set; }
     public PackageDeletionBehavior? PackageDeletionBehavior { get; set; }

@@ -26,6 +26,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
 
     public const int MaxPackageDependencyVersionRangeLength = 256;
 
+    public const int MaxArtifactVersionLength = 128;
+    public const int MaxContentHashLength = 128;
+
     public const int MaxUsernameLength = 256;
     public const int MaxDisplayNameLength = 256;
     public const int MaxEntraObjectIdLength = 128;
@@ -60,6 +63,8 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<PackageDependency> PackageDependencies { get; set; }
     public DbSet<PackageType> PackageTypes { get; set; }
     public DbSet<TargetFramework> TargetFrameworks { get; set; }
+    public DbSet<Artifact> Artifacts { get; set; }
+    public DbSet<ArtifactVersion> ArtifactVersions { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<PersonalAccessToken> PersonalAccessTokens { get; set; }
     public DbSet<Group> Groups { get; set; }
@@ -148,6 +153,8 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<PackageDependency>(BuildPackageDependencyEntity);
         builder.Entity<PackageType>(BuildPackageTypeEntity);
         builder.Entity<TargetFramework>(BuildTargetFrameworkEntity);
+        builder.Entity<Artifact>(BuildArtifactEntity);
+        builder.Entity<ArtifactVersion>(BuildArtifactVersionEntity);
         builder.Entity<User>(BuildUserEntity);
         builder.Entity<PersonalAccessToken>(BuildPersonalAccessTokenEntity);
         builder.Entity<Group>(BuildGroupEntity);
@@ -173,6 +180,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
             .HasMaxLength(DefaultMaxStringLength);
 
         feed.Property(f => f.SortOrder).IsRequired().HasDefaultValue(0);
+        feed.Property(f => f.Type).IsRequired().HasDefaultValue(FeedType.NuGet);
 
         feed.Property(f => f.CreatedAtUtc).IsRequired();
         feed.Property(f => f.UpdatedAtUtc).IsRequired();
@@ -185,6 +193,11 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         feed.HasMany(f => f.Mirrors)
             .WithOne(m => m.Feed)
             .HasForeignKey(m => m.FeedId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        feed.HasMany<Artifact>()
+            .WithOne(a => a.Feed)
+            .HasForeignKey(a => a.FeedId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 
@@ -278,6 +291,41 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
             .IsRequired();
 
         package.Property(p => p.RowVersion).IsRowVersion();
+    }
+
+    private void BuildArtifactEntity(EntityTypeBuilder<Artifact> artifact)
+    {
+        artifact.HasKey(a => a.Key);
+        artifact.HasIndex(a => new { a.FeedId, a.Name }).IsUnique();
+
+        artifact.Property(a => a.Name)
+            .HasMaxLength(MaxPackageIdLength)
+            .IsRequired();
+
+        artifact.Property(a => a.CreatedAtUtc).IsRequired();
+
+        artifact.HasMany(a => a.Versions)
+            .WithOne(v => v.Artifact)
+            .HasForeignKey(v => v.ArtifactKey)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void BuildArtifactVersionEntity(EntityTypeBuilder<ArtifactVersion> version)
+    {
+        version.HasKey(v => v.Key);
+        version.HasIndex(v => new { v.ArtifactKey, v.NormalizedVersion }).IsUnique();
+
+        version.Property(v => v.Version)
+            .HasMaxLength(MaxArtifactVersionLength)
+            .IsRequired();
+
+        version.Property(v => v.NormalizedVersion)
+            .HasMaxLength(MaxArtifactVersionLength)
+            .IsRequired();
+
+        version.Property(v => v.Description).HasMaxLength(DefaultMaxStringLength);
+        version.Property(v => v.ContentHash).HasMaxLength(MaxContentHashLength);
+        version.Property(v => v.CachedFrom).HasMaxLength(DefaultMaxStringLength);
     }
 
     private void BuildPackageDependencyEntity(EntityTypeBuilder<PackageDependency> dependency)

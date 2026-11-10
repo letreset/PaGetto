@@ -17,10 +17,99 @@ namespace PaGetto.Database.SqlServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FeedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("FeedId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Artifacts");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<int>("ArtifactKey")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CachedFrom")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ContentHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<long>("Downloads")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("HasReadme")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrerelease")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Listed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NormalizedVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("Published")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactKey", "NormalizedVersion")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactVersions");
+                });
 
             modelBuilder.Entity("PaGetto.Core.Entities.AuditEvent", b =>
                 {
@@ -122,6 +211,11 @@ namespace PaGetto.Database.SqlServer.Migrations
                         .HasColumnType("nvarchar(128)");
 
                     b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Type")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
@@ -643,6 +737,28 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.ToTable("UserGroups");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
+                        .WithMany()
+                        .HasForeignKey("FeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Feed");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
+                        .WithMany("Versions")
+                        .HasForeignKey("ArtifactKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.FeedMirror", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Feed", "Feed")
@@ -744,6 +860,11 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Feed", b =>

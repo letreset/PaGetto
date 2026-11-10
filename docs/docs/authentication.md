@@ -324,6 +324,10 @@ When a PAT is used as a password, the username must be the token owner's usernam
 
 :::
 
+## Using PaGetto from Dart clients
+
+`dart pub` and `flutter pub` send a personal access token as a bearer token. Add it once with `dart pub token add <feed URL>`; see [Dart and Flutter packages](dart.md#sign-in).
+
 ## Full configuration reference
 
 ```json

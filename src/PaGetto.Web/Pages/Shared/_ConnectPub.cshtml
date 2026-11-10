@@ -1,0 +1,124 @@
+@* The Connect page of a Dart feed: how to use it with dart pub and flutter pub. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var hostedUrl = Url.PageLink("/Index").TrimEnd('/');
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = FeedContext.CurrentFeed.Mirrors?.Any(m => m.Enabled) == true;
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "Sign in",
+            content = new[] { $"dart pub token add {hostedUrl}" },
+            documentation = "https://dart.dev/tools/pub/cmd/pub-token",
+        },
+        new
+        {
+            name = "Use a package",
+            content = new[]
+            {
+                "# pubspec.yaml",
+                "dependencies:",
+                "  my_package:",
+                $"    hosted: {hostedUrl}",
+                "    version: ^1.0.0",
+            },
+            documentation = "https://dart.dev/tools/pub/dependencies#hosted-packages",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                "# pubspec.yaml of the package",
+                $"publish_to: {hostedUrl}",
+                "",
+                "# then, in the package's folder",
+                "dart pub publish",
+            },
+            documentation = "https://dart.dev/tools/pub/custom-package-repositories",
+        },
+        new
+        {
+            name = "All packages",
+            content = new[]
+            {
+                "# Fetch every package through this feed instead of pub.dev",
+                $"export PUB_HOSTED_URL={hostedUrl}",
+            },
+            documentation = "https://dart.dev/tools/pub/environment-variables",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a hosted package repository with <code>dart pub</code> and <code>flutter pub</code>.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Hosted URL · @FeedContext.CurrentFeed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-hosted-url">@hostedUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-hosted-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Create a personal access token (PAT), then run the Sign in command below and paste the token when asked. Accounts without web sign-in get their token from an administrator.</p>
+                    <p>The pub client only sends tokens over HTTPS (or to localhost).</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages published to it, so "All packages" works once an administrator adds a mirror such as https://pub.dev.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Task">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">Dart documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

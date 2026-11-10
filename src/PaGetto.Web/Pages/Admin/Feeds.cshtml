@@ -1,6 +1,7 @@
 @page
 @model PaGetto.Web.Pages.Admin.FeedsModel
 @using PaGetto.Core.Entities
+@using PaGetto.Web.Helper
 
 @{
     ViewData["Title"] = "Feed Management";
@@ -42,6 +43,16 @@
                     <span asp-validation-for="NewSlug" class="text-danger"></span>
                 </div>
                 <div>
+                    <label asp-for="NewType" class="form-label">Type</label>
+                    <select asp-for="NewType" class="form-select">
+                        @foreach (var type in Enum.GetValues<FeedType>())
+                        {
+                            <option value="@type">@FeedTypeNames.GetDisplayName(type)</option>
+                        }
+                    </select>
+                    <div class="form-text">The kind of packages the feed serves. Can't be changed later.</div>
+                </div>
+                <div>
                     <label asp-for="NewName" class="form-label">Display name</label>
                     <input asp-for="NewName" class="form-control" autocomplete="off" />
                     <span asp-validation-for="NewName" class="text-danger"></span>
@@ -75,7 +86,7 @@
             @foreach (var feed in Model.Feeds)
             {
                 var isDefault = feed.Slug == Feed.DefaultSlug;
-                var serviceIndexUrl = $"{siteUrl}/feeds/{feed.Slug}/v3/index.json";
+                var clientUrl = FeedTypeNames.GetClientUrl(feed.Type, $"{siteUrl}/feeds/{feed.Slug}");
                 <div class="bgt-feed-item" data-feed-id="@feed.Id">
                     <div class="bgt-feed-row">
                         <div class="bgt-feed-main">
@@ -84,6 +95,7 @@
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="bgt-feed-name">@feed.Name</span>
                                     <span class="bgt-slug">@feed.Slug</span>
+                                    <span class="bgt-badge">@FeedTypeNames.GetDisplayName(feed.Type)</span>
                                     @if (isDefault)
                                     {
                                         <span class="bgt-badge bgt-badge-solid">default</span>
@@ -98,8 +110,8 @@
                         <span class="bgt-feed-created">@Html.DisplayDate(feed.CreatedAtUtc)</span>
                         <div class="bgt-feed-actions">
                             <a asp-page="/Admin/FeedSettings" asp-route-slug="@feed.Slug" class="btn btn-secondary btn-sm">Settings</a>
-                            <button type="button" class="btn btn-secondary btn-icon" data-copy="@serviceIndexUrl"
-                                    title="Copy service index URL" aria-label="Copy the service index URL of @feed.Name">
+                            <button type="button" class="btn btn-secondary btn-icon" data-copy="@clientUrl"
+                                    title="Copy feed URL" aria-label="Copy the URL of @feed.Name">
                                 <icon name="link" size="14" /><span class="bgt-copy-label visually-hidden">Copy</span>
                             </button>
                             @if (!isDefault)
