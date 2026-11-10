@@ -2,6 +2,8 @@
 
 A **feed** is a separate package source inside one PaGetto server. Each feed has its own packages, its own settings (overwrites, deletion, retention, size limit, read-only mode), its own read-through mirror and its own permissions. Use feeds to keep, for example, `internal` packages apart from `experimental` ones, or to give each team a mirror of nuget.org with different rules.
 
+Every feed has a **type**, the kind of packages it serves: **NuGet** or **Dart**. This page describes NuGet feeds and what all feeds share; [Dart and Flutter packages](dart.md) covers Dart feeds.
+
 ## Feed URLs
 
 Every feed has a **slug**, and its NuGet v3 endpoints live under `/feeds/{slug}/`:
@@ -19,7 +21,7 @@ The **default feed** is created on first start and can't be deleted. Its URLs ar
 
 Feeds are managed by administrators on **Admin > Feeds**. This needs `Authentication:Mode` set to `Local`, `Entra` or `Hybrid` (see [Authentication](authentication.md)). The `Legacy` mode has no administrators, so only the default feed exists.
 
-- **Create** a feed with **New feed**: a slug, a display name (at most 256 characters) and an optional description (at most 4000 characters). A slug is lowercase letters, digits and hyphens, can't start or end with a hyphen, and is at most 128 characters. It becomes part of the URL, so choose it with care.
+- **Create** a feed with **New feed**: a slug, a type, a display name (at most 256 characters) and an optional description (at most 4000 characters). A slug is lowercase letters, digits and hyphens, can't start or end with a hyphen, and is at most 128 characters. It becomes part of the URL, so choose it with care. The type (NuGet or [Dart](dart.md)) can't be changed afterwards either.
 - **Reorder** feeds by dragging them. The order is used wherever feeds are listed in the UI.
 - Open a feed's **Settings** to change its display name, description and [settings](#feed-settings).
 - **Delete** a feed with its trash button. This deletes all of its packages from the database and storage. It can't be undone.
@@ -29,7 +31,7 @@ There is also a small JSON API at `/api/v1/feeds`. It only accepts the web UI's 
 | Request | Effect |
 |---|---|
 | `GET /api/v1/feeds`, `GET /api/v1/feeds/{slug}` | List all feeds, or get one |
-| `POST /api/v1/feeds` | Create a feed from `slug`, `name` and `description` |
+| `POST /api/v1/feeds` | Create a feed from `slug`, `name`, `description` and `type` (`"NuGet"`, the default, or `"Pub"` for a Dart feed) |
 | `PUT /api/v1/feeds/{slug}` | Change only the `name` and `description` |
 | `DELETE /api/v1/feeds/{slug}` | Delete the feed and its packages. The default feed returns `409 Conflict` |
 
@@ -47,7 +49,7 @@ Open **Admin > Feeds > Settings** for a feed (`/Admin/Feeds/{slug}/Settings`). E
 | Package overwrite policy | `AllowPackageOverwrites` | Disallow (recommended), prerelease only, or allow all. See [package overwrites](configuration.md#enable-package-overwrites). |
 | Deletion behavior | `PackageDeletionBehavior` | Unlist (recommended) or hard delete. See [hard deletions](configuration.md#enable-package-hard-deletions). |
 | Max package size (MiB) | `MaxPackageSizeMiB` | Largest package or symbol package this feed accepts, at least 1 MiB. It can only lower the global value, which caps every request; larger pushes get `413 Payload Too Large` |
-| Retention | `Retention` | How many major versions, minor versions per major, patch versions per minor and prerelease versions per patch to keep, each 0 or more. `0` keeps none of them except the version being pushed. An override left empty falls back to the global value. **Prereleases of older majors** deletes prereleases below the latest stable major (`DeletePrereleasesOfOlderMajors`). See [auto-deletion](configuration.md#package-auto-deletion). |
+| Retention (NuGet feeds) | `Retention` | How many major versions, minor versions per major, patch versions per minor and prerelease versions per patch to keep, each 0 or more. `0` keeps none of them except the version being pushed. An override left empty falls back to the global value. **Prereleases of older majors** deletes prereleases below the latest stable major (`DeletePrereleasesOfOlderMajors`). See [auto-deletion](configuration.md#package-auto-deletion). |
 | Upstream listing cache (seconds) | `UpstreamListingCacheSeconds` | How long mirrored version lists are reused before asking the upstreams again. See [upstream listing cache](#upstream-listing-cache). |
 
 :::tip
@@ -58,7 +60,7 @@ Set the values you want for most feeds in configuration, and override only where
 
 ## Mirror (read-through cache)
 
-A feed can mirror an upstream NuGet feed, for example nuget.org. When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream source, stores it in the feed and serves it. Later restores are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
+A NuGet feed can mirror an upstream NuGet feed, for example nuget.org (a Dart feed mirrors pub servers such as pub.dev, see [Mirror pub.dev](dart.md#mirror-pubdev)). When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream source, stores it in the feed and serves it. Later restores are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
 
 Mirrors are listed on each feed's settings page, under **Mirrors**. Use **Add mirror** to add one; each mirror has these settings:
 

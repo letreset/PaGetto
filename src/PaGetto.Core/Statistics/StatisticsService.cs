@@ -27,6 +27,9 @@ public class StatisticsService : IStatisticsService
             .Where(p => p.FeedId == feedId)
             .GroupBy(p => p.Id)
             .CountAsync();
+
+        // A feed has either NuGet packages or artifacts, so one of the two counts is zero.
+        packagesCount += await dbContext.Artifacts.CountAsync(a => a.FeedId == feedId);
         scope.Dispose();
         return packagesCount;
     }
@@ -37,6 +40,7 @@ public class StatisticsService : IStatisticsService
         var packagesVersionsCount = await dbContext.Packages
             .Where(p => p.FeedId == feedId)
             .CountAsync();
+        packagesVersionsCount += await dbContext.ArtifactVersions.CountAsync(v => v.Artifact.FeedId == feedId);
         scope.Dispose();
         return packagesVersionsCount;
     }
@@ -45,6 +49,16 @@ public class StatisticsService : IStatisticsService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IContext>();
+
+        var feedType = await dbContext.Feeds
+            .Where(f => f.Id == feedId)
+            .Select(f => f.Type)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (feedType != FeedType.NuGet)
+        {
+            return await GetArtifactStatisticsAsync(dbContext, feedId, listSize, cancellationToken);
+        }
+
         var versions = dbContext.Packages.Where(p => p.FeedId == feedId);
 
         var totalDownloads = await versions.SumAsync(p => p.Downloads, cancellationToken);
@@ -67,6 +81,47 @@ public class StatisticsService : IStatisticsService
             .OrderByDescending(p => p.Published)
             .Take(listSize)
             .Select(p => new PublishedPackageVersion { Id = p.Id, Version = p.NormalizedVersionString, Published = p.Published })
+            .ToListAsync(cancellationToken);
+
+        return new FeedStatistics
+        {
+            TotalDownloads = totalDownloads,
+            TotalSizeBytes = totalSize,
+            StableVersions = totalVersions - prereleaseVersions,
+            PrereleaseVersions = prereleaseVersions,
+            UnlistedVersions = unlistedVersions,
+            MostDownloaded = mostDownloaded,
+            RecentlyPublished = recentlyPublished,
+        };
+    }
+
+    /// <summary>
+    /// The statistics of a feed that is not a NuGet feed, whose packages are artifacts.
+    /// </summary>
+    private static async Task<FeedStatistics> GetArtifactStatisticsAsync(IContext dbContext, Guid feedId, int listSize, CancellationToken cancellationToken)
+    {
+        var versions = dbContext.ArtifactVersions.Where(v => v.Artifact.FeedId == feedId);
+
+        var totalDownloads = await versions.SumAsync(v => v.Downloads, cancellationToken);
+        var totalSize = await versions.SumAsync(v => v.Size, cancellationToken);
+        var totalVersions = await versions.CountAsync(cancellationToken);
+        var prereleaseVersions = await versions.CountAsync(v => v.IsPrerelease, cancellationToken);
+        var unlistedVersions = await versions.CountAsync(v => !v.Listed, cancellationToken);
+
+        var mostDownloaded = await versions
+            .GroupBy(v => v.Artifact.Name)
+            .Select(g => new PackageDownloadCount { Id = g.Key, Downloads = g.Sum(v => v.Downloads) })
+            .Where(p => p.Downloads > 0)
+            .OrderByDescending(p => p.Downloads)
+            .ThenBy(p => p.Id)
+            .Take(listSize)
+            .ToListAsync(cancellationToken);
+
+        var recentlyPublished = await versions
+            .Where(v => v.Listed)
+            .OrderByDescending(v => v.Published)
+            .Take(listSize)
+            .Select(v => new PublishedPackageVersion { Id = v.Artifact.Name, Version = v.Version, Published = v.Published })
             .ToListAsync(cancellationToken);
 
         return new FeedStatistics

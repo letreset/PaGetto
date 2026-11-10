@@ -4,8 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
+using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Search;
 using PaGetto.Protocol.Models;
@@ -21,6 +23,7 @@ namespace PaGetto.Web.Pages;
 public class IndexModel : PageModel
 {
     private readonly ISearchService _search;
+    private readonly IArtifactDatabase _artifacts;
     private readonly IFeedContext _feedContext;
     private readonly IFeedService _feedService;
     private readonly IPermissionService _permissions;
@@ -28,12 +31,14 @@ public class IndexModel : PageModel
 
     public IndexModel(
         ISearchService search,
+        IArtifactDatabase artifacts,
         IFeedContext feedContext,
         IFeedService feedService,
         IPermissionService permissions,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions)
     {
         _search = search ?? throw new ArgumentNullException(nameof(search));
+        _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedService = feedService ?? throw new ArgumentNullException(nameof(feedService));
         _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
@@ -70,6 +75,11 @@ public class IndexModel : PageModel
     public bool Prerelease { get; set; } = true;
 
     public IReadOnlyList<SearchResult> Packages { get; private set; }
+
+    /// <summary>
+    /// The packages of a feed that is not a NuGet feed. Null on NuGet feeds, which list <see cref="Packages"/>.
+    /// </summary>
+    public IReadOnlyList<ArtifactListItem> Artifacts { get; private set; }
 
     public int TotalPages { get; private set; } = 1;
 
@@ -134,6 +144,23 @@ public class IndexModel : PageModel
             }
         }
 
+        if (currentFeed.Type != FeedType.NuGet)
+        {
+            var artifacts = await _artifacts.SearchAsync(
+                currentFeed.Id,
+                Query,
+                (PageIndex - 1) * ResultsPerPage,
+                ResultsPerPage,
+                cancellationToken);
+
+            Packages = Array.Empty<SearchResult>();
+            Artifacts = artifacts.Artifacts.Select(a => ToListItem(currentFeed.Type, a)).ToList();
+            TotalHits = artifacts.TotalHits;
+            TotalPages = Math.Max(1, (int)Math.Ceiling(artifacts.TotalHits / (double)ResultsPerPage));
+
+            return Page();
+        }
+
         var packageType = PackageType == "any" ? null : PackageType;
         var framework = Framework == "any" ? null : Framework;
         var tag = Tag == "any" ? null : Tag;
@@ -166,5 +193,31 @@ public class IndexModel : PageModel
         TotalPages = Math.Max(1, (int)Math.Ceiling(search.TotalHits / (double)ResultsPerPage));
 
         return Page();
+    }
+
+    private static ArtifactListItem ToListItem(FeedType feedType, Artifact artifact)
+    {
+        var latest = ArtifactVersionOrder.GetLatest(feedType, artifact.Versions);
+
+        return new ArtifactListItem
+        {
+            Name = artifact.Name,
+            Version = latest.Version,
+            Description = latest.Description,
+            Listed = latest.Listed,
+            TotalDownloads = artifact.Versions.Sum(v => v.Downloads),
+        };
+    }
+
+    /// <summary>
+    /// A package of a feed that is not a NuGet feed, with its latest version.
+    /// </summary>
+    public class ArtifactListItem
+    {
+        public string Name { get; init; }
+        public string Version { get; init; }
+        public string Description { get; init; }
+        public bool Listed { get; init; }
+        public long TotalDownloads { get; init; }
     }
 }

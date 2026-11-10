@@ -32,10 +32,11 @@ Guidance for AI agents working in this repository.
 
 ## What is PaGetto
 
-A lightweight NuGet and symbol server: ASP.NET Core on .NET 10, implementing the NuGet v3 protocol, with pluggable database, storage and search backends.
+A lightweight package server: ASP.NET Core on .NET 10, with pluggable database, storage and search backends. It started as a NuGet and symbol server (the NuGet v3 protocol) and also hosts Dart and Flutter packages (the pub protocol). Each feed serves one ecosystem.
 
 This repo is **letreset/PaGetto**. Its main features:
 - **Multi-feed**: each feed has its own packages, settings, mirror and permissions.
+- **Feed types**: a feed is a NuGet feed or a Dart (pub) feed. More ecosystems can be added the same way (see "Feed types and ecosystems").
 - **Local/Entra/Hybrid auth**: users, groups, PATs and per-feed permissions.
 - **Admin UI**, PAT-expiry emails, and Data Protection keys persisted to storage.
 
@@ -58,7 +59,7 @@ This repo is **letreset/PaGetto**. Its main features:
 | Path | Contents |
 |---|---|
 | `src/PaGetto/` | Host: `Program.cs`, `Startup.cs` (DI and middleware pipeline), `ValidatePaGettoOptions`, `ConfigurePaGettoServer` (CORS, forms, forwarded headers, IIS), Data Protection key storage |
-| `src/PaGetto.Core/` | Business logic, database-agnostic. `Authentication/`, `Configuration/`, `Content/`, `Email/`, `Entities/`, `Feeds/`, `Indexing/`, `Metadata/`, `Notifications/`, `Search/`, `ServiceIndex/`, `Statistics/`, `Storage/`, `Upstream/`, `Validation/` |
+| `src/PaGetto.Core/` | Business logic, database-agnostic. `Artifacts/` (packages of non-NuGet feeds), `Authentication/`, `Configuration/`, `Content/`, `Email/`, `Entities/`, `Feeds/`, `Indexing/`, `Metadata/`, `Notifications/`, `Pub/` (Dart), `Search/`, `ServiceIndex/`, `Statistics/`, `Storage/`, `Upstream/`, `Validation/` |
 | `src/PaGetto.Web/` | Controllers, Razor Pages (`Pages/`, `Pages/Admin/`, `Pages/Account/`), `Middleware/`, `Authentication/`, routing (`PaGettoEndpointBuilder`, `Routes`), `PaGettoUrlGenerator` |
 | `src/PaGetto.Protocol/` | NuGet v3 client and models, used for upstream mirrors |
 | `src/PaGetto.Database.{Sqlite,SqlServer,PostgreSql,MySql}/` | EF Core context and migrations per provider |
@@ -107,17 +108,26 @@ Storage, database, search and email use `IProvider<T>`. Every implementation is 
 - Storage paths are `packages/{feedSlug}/{id}/{version}/…` and `symbols/{feedSlug}/…`.
 - Upstream clients come from `UpstreamClientFactory.CreateForFeed(feed)`: one enabled mirror gives a plain V2/V3 client, several give a `FallbackUpstreamClient` (merged version lists, download from the first mirror that has the package, failing mirrors skipped). Unless the feed's `UpstreamListingCacheSeconds` is 0, that client is wrapped in `CachingUpstreamClient`, which keeps non-empty version/metadata listings in the singleton `UpstreamListingCache`, keyed by feed id, `Feed.UpdatedAtUtc` (so saving the feed invalidates) and lowercased package id. Concurrent misses for a key share one upstream call, which runs with `CancellationToken.None` so one caller leaving doesn't cancel it for the others. `PackageService.MirrorAsync` serializes concurrent mirroring of the same `(feed, id, version)` through the singleton `PackageMirrorLock`.
 
+### Feed types and ecosystems
+- `Feed.Type` (`FeedType`: `NuGet` = 0, `Pub` = 1) is set when a feed is created and never changes. The values are stored in the database. The default feed is always a NuGet feed.
+- **NuGet** keeps its own model (`Package` and its child tables, `IPackageDatabase`, `IPackageStorageService`, search providers). Don't put other ecosystems into those tables: NuGet version normalization drops build metadata, which other ecosystems treat as part of the version.
+- **Every other ecosystem** stores its packages as artifacts: `Artifact` (feed, normalized name) and `ArtifactVersion` (version, lowercased `NormalizedVersion`, `Listed`, `Description`, the manifest as `MetadataJson`, SHA-256 `ContentHash`, `Size`, `Downloads`, `HasReadme`, `CachedFrom`, `Published`). `Core/Artifacts/` has what they share: `IArtifactDatabase` (reads are untracked), `IArtifactStorageService` (`packages/{feedSlug}/{name}/{version}/archive` and `/readme`) and `ArtifactVersionOrder` (version order per feed type).
+- **Dart** is in `Core/Pub/`: `PubVersion` (pub's version order, build metadata included), `PubArchiveReader` and `PubspecYaml` (reads the gzipped tar archive and converts `pubspec.yaml` to JSON; the tar is read by `PubTarReader`, because `System.Formats.Tar` rejects the headers the pub client writes), `PubPackageService` (list, download with mirroring, publish) and `PubUpstreamClient` (mirrors of pub servers; the first mirror that has a package serves it, listings go through `UpstreamListingCache`).
+- A controller or Razor page model that belongs to one ecosystem carries `[FeedType(...)]`. `FeedTypeMiddleware` (after authorization) answers 404 when it is requested on a feed of another type. With user accounts it lets anonymous requests through to the endpoint's own challenge, so the feed type can't be probed. `NugetBasicAuthenticationHandler` picks the challenge from the endpoint: `Bearer realm="pub"` for pub endpoints, `Basic` otherwise.
+- The web UI: `Pages/Index` lists artifacts on non-NuGet feeds, `Pages/Artifact` (`/artifacts/{id}/{version?}`) is their package page, `Pages/Shared/_ConnectPub` their Connect page. `Pages/Package` and `Pages/Upload` are NuGet only. `FeedTypeNames` has the display names and client URLs.
+- **To add an ecosystem** (e.g. npm): add a `FeedType` value, a `Core/<Name>/` folder with its version rules, archive reader and package service on top of the artifact services, a case in `ArtifactVersionOrder` and `FeedTypeNames`, a controller with `[FeedType]` and its routes in `PaGettoEndpointBuilder`, and the ecosystem's parts of `Pages/Artifact` and Connect. No migration is needed unless the artifact tables lack something.
+
 ### Authentication & authorization
 - `Authentication:Mode` is required (startup fails without it) and is one of `Legacy` (config-file `Authentication:ApiKeys`/`Credentials`, formerly `Config`, which is still accepted; the old top-level `ApiKey` fails validation), `Local`, `Entra` or `Hybrid`.
 - The `NugetBasicAuth` scheme is the default. It forwards to the cookie scheme (`PaGetto.Auth`, sliding expiry of `Authentication:SessionTimeoutMinutes`, default 60) when a cookie is present without an `Authorization` header, which separates browsers from client tools.
-- `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash.
+- `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash. A PAT is accepted in the `X-NuGet-ApiKey` header, as the Basic password, or as a Bearer token (what `dart pub` sends).
 - `FeedPermissionHandler` enforces per-feed permissions (pull/push/delete) for the current feed. User permissions come from groups via `PermissionService`, and `EntraRoleSyncService` syncs Entra app roles into local groups.
 
 ### Data model
-All entities are defined in `Core/Entities/AbstractContext.cs`: Feed, FeedMirror, Package, PackageDependency, PackageType, TargetFramework, User, Group, UserGroup, FeedPermission, PersonalAccessToken.
+All entities are defined in `Core/Entities/AbstractContext.cs`: Feed, FeedMirror, Package, PackageDependency, PackageType, TargetFramework, Artifact, ArtifactVersion, User, Group, UserGroup, FeedPermission, PersonalAccessToken, AuditEvent.
 
 ### HTTP pipeline (`Startup.Configure`, in order)
-ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware` → ResponseCompression → `/livez` → `FeedStaticFilePathMiddleware` → StaticFiles → Authentication → RateLimiter (only when `RequestRateLimit:Enabled`) → `FeedResolutionMiddleware` → Routing → Authorization → CORS → `OperationCancelledMiddleware` (maps `OperationCanceledException` to 409) → endpoints → health check (`HealthCheck:Path`).
+ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware` → ResponseCompression → `/livez` → `FeedStaticFilePathMiddleware` → StaticFiles → Authentication → RateLimiter (only when `RequestRateLimit:Enabled`) → `FeedResolutionMiddleware` → Routing → Authorization → `FeedTypeMiddleware` → CORS → `OperationCancelledMiddleware` (maps `OperationCanceledException` to 409) → endpoints → health check (`HealthCheck:Path`).
 
 ### API routes (`PaGettoEndpointBuilder`; every route is also available under `/feeds/{slug}/`)
 - `GET /v3/index.json`: the service index.
@@ -127,6 +137,11 @@ ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware
 - `GET /v3/dependents`.
 - `PUT /api/v2/package`, `DELETE`/`POST` `/api/v2/package/{id}/{version}`.
 - `PUT /api/v2/symbol`, `GET /api/download/symbols/…`.
+
+The routes above answer on NuGet feeds. Dart feeds have the pub API ([repository spec v2](https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md), `PubPackageController`):
+- `GET /api/packages/{name}`, and the deprecated `GET /api/packages/{name}/versions/{version}`.
+- `GET /packages/{name}/versions/{version}.tar.gz`: the archive.
+- Publishing, in three steps: `GET /api/packages/versions/new`, `POST /api/packages/versions/newUpload` (multipart, part `file`; publishes the package and answers 204 with a `Location`), `GET /api/packages/versions/newUploadFinish` (reports the outcome, which is the only server message the client shows).
 
 ## Configuration
 
@@ -173,7 +188,7 @@ docker compose -f testenv/docker-compose.yml down -v   # reset to the snapshot
 PAGETTO_TAG=dev docker compose -f testenv/docker-compose.yml up -d   # your own image (docker build -t letreset/pagetto:dev .)
 ```
 
-- It runs in `Local` auth mode with four feeds (Default mirrors nuget.org, Internal, Experimental, Archive read-only), groups with different permissions and `Contoso.*` test packages. The test accounts and passwords are in `testenv/README.md`; they are test-only.
+- It runs in `Local` auth mode with four feeds (Default mirrors nuget.org, Internal, Experimental, Archive read-only), groups with different permissions and `Contoso.*` test packages. The seed script also creates a Dart feed (`contoso_*` packages from `testenv/packages/dart`, a mirror of pub.dev); the committed snapshot gets it the next time it is regenerated. The test accounts and passwords are in `testenv/README.md`; they are test-only.
 - `testenv/data` is the committed snapshot. It's copied into a Docker volume on the first start, so testing never changes the working tree. Don't commit changes to it unless you are regenerating it on purpose.
 - To change the data set, edit `testenv/seed/seed.mjs` and regenerate the snapshot (steps in `testenv/README.md`).
 - Push test packages from `testenv/packages` with Basic auth (username and password, or username and a personal access token from **My Tokens**).

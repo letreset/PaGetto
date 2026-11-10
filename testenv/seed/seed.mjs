@@ -9,10 +9,12 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const templateDir = join(here, 'template');
 const packagesDir = resolve(here, '..', 'packages');
+const dartPackagesDir = join(packagesDir, 'dart');
 
 const args = process.argv.slice(2);
 const argValue = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -34,20 +36,21 @@ const feeds = [
     { slug: 'internal', name: 'Internal', description: 'Packages built by our own teams' },
     { slug: 'experimental', name: 'Experimental', description: 'Previews and spikes' },
     { slug: 'archive', name: 'Archive', description: 'Frozen packages, read-only' },
+    { slug: 'dart', name: 'Dart', description: 'Dart and Flutter packages', type: 'Pub' },
 ];
 
 const groups = [
     {
         name: 'Developers', description: 'Everyone who writes code', members: ['alice', 'bob', 'carol'],
-        permissions: { default: ['pull'], internal: ['pull'], experimental: ['pull', 'push', 'delete'], archive: ['pull'] },
+        permissions: { default: ['pull'], internal: ['pull'], experimental: ['pull', 'push', 'delete'], archive: ['pull'], dart: ['pull'] },
     },
     {
         name: 'Package owners', description: 'Maintain the internal feed', members: ['alice'],
-        permissions: { internal: ['pull', 'push', 'delete'] },
+        permissions: { internal: ['pull', 'push', 'delete'], dart: ['pull', 'push', 'delete'] },
     },
     {
         name: 'Build agents', description: 'CI pipelines that publish packages', members: ['build-agent'],
-        permissions: { default: ['pull'], internal: ['pull', 'push'], experimental: ['pull', 'push'] },
+        permissions: { default: ['pull'], internal: ['pull', 'push'], experimental: ['pull', 'push'], dart: ['pull', 'push'] },
     },
 ];
 
@@ -97,7 +100,25 @@ const packages = [
     ['Contoso.Preview.Ai', 'Experimental AI helpers.', 'preview ai', ['0.1.0-alpha.1', '0.1.0-alpha.2'], { feed: 'experimental' }],
 ];
 
+// Dart test packages for the dart feed: [name, description, versions, options].
+const dartPackages = [
+    ['contoso_core', 'Shared primitives used by all Contoso Dart packages.', ['1.0.0', '1.1.0', '2.0.0']],
+    ['contoso_http', 'HTTP client defaults for Contoso services.', ['0.9.0+1', '0.9.0+2', '1.0.0'], { deps: { contoso_core: '^2.0.0' } }],
+    ['contoso_widgets', 'Flutter widgets in the Contoso design language.', ['1.0.0', '1.1.0-dev.1'], { deps: { contoso_core: '^2.0.0' }, flutter: true }],
+];
+
+// A retracted version, for the restore flow: [name, version].
+const dartRetracted = ['contoso_core', '1.0.0'];
+
+// Downloads per Dart version: [name, version, downloads].
+const dartDownloads = [
+    ['contoso_core', '2.0.0', 14],
+    ['contoso_http', '1.0.0', 6],
+    ['contoso_widgets', '1.0.0', 3],
+];
+
 const nupkg = (id, version) => join(packagesDir, `${id}.${version}.nupkg`);
+const dartArchive = (name, version) => join(dartPackagesDir, `${name}-${version}.tar.gz`);
 
 function buildPackages() {
     mkdirSync(packagesDir, { recursive: true });
@@ -125,6 +146,53 @@ ${deps}
             execFileSync('dotnet', ['pack', templateDir, '-c', 'Release', '-o', packagesDir, `-p:Version=${version}`, '--nologo', '-v', 'q'], { stdio: 'inherit' });
         }
     }
+}
+
+// A pub package is a gzipped tar file with a pubspec.yaml at its root.
+function buildDartPackages() {
+    mkdirSync(dartPackagesDir, { recursive: true });
+    for (const [name, description, versions, options = {}] of dartPackages) {
+        for (const version of versions) {
+            if (existsSync(dartArchive(name, version))) continue;
+            const deps = Object.entries(options.deps ?? {}).map(([dep, v]) => `  ${dep}: ${v}\n`).join('');
+            const flutter = options.flutter ? '  flutter:\n    sdk: flutter\n' : '';
+            const files = {
+                'pubspec.yaml': `name: ${name}\nversion: ${version}\ndescription: ${description}\nhomepage: https://example.com/${name}\n`
+                    + `environment:\n  sdk: ^3.0.0\n${options.flutter ? "  flutter: '>=3.10.0'\n" : ''}`
+                    + (deps || flutter ? `dependencies:\n${flutter}${deps}` : ''),
+                'README.md': `# ${name}\n\n${description}\n\n## Getting started\n\n\`\`\`shell\ndart pub add ${name}\n\`\`\`\n\nMaintained by the Contoso platform team.\n`,
+                'CHANGELOG.md': `## ${version}\n\n- Test release.\n`,
+                [`lib/${name}.dart`]: `/// ${description}\nlibrary;\n\nconst version = '${version}';\n`,
+            };
+            console.log(`pack ${name} ${version}`);
+            writeFileSync(dartArchive(name, version), gzipSync(tar(files)));
+        }
+    }
+}
+
+// A minimal ustar writer: one 512-byte header per file, the content padded to 512 bytes, and
+// two empty blocks at the end. The fixed timestamp keeps the archives reproducible.
+function tar(files) {
+    const blocks = [];
+    for (const [path, content] of Object.entries(files)) {
+        const data = Buffer.from(content, 'utf8');
+        const header = Buffer.alloc(512);
+        const field = (value, offset, length) => header.write(value, offset, length, 'ascii');
+        field(path, 0, 100);
+        field('0000644\0', 100, 8);
+        field('0000000\0', 108, 8);
+        field('0000000\0', 116, 8);
+        field(data.length.toString(8).padStart(11, '0') + '\0', 124, 12);
+        field((1767225600).toString(8).padStart(11, '0') + '\0', 136, 12);
+        field('        ', 148, 8);
+        field('0', 156, 1);
+        field('ustar\0' + '00', 257, 8);
+        const checksum = header.reduce((sum, byte) => sum + byte, 0);
+        field(checksum.toString(8).padStart(6, '0') + '\0 ', 148, 8);
+        blocks.push(header, data, Buffer.alloc((512 - data.length % 512) % 512));
+    }
+    blocks.push(Buffer.alloc(1024));
+    return Buffer.concat(blocks);
 }
 
 // A tiny HTTP client with a cookie jar, enough for the Razor forms.
@@ -171,6 +239,30 @@ async function push(feed, file) {
     console.log(`push ${feed} ${file.split(/[\\/]/).pop()} ${res.status}`);
 }
 
+// Publishes a Dart package the way `dart pub publish` does: ask for the upload URL, upload the
+// archive, then finalize.
+async function publishDart(feed, file) {
+    const headers = { authorization: 'Basic ' + Buffer.from(`${admin.username}:${admin.password}`).toString('base64') };
+    const name = file.split(/[\\/]/).pop();
+
+    const start = await fetch(`${baseUrl}/feeds/${feed}/api/packages/versions/new`, { headers });
+    if (start.status !== 200) throw new Error(`Publishing ${name} to ${feed} could not start (status ${start.status}).`);
+    const { url, fields } = await start.json();
+
+    const form = new FormData();
+    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    form.set('file', new Blob([readFileSync(file)]), 'package.tar.gz');
+    const upload = await fetch(url, { method: 'POST', body: form, headers, redirect: 'manual' });
+    if (upload.status !== 204) throw new Error(`Upload of ${name} to ${feed} failed with ${upload.status}.`);
+
+    const finish = await fetch(upload.headers.get('location'), { headers });
+    const result = await finish.json();
+    if (finish.status !== 200 && !/already exists/.test(result.error?.message ?? '')) {
+        throw new Error(`Publishing ${name} to ${feed} failed: ${result.error?.message ?? finish.status}`);
+    }
+    console.log(`publish ${feed} ${name} ${finish.status}`);
+}
+
 async function seedServer() {
     const login = await http('/Login');
     const t = token(login.text);
@@ -199,10 +291,11 @@ async function seedServer() {
         await postPage('/Admin/Groups', 'CreateGroup', { NewGroupName: g.name, NewAppRoleValue: '', NewDescription: g.description });
     }
     const groupsHtml = (await http('/Admin/Groups')).text;
-    const userIds = Object.fromEntries([...groupsHtml.matchAll(/<option value="([0-9a-f-]{36})">([^ <]+) \(/g)].map(m => [m[2], m[1]]));
+    // Every group's "Add member" menu lists the users as buttons: value is the id, the label the username.
+    const userIds = Object.fromEntries([...groupsHtml.matchAll(/name="userId" value="([0-9a-f-]{36})"[^>]*>[\s\S]*?<span class="fw-medium">([^<]+)<\/span>/g)].map(m => [m[2].trim(), m[1]]));
     for (const g of groups) {
-        const panel = groupsHtml.split('class="panel panel-default"').find(p => p.includes(`>\n                        ${g.name}\n`) || new RegExp(`panel-title[^>]*>\\s*${g.name}\\s*<`).test(p));
-        const groupId = panel?.match(/name="groupId" value="([0-9a-f-]{36})"/)?.[1];
+        const card = groupsHtml.split('<section class="bgt-card"').find(p => new RegExp(`bgt-group-name[^>]*>\s*${g.name}\s*<`).test(p));
+        const groupId = card?.match(/name="groupId" value="([0-9a-f-]{36})"/)?.[1];
         if (!groupId) throw new Error(`Group ${g.name} not found.`);
         for (const m of g.members) await postPage('/Admin/Groups', 'AddUser', { groupId, userId: userIds[m] });
         const fields = { groupId };
@@ -228,6 +321,25 @@ async function seedServer() {
         method: 'DELETE', headers: { authorization: 'Basic ' + Buffer.from(`${admin.username}:${admin.password}`).toString('base64') },
     });
     console.log(`unlist Contoso.Logging 1.4.0 ${unlist.status}`);
+
+    for (const [name, , versions] of dartPackages) {
+        for (const version of versions) await publishDart('dart', dartArchive(name, version));
+    }
+
+    // A retracted Dart version, for the restore flow.
+    const [retractedName, retractedVersion] = dartRetracted;
+    await postPage(`/feeds/dart/artifacts/${retractedName}/${encodeURIComponent(retractedVersion)}`, 'Unlist', {});
+    console.log(`retract ${retractedName} ${retractedVersion}`);
+
+    for (const [name, version, count] of dartDownloads) {
+        const url = `${baseUrl}/feeds/dart/packages/${name}/versions/${encodeURIComponent(version)}.tar.gz`;
+        for (let i = 0; i < count; i++) {
+            const res = await fetch(url, { headers: { authorization: 'Basic ' + Buffer.from(`${admin.username}:${admin.password}`).toString('base64') } });
+            await res.arrayBuffer();
+            if (res.status !== 200) throw new Error(`Download of ${name} ${version} from dart failed with ${res.status}.`);
+        }
+        console.log(`download dart ${name} ${version} x${count}`);
+    }
 
     // Every package download counts once.
     for (const [feed, id, version, count] of downloads) {
@@ -265,9 +377,11 @@ async function seedServer() {
         UseGlobalRetentionPrerelease: 'false', RetentionMaxPrereleaseVersions: '5',
     });
     await settings('archive', 'Archive', 'Frozen packages, read-only', { UseGlobalReadOnly: 'false', IsReadOnlyMode: 'true' });
+    await settings('dart', 'Dart', 'Dart and Flutter packages, mirror of pub.dev', {}, ['https://pub.dev']);
     console.log('feed settings saved');
 }
 
 buildPackages();
+buildDartPackages();
 if (!packagesOnly) await seedServer();
 console.log('done');

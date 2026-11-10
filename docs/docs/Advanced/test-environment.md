@@ -48,14 +48,21 @@ These credentials exist only in the test data. Never use them for a real server.
 | Internal | 22 `Contoso.*` packages, enough for two pages of results. Contoso.Logging has three versions (1.4.0 unlisted), symbol packages and a dependency on Contoso.Core | Overwrite policy **Prerelease only**, keep at most 3 major versions |
 | Experimental | Prerelease packages (Contoso.Messaging 1.1.0-beta.2, Contoso.Preview.Ai) | Hard delete, keep at most 5 prerelease versions |
 | Archive | Contoso.Legacy | Read-only |
+| Dart | A [Dart feed](../dart.md) with `contoso_core`, `contoso_http` (two versions that differ only in build metadata) and `contoso_widgets` (a prerelease). contoso_core 1.0.0 is retracted | A mirror of pub.dev (needs internet) |
+
+:::note
+
+The Dart feed is part of the data set from the next time the snapshot is regenerated with a PaGetto version that has Dart feeds. An older snapshot starts without it.
+
+:::
 
 Some versions have been downloaded a few times (Contoso.Core and Contoso.Logging the most), so download counts and the statistics page have data.
 
 | Group | Members | Permissions |
 |---|---|---|
-| Developers | alice, bob, carol | Pull on Default, Internal and Archive; pull, push and delete on Experimental |
-| Package owners | alice | Pull, push and delete on Internal |
-| Build agents | build-agent | Pull on Default; pull and push on Internal and Experimental |
+| Developers | alice, bob, carol | Pull on Default, Internal, Archive and Dart; pull, push and delete on Experimental |
+| Package owners | alice | Pull, push and delete on Internal and Dart |
+| Build agents | build-agent | Pull on Default; pull and push on Internal, Experimental and Dart |
 
 The packages are in `testenv/packages`, so you can push them again to try uploads. Local accounts authenticate with their username and password (Basic auth), for example:
 
@@ -65,10 +72,12 @@ curl -u carol:User-Test-Password-1 -X PUT -F package=@testenv/packages/Contoso.M
 
 With the dotnet CLI, add the feed as a source with `--username` and `--password` first (see [Connecting a client](../feeds.md#connecting-a-client)).
 
+The Dart test packages are in `testenv/packages/dart`, as the archives `dart pub publish` uploads.
+
 ## UI checks
 
 [`testenv/UI-TESTS.md`](https://github.com/letreset/PaGetto/blob/main/testenv/UI-TESTS.md) lists the checks to run in the browser after UI changes and before a release, each with the account to use and the expected result. Checks that currently fail link to their issue, so a new failure stands out.
 
 ## Change the data set
 
-The data set is built by `testenv/seed/seed.mjs`, which packs the test packages from `testenv/seed/template` and fills an empty server through the web UI forms and the NuGet API. Edit it, then regenerate the snapshot as described in [`testenv/README.md`](https://github.com/letreset/PaGetto/blob/main/testenv/README.md#regenerating-the-snapshot). Regenerate it too when a release changes the database schema in a way PaGetto can't migrate the snapshot from.
+The data set is built by `testenv/seed/seed.mjs`, which packs the test packages (the NuGet ones from `testenv/seed/template`) and fills an empty server through the web UI forms, the NuGet API and the pub API. Edit it, then regenerate the snapshot as described in [`testenv/README.md`](https://github.com/letreset/PaGetto/blob/main/testenv/README.md#regenerating-the-snapshot). Regenerate it too when a release changes the database schema in a way PaGetto can't migrate the snapshot from.

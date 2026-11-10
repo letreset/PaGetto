@@ -7,10 +7,12 @@ using PaGetto.Core.Search;
 using PaGetto.Protocol.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Controllers;
 
 [Authorize(AuthenticationSchemes = AuthenticationConstants.NugetBasicAuthenticationScheme, Policy = AuthenticationConstants.NugetUserPolicy)]
+[FeedType(FeedType.NuGet)]
 public class SearchController : Controller
 {
     private readonly ISearchService _searchService;

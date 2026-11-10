@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Builds pub package archives; shared with the Core tests. -->
+    <Compile Include="..\PaGetto.Core.Tests\Support\PubArchiveBuilder.cs" Link="Support\PubArchiveBuilder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="TestData\TestData.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

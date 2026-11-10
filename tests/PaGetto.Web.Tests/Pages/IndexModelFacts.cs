@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
@@ -167,9 +169,69 @@ public class IndexModelFacts
         }
     }
 
+    public class OnGetAsyncOnADartFeed : FactsBase
+    {
+        [Fact]
+        public async Task ListsArtifactsWithTheirLatestVersionInsteadOfSearchingNuGetPackages()
+        {
+            CurrentFeed = new Feed { Id = Guid.NewGuid(), Slug = "dart", Name = "Dart", Type = FeedType.Pub };
+
+            Artifacts
+                .Setup(a => a.SearchAsync(CurrentFeed.Id, "http", 20, 20, Cancellation))
+                .ReturnsAsync(new ArtifactSearchResult
+                {
+                    TotalHits = 21,
+                    Artifacts =
+                    [
+                        new Artifact
+                        {
+                            Name = "http_client",
+                            Versions =
+                            [
+                                new ArtifactVersion { Version = "1.0.0", Listed = true, Downloads = 2, Description = "Old" },
+                                new ArtifactVersion { Version = "1.10.0", Listed = true, Downloads = 3, Description = "New" },
+                                new ArtifactVersion { Version = "2.0.0-dev.1", Listed = true, IsPrerelease = true, Downloads = 1 },
+                            ],
+                        },
+                    ],
+                });
+
+            var target = Build();
+            target.Query = "http";
+            target.PageIndex = 2;
+
+            var result = await target.OnGetAsync(Cancellation);
+
+            Assert.IsType<PageResult>(result);
+            Assert.Null(CapturedRequest);
+            Assert.Empty(target.Packages);
+            Assert.Equal(21, target.TotalHits);
+            Assert.Equal(2, target.TotalPages);
+
+            var artifact = Assert.Single(target.Artifacts);
+            Assert.Equal("http_client", artifact.Name);
+            Assert.Equal("1.10.0", artifact.Version);
+            Assert.Equal("New", artifact.Description);
+            Assert.Equal(6, artifact.TotalDownloads);
+            Assert.True(artifact.Listed);
+        }
+
+        [Fact]
+        public async Task NuGetFeedsHaveNoArtifacts()
+        {
+            var target = Build();
+
+            await target.OnGetAsync(Cancellation);
+
+            Assert.Null(target.Artifacts);
+            Artifacts.VerifyNoOtherCalls();
+        }
+    }
+
     public abstract class FactsBase
     {
         protected readonly Mock<ISearchService> Search = new();
+        protected readonly Mock<IArtifactDatabase> Artifacts = new();
         protected readonly Mock<IFeedContext> FeedContext = new();
         protected readonly Mock<IFeedService> FeedService = new();
         protected readonly Mock<IPermissionService> Permissions = new();
@@ -207,6 +269,7 @@ public class IndexModelFacts
 
             var model = new IndexModel(
                 Search.Object,
+                Artifacts.Object,
                 FeedContext.Object,
                 FeedService.Object,
                 Permissions.Object,

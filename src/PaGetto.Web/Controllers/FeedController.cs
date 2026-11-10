@@ -59,11 +59,15 @@ public class FeedController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        if (!Enum.IsDefined(request.Type))
+            return BadRequest(new { error = "Unknown feed type." });
+
         var feed = new Feed
         {
             Slug = request.Slug,
             Name = request.Name,
             Description = request.Description,
+            Type = request.Type,
         };
 
         try

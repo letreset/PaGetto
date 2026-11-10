@@ -52,6 +52,9 @@ public partial class FeedsModel : PageModel
     [MaxLength(4000)]
     public string NewDescription { get; set; }
 
+    [BindProperty]
+    public FeedType NewType { get; set; }
+
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
 
@@ -117,15 +120,23 @@ public partial class FeedsModel : PageModel
             return Page();
         }
 
+        if (!Enum.IsDefined(NewType))
+        {
+            ErrorMessage = "Unknown feed type.";
+            Feeds = await _feedService.GetAllFeedsAsync(cancellationToken);
+            return Page();
+        }
+
         var feed = new Feed
         {
             Slug = slug,
             Name = NewName.Trim(),
+            Type = NewType,
             Description = string.IsNullOrWhiteSpace(NewDescription) ? null : NewDescription.Trim(),
         };
 
         await _feedService.CreateFeedAsync(feed, cancellationToken);
-        await _audit.AdminAsync(HttpContext, "feed_created", slug);
+        await _audit.AdminAsync(HttpContext, "feed_created", slug, $"type={feed.Type}");
 
         SuccessMessage = $"Feed '{slug}' created successfully.";
         Feeds = await _feedService.GetAllFeedsAsync(cancellationToken);

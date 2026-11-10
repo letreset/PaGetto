@@ -19,13 +19,25 @@ public class PackageMirrorLock
 {
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
-    public async Task<IDisposable> AcquireAsync(
+    public Task<IDisposable> AcquireAsync(
         Guid feedId,
         string id,
         NuGetVersion version,
         CancellationToken cancellationToken)
     {
-        var key = $"{feedId}/{id.ToLowerInvariant()}/{version.ToNormalizedString().ToLowerInvariant()}";
+        return AcquireAsync(feedId, id, version.ToNormalizedString(), cancellationToken);
+    }
+
+    /// <summary>
+    /// Acquires the lock for a package of a feed that is not a NuGet feed, whose versions are plain text.
+    /// </summary>
+    public async Task<IDisposable> AcquireAsync(
+        Guid feedId,
+        string id,
+        string version,
+        CancellationToken cancellationToken)
+    {
+        var key = $"{feedId}/{id.ToLowerInvariant()}/{version.ToLowerInvariant()}";
 
         Entry entry;
         lock (_entries)

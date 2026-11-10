@@ -13,10 +13,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Controllers;
 
 [Authorize(AuthenticationSchemes = AuthenticationConstants.NugetBasicAuthenticationScheme, Policy = AuthenticationConstants.NugetUserPolicy)]
+[FeedType(FeedType.NuGet)]
 public partial class SymbolController : Controller
 {
     private const long BytesPerMiB = 1024L * 1024;

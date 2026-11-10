@@ -9,6 +9,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 ## 📦 Features
 
 * **Multiple feeds**: each feed has its own packages, settings, retention and read-through mirror, under `/feeds/{slug}/v3/index.json`.
+* **Dart and Flutter packages**: a feed can be a hosted pub repository for `dart pub` and `flutter pub`, with a mirror of pub.dev.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.

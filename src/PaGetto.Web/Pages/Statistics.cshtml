@@ -13,6 +13,7 @@
 @inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
 @inject IStatisticsService StatisticsService
 @inject ApplicationVersion Version
+@inject PaGetto.Core.Feeds.IFeedContext FeedContext
 
 @{
     ViewData["Title"] = "Stats · " + Model.FeedName;
@@ -35,6 +36,7 @@
 @{
     var stats = Model.FeedStatistics;
     var topDownloads = Math.Max(1, stats.MostDownloaded.Select(p => p.Downloads).DefaultIfEmpty(0).Max());
+    var packagePage = FeedTypeNames.GetPackagePage(FeedContext.CurrentFeed.Type);
 }
 
 <div class="bgt-page-head-title" style="margin-bottom: 20px">
@@ -86,7 +88,7 @@
             {
                 var percent = (int)Math.Round(package.Downloads * 100.0 / topDownloads);
                 <div class="bgt-list-row">
-                    <a class="bgt-list-name bgt-stretched" href="@Url.Page("/Package", new { id = package.Id })">@package.Id</a>
+                    <a class="bgt-list-name bgt-stretched" href="@Url.Page(packagePage, new { id = package.Id })">@package.Id</a>
                     <div class="bgt-bar bgt-bar-lg" aria-hidden="true"><div style="width: @(percent)%"></div></div>
                     <span class="bgt-list-num">@package.Downloads.ToString("N0", CultureInfo.InvariantCulture)</span>
                 </div>
@@ -104,7 +106,7 @@
             @foreach (var version in stats.RecentlyPublished)
             {
                 <div class="bgt-list-row">
-                    <a class="bgt-list-name bgt-stretched" href="@Url.Page("/Package", new { id = version.Id, version = version.Version })">@version.Id</a>
+                    <a class="bgt-list-name bgt-stretched" href="@Url.Page(packagePage, new { id = version.Id, version = version.Version })">@version.Id</a>
                     <span class="bgt-version">@version.Version</span>
                     <span class="bgt-list-date">@Html.DisplayDate(version.Published)</span>
                 </div>

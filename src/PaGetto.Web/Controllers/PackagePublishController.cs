@@ -16,9 +16,11 @@ using Microsoft.Extensions.Options;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.Versioning;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Controllers;
 
+[FeedType(FeedType.NuGet)]
 public partial class PackagePublishController : Controller
 {
     private const long BytesPerMiB = 1024L * 1024;

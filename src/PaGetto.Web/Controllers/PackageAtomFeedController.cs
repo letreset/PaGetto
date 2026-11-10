@@ -24,6 +24,7 @@ namespace PaGetto.Web.Controllers;
 /// authenticate with Basic auth (a username and a personal access token).
 /// </summary>
 [Authorize(AuthenticationSchemes = AuthenticationConstants.NugetBasicAuthenticationScheme)]
+[FeedType(FeedType.NuGet)]
 public class PackageAtomFeedController : Controller
 {
     public const int MaxEntries = 20;

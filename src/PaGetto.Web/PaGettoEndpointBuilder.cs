@@ -19,6 +19,7 @@ public class PaGettoEndpointBuilder
         MapSearchRoutes(endpoints);
         MapPackageMetadataRoutes(endpoints);
         MapPackageContentRoutes(endpoints);
+        MapPubRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -104,6 +105,51 @@ public class PaGettoEndpointBuilder
             name: Routes.RegistrationLeafRouteName,
             pattern: "v3/registration/{id}/{version}.json",
             defaults: new { controller = "PackageMetadata", action = "RegistrationLeaf" });
+    }
+
+    /// <summary>
+    /// The pub API of Dart feeds.
+    /// See: https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md
+    /// </summary>
+    public void MapPubRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubNewVersionRouteName,
+            pattern: "api/packages/versions/new",
+            defaults: new { controller = "PubPackage", action = "NewVersion" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubUploadRouteName,
+            pattern: "api/packages/versions/newUpload",
+            defaults: new { controller = "PubPackage", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubFinishUploadRouteName,
+            pattern: "api/packages/versions/newUploadFinish",
+            defaults: new { controller = "PubPackage", action = "FinishUpload" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubPackageRouteName,
+            pattern: "api/packages/{name}",
+            defaults: new { controller = "PubPackage", action = "GetPackage" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubPackageVersionRouteName,
+            pattern: "api/packages/{name}/versions/{version}",
+            defaults: new { controller = "PubPackage", action = "GetPackageVersion" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: Routes.PubArchiveRouteName,
+            pattern: "packages/{name}/versions/{version}.tar.gz",
+            defaults: new { controller = "PubPackage", action = "DownloadArchive" },
+            constraints: get);
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

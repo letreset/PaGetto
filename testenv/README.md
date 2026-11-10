@@ -28,12 +28,14 @@ These credentials only exist in this test data. Never use them anywhere else.
 |---|---|
 | `docker-compose.yml` | The environment. `PAGETTO_TAG` picks the image tag (default `latest`), `PAGETTO_PORT` the port (default 5000) |
 | `data/` | The snapshot: `db/pagetto.db` and the package files. Mounted read-only and copied into a Docker volume on the first start |
-| `packages/` | The test packages (`Contoso.*`), built by the seed script |
+| `packages/` | The test packages (`Contoso.*`), built by the seed script. `packages/dart/` has the Dart packages (`contoso_*`) |
 | `seed/seed.mjs` | Builds the packages and fills an empty server with the data set |
 | `seed/template/` | The project the test packages are packed from |
 | `UI-TESTS.md` | The UI test checklist |
 
 ## Regenerating the snapshot
+
+> **Note:** the seed script also creates a Dart feed. The committed snapshot was made before Dart feeds existed, so it has none until it is regenerated with an image that supports them (`PAGETTO_TAG`).
 
 Do this when the data set changes, or when a new release changes the database schema in a way the snapshot can't be migrated from. Needs Docker, Node 18+ and the .NET SDK.
 

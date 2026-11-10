@@ -21,6 +21,7 @@ const sidebars: SidebarsConfig = {
     'migrating-from-bagetter',
     'upgrading',
     'feeds',
+    'dart',
     'web-ui',
     'authentication',
     'configuration',

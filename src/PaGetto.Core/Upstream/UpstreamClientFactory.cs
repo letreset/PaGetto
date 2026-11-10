@@ -57,6 +57,11 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         return new CachingUpstreamClient(upstream, _listingCache, feed, cacheDuration);
     }
 
+    public HttpClient CreateHttpClient(MirrorOptions mirror, Guid feedId, bool authenticate)
+    {
+        return CreateHttpClient(mirror, feedId, _loggerFactory.CreateLogger<UpstreamClientFactory>(), authenticate);
+    }
+
     private IUpstreamClient CreateForMirrors(IReadOnlyList<MirrorOptions> mirrors, Guid feedId)
     {
         // A single upstream is used directly, exactly as before multiple mirrors existed.
@@ -90,7 +95,7 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         "Connection", "Upgrade", "Proxy-Authorization", "Set-Cookie"
     };
 
-    private HttpClient CreateHttpClient(MirrorOptions options, Guid feedId, ILogger logger)
+    private HttpClient CreateHttpClient(MirrorOptions options, Guid feedId, ILogger logger, bool authenticate = true)
     {
         var client = _handlerOverride != null
             ? new HttpClient(_handlerOverride, disposeHandler: false)
@@ -102,7 +107,7 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         if (options.PackageDownloadTimeoutSeconds > 0)
             client.Timeout = TimeSpan.FromSeconds(options.PackageDownloadTimeoutSeconds);
 
-        if (options.Authentication is { } auth)
+        if (authenticate && options.Authentication is { } auth)
         {
             switch (auth.Type)
             {

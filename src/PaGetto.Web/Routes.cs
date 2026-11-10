@@ -21,4 +21,11 @@ public class Routes
     public const string SymbolDownloadRouteName = "symbol-download";
     public const string PrefixedSymbolDownloadRouteName = "prefixed-symbol-download";
     public const string PackageAtomFeedRouteName = "package-atom-feed";
+
+    public const string PubPackageRouteName = "pub-package";
+    public const string PubPackageVersionRouteName = "pub-package-version";
+    public const string PubArchiveRouteName = "pub-archive";
+    public const string PubNewVersionRouteName = "pub-new-version";
+    public const string PubUploadRouteName = "pub-upload";
+    public const string PubFinishUploadRouteName = "pub-finish-upload";
 }

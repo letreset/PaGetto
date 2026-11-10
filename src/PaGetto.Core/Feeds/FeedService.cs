@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -20,15 +21,18 @@ public partial class FeedService : IFeedService
 
     private readonly IContext _context;
     private readonly IPackageStorageService _packageStorage;
+    private readonly IArtifactStorageService _artifactStorage;
     private readonly ILogger<FeedService> _logger;
 
     public FeedService(
         IContext context,
         IPackageStorageService packageStorage,
+        IArtifactStorageService artifactStorage,
         ILogger<FeedService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _packageStorage = packageStorage ?? throw new ArgumentNullException(nameof(packageStorage));
+        _artifactStorage = artifactStorage ?? throw new ArgumentNullException(nameof(artifactStorage));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -124,6 +128,12 @@ public partial class FeedService : IFeedService
             _context.TargetFrameworks.RemoveRange(package.TargetFrameworks);
         }
 
+        // The packages of other feed types. Their rows are removed with the feed by the database.
+        var artifactVersions = await _context.ArtifactVersions
+            .Where(v => v.Artifact.FeedId == feedId)
+            .Select(v => new { v.Artifact.Name, v.Version })
+            .ToListAsync(cancellationToken);
+
         _context.Packages.RemoveRange(packages);
         _context.Feeds.Remove(feed);
         await _context.SaveChangesAsync(cancellationToken);
@@ -139,6 +149,18 @@ public partial class FeedService : IFeedService
             catch (Exception ex)
             {
                 LogPackageContentDeleteFailed(ex, package.Id, package.Version, feed.Slug);
+            }
+        }
+
+        foreach (var version in artifactVersions)
+        {
+            try
+            {
+                await _artifactStorage.DeleteAsync(feed.Slug, version.Name, version.Version, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                LogArtifactContentDeleteFailed(ex, version.Name, version.Version, feed.Slug);
             }
         }
 
@@ -191,4 +213,7 @@ public partial class FeedService : IFeedService
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to delete stored content for package {PackageId} {PackageVersion} while deleting feed {FeedSlug}")]
     private partial void LogPackageContentDeleteFailed(Exception exception, string packageId, NuGetVersion packageVersion, string feedSlug);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to delete stored content for package {PackageName} {PackageVersion} while deleting feed {FeedSlug}")]
+    private partial void LogArtifactContentDeleteFailed(Exception exception, string packageName, string packageVersion, string feedSlug);
 }
