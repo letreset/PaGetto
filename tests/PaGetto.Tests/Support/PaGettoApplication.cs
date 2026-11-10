@@ -31,6 +31,21 @@ public class PaGettoApplication : WebApplicationFactory<Startup>
     private readonly Action<Dictionary<string, string>> _inMemoryConfiguration;
     private readonly IReadOnlyList<string> _upstreamSources;
 
+    static PaGettoApplication()
+    {
+        // Every host that renders a page watches its static files (for asp-append-version), and on
+        // Linux each watcher is an inotify instance that is only released some time after the host
+        // is disposed. A test run starts hundreds of hosts and runs into the limit of 128 instances
+        // per user ("The configured user limit (128) on the number of inotify instances has been
+        // reached"). With this variable the file providers poll instead, which needs no watcher.
+        // A value that is already set wins.
+        const string usePolling = "DOTNET_USE_POLLING_FILE_WATCHER";
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(usePolling)))
+        {
+            Environment.SetEnvironmentVariable(usePolling, "1");
+        }
+    }
+
     public PaGettoApplication(
         ITestOutputHelper output,
         HttpMessageHandler upstreamHandler = null,
