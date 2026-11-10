@@ -294,7 +294,7 @@ async function seedServer() {
     // Every group's "Add member" menu lists the users as buttons: value is the id, the label the username.
     const userIds = Object.fromEntries([...groupsHtml.matchAll(/name="userId" value="([0-9a-f-]{36})"[^>]*>[\s\S]*?<span class="fw-medium">([^<]+)<\/span>/g)].map(m => [m[2].trim(), m[1]]));
     for (const g of groups) {
-        const card = groupsHtml.split('<section class="bgt-card"').find(p => new RegExp(`bgt-group-name[^>]*>\s*${g.name}\s*<`).test(p));
+        const card = groupsHtml.split('<section class="bgt-card"').find(p => new RegExp(`bgt-group-name[^>]*>\\s*${g.name}\\s*<`).test(p));
         const groupId = card?.match(/name="groupId" value="([0-9a-f-]{36})"/)?.[1];
         if (!groupId) throw new Error(`Group ${g.name} not found.`);
         for (const m of g.members) await postPage('/Admin/Groups', 'AddUser', { groupId, userId: userIds[m] });
