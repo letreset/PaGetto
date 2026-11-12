@@ -45,6 +45,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Maven)
+{
+    <partial name="_ConnectMaven" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

@@ -50,15 +50,24 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        // The pub client only reads a Bearer challenge, and shows its message to the user.
-        var isPubEndpoint = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type == FeedType.Pub;
+        // The pub client only reads a Bearer challenge, and shows its message to the user. sbt
+        // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet.
+        var endpointType = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type;
 
-        Response.Headers.WWWAuthenticate = isPubEndpoint
-            ? PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}")
-            : "Basic realm=\"NuGet Server\"";
+        Response.Headers.WWWAuthenticate = endpointType switch
+        {
+            FeedType.Pub => PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}"),
+            FeedType.Maven => $"Basic realm=\"{MavenRealm}\"",
+            _ => "Basic realm=\"NuGet Server\"",
+        };
 
         await base.HandleChallengeAsync(properties);
     }
+
+    /// <summary>
+    /// The realm of the Basic challenge of Maven feeds, which sbt credentials name.
+    /// </summary>
+    public const string MavenRealm = "PaGetto";
 
     /// <summary>
     /// The <c>WWW-Authenticate</c> value the pub client expects with a 401 or 403 response.

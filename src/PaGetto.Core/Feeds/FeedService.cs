@@ -131,7 +131,7 @@ public partial class FeedService : IFeedService
         // The packages of other feed types. Their rows are removed with the feed by the database.
         var artifactVersions = await _context.ArtifactVersions
             .Where(v => v.Artifact.FeedId == feedId)
-            .Select(v => new { v.Artifact.Name, v.Version })
+            .Select(v => new { v.Artifact.Name, v.Version, Files = v.Files.Select(f => f.FileName).ToList() })
             .ToListAsync(cancellationToken);
 
         _context.Packages.RemoveRange(packages);
@@ -157,6 +157,11 @@ public partial class FeedService : IFeedService
             try
             {
                 await _artifactStorage.DeleteAsync(feed.Slug, version.Name, version.Version, cancellationToken);
+
+                foreach (var fileName in version.Files)
+                {
+                    await _artifactStorage.DeleteFileAsync(feed.Slug, version.Name, version.Version, fileName, cancellationToken);
+                }
             }
             catch (Exception ex)
             {

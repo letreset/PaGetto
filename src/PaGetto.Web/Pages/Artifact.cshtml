@@ -5,6 +5,7 @@
 @using PaGetto.Core.Configuration
 @using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
+@using PaGetto.Core.Maven
 @using PaGetto.Web.Extensions
 @using PaGetto.Web.Helper
 @model ArtifactModel
@@ -61,6 +62,11 @@
     // Dart calls an unlisted version "retracted", npm "deprecated".
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
+    var isMaven = feed.Type == FeedType.Maven;
+
+    // A Maven package is named groupId:artifactId.
+    var groupId = isMaven ? name[..name.IndexOf(':')] : null;
+    var artifactId = isMaven ? name[(name.IndexOf(':') + 1)..] : null;
     var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : "unlisted";
     var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : "Unlist";
     var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : "Unlisting";
@@ -68,8 +74,9 @@
 
     // The parts of the manifest the page shows, from the ecosystem's own summary.
     var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines;
-    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies;
-    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links;
+    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies;
+    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links;
+    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
@@ -95,6 +102,13 @@
         installTabs.Add(new InstallTab { Name = "Yarn", Content = [$"yarn add {name}@{version}"] });
         installTabs.Add(new InstallTab { Name = "pnpm", Content = [$"pnpm add {name}@{version}"] });
         installTabs.Add(new InstallTab { Name = "package.json", Content = ["\"dependencies\": {", $"  \"{name}\": \"^{version}\"", "}"] });
+    }
+    else if (isMaven)
+    {
+        installTabs.Add(new InstallTab { Name = "Maven", Content = MavenDependency(groupId, artifactId, version) });
+        installTabs.Add(new InstallTab { Name = "Gradle (Kotlin)", Content = [$"implementation(\"{groupId}:{artifactId}:{version}\")"] });
+        installTabs.Add(new InstallTab { Name = "Gradle (Groovy)", Content = [$"implementation '{groupId}:{artifactId}:{version}'"] });
+        installTabs.Add(new InstallTab { Name = "sbt", Content = [$"libraryDependencies += \"{groupId}\" % \"{artifactId}\" % \"{version}\""] });
     }
 }
 
@@ -179,6 +193,10 @@
                 {
                     await TabButton("dependencies", "Dependencies", dependencies.Count);
                 }
+                @if (isMaven)
+                {
+                    await TabButton("files", "Files", Model.Files.Count);
+                }
                 @{ await TabButton("versions", "Versions", Model.Versions.Count); }
             </div>
 
@@ -212,6 +230,33 @@
                             }
                         </div>
                     }
+                </div>
+            }
+
+            @if (isMaven)
+            {
+                <div class="bgt-tab-body" x-show="tab === 'files'" x-cloak role="tabpanel">
+                    <div class="bgt-table-wrap">
+                        <table class="bgt-table">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Size</th>
+                                    <th>SHA-1</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var file in Model.Files)
+                                {
+                                    <tr>
+                                        <td class="mono"><a href="@($"{feedUrl}/maven2/{MavenFileUrlPath(groupId, artifactId, version, file.FileName)}")">@file.FileName</a></td>
+                                        <td>@file.Size.ToFileSize()</td>
+                                        <td class="mono" title="@file.Sha1">@file.Sha1[..12]&hellip;</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             }
 
@@ -331,9 +376,13 @@
                 <div><span>Type</span><span>@FeedTypeNames.GetDisplayName(feed.Type)</span></div>
                 <div><span>Updated</span><span>@Html.DisplayDate(Model.LastUpdated, Model.LastUpdated.Humanize(culture: CultureInfo.InvariantCulture))</span></div>
                 <div><span>Size</span><span>@current.Size.ToFileSize()</span></div>
-                @if (!string.IsNullOrEmpty(Model.NpmManifest?.License))
+                @if (isMaven && !string.IsNullOrEmpty(Model.MavenPom.Packaging))
                 {
-                    <div><span>License</span><span>@Model.NpmManifest.License</span></div>
+                    <div><span>Packaging</span><span>@Model.MavenPom.Packaging</span></div>
+                }
+                @if (!string.IsNullOrEmpty(license))
+                {
+                    <div><span>License</span><span>@license</span></div>
                 }
                 @if (!string.IsNullOrEmpty(current.ContentHash))
                 {
@@ -422,6 +471,24 @@
                 <span class="bgt-tab-count">@count.Value.ToString(CultureInfo.InvariantCulture)</span>
             }
         </button>
+    }
+
+    private static string[] MavenDependency(string groupId, string artifactId, string version)
+    {
+        return
+        [
+            "<dependency>",
+            $"  <groupId>{groupId}</groupId>",
+            $"  <artifactId>{artifactId}</artifactId>",
+            $"  <version>{version}</version>",
+            "</dependency>",
+        ];
+    }
+
+    // The path of a file below the repository URL; the group id's dots are folders.
+    private static string MavenFileUrlPath(string groupId, string artifactId, string version, string fileName)
+    {
+        return MavenPath.GetFilePath(groupId, artifactId, version, fileName);
     }
 
     private static string LinkLabel(string pubspecField)

@@ -29,6 +29,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public const int MaxArtifactVersionLength = 128;
     public const int MaxArtifactTagLength = 128;
     public const int MaxContentHashLength = 128;
+    public const int MaxArtifactFileNameLength = 256;
 
     public const int MaxUsernameLength = 256;
     public const int MaxDisplayNameLength = 256;
@@ -67,6 +68,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<Artifact> Artifacts { get; set; }
     public DbSet<ArtifactVersion> ArtifactVersions { get; set; }
     public DbSet<ArtifactTag> ArtifactTags { get; set; }
+    public DbSet<ArtifactFile> ArtifactFiles { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<PersonalAccessToken> PersonalAccessTokens { get; set; }
     public DbSet<Group> Groups { get; set; }
@@ -158,6 +160,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<Artifact>(BuildArtifactEntity);
         builder.Entity<ArtifactVersion>(BuildArtifactVersionEntity);
         builder.Entity<ArtifactTag>(BuildArtifactTagEntity);
+        builder.Entity<ArtifactFile>(BuildArtifactFileEntity);
         builder.Entity<User>(BuildUserEntity);
         builder.Entity<PersonalAccessToken>(BuildPersonalAccessTokenEntity);
         builder.Entity<Group>(BuildGroupEntity);
@@ -348,6 +351,27 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         version.Property(v => v.Description).HasMaxLength(DefaultMaxStringLength);
         version.Property(v => v.ContentHash).HasMaxLength(MaxContentHashLength);
         version.Property(v => v.CachedFrom).HasMaxLength(DefaultMaxStringLength);
+
+        version.HasMany(v => v.Files)
+            .WithOne(f => f.ArtifactVersion)
+            .HasForeignKey(f => f.ArtifactVersionKey)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void BuildArtifactFileEntity(EntityTypeBuilder<ArtifactFile> file)
+    {
+        file.HasKey(f => f.Key);
+        file.HasIndex(f => new { f.ArtifactVersionKey, f.FileName }).IsUnique();
+
+        file.Property(f => f.FileName)
+            .HasMaxLength(MaxArtifactFileNameLength)
+            .IsRequired();
+
+        file.Property(f => f.Sha1).HasMaxLength(40).IsRequired();
+        file.Property(f => f.Md5).HasMaxLength(32).IsRequired();
+        file.Property(f => f.Sha256).HasMaxLength(64).IsRequired();
+        file.Property(f => f.Sha512).HasMaxLength(128).IsRequired();
+        file.Property(f => f.CreatedAtUtc).IsRequired();
     }
 
     private void BuildPackageDependencyEntity(EntityTypeBuilder<PackageDependency> dependency)

@@ -76,6 +76,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsMavenVersionsAsMavenDoes()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Maven, [Version("1.0-SNAPSHOT"), Version("1.10"), Version("1.0"), Version("1.9-rc1"), Version("1.0-sp1")]);
+
+            Assert.Equal(new[] { "1.10", "1.9-rc1", "1.0-sp1", "1.0", "1.0-SNAPSHOT" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));

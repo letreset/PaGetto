@@ -26,7 +26,22 @@ public interface IArtifactStorageService
     Task<Stream> GetReadmeStreamAsync(string feedSlug, string name, string version, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Removes a version's content. Succeeds even if nothing is stored.
+    /// Removes a version's archive and readme. Succeeds even if nothing is stored. The files of
+    /// the version are removed with <see cref="DeleteFileAsync"/>.
     /// </summary>
     Task DeleteAsync(string feedSlug, string name, string version, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Persists one file of a version (see <see cref="Entities.ArtifactFile"/>), replacing the
+    /// file of that name if it is already stored.
+    /// </summary>
+    Task SaveFileAsync(string feedSlug, string name, string version, string fileName, Stream content, CancellationToken cancellationToken);
+
+    /// <returns>The file, or null if it is not stored.</returns>
+    Task<Stream> GetFileStreamAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes one file of a version. Succeeds even if it is not stored.
+    /// </summary>
+    Task DeleteFileAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken);
 }

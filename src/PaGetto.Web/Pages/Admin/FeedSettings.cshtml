@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -205,7 +205,7 @@
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="AllowPackageOverwrites">Package overwrite policy</label>
-                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.</div>
+                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.@(Model.Feed?.Type == FeedType.Maven ? " Files of SNAPSHOT versions are always replaced." : null)</div>
                 </div>
                 <div class="bgt-setting-control">
                     <select asp-for="AllowPackageOverwrites" class="form-select" data-global-value="@global.AllowPackageOverwrites">
@@ -233,7 +233,13 @@
             </div>
             }
             <div class="bgt-setting">
-                <div class="bgt-setting-label"><label asp-for="MaxPackageSizeMiB">Max package size</label></div>
+                <div class="bgt-setting-label">
+                    <label asp-for="MaxPackageSizeMiB">Max package size</label>
+                    @if (Model.Feed?.Type == FeedType.Maven)
+                    {
+                        <div class="bgt-setting-help">Applies to each file of a version.</div>
+                    }
+                </div>
                 <div class="bgt-setting-control">
                     <div class="bgt-with-unit">
                         <input asp-for="MaxPackageSizeMiB" type="number" min="1" class="form-control bgt-num" placeholder="@global.EffectiveMaxPackageSizeMiB" />
@@ -314,6 +320,14 @@
                             Upstream package sources, queried in order. Version lists from every mirror are merged
                             (an earlier mirror wins for the same version), and a package is downloaded from the first
                             mirror that has it.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.Maven)
+                    {
+                        <p>
+                            Upstream Maven repositories such as https://repo.maven.apache.org/maven2, queried in order.
+                            The first mirror that has a file serves it, and stores it in this feed. Versions published
+                            to this feed come first; snapshots are not mirrored.
                         </p>
                     }
                     else

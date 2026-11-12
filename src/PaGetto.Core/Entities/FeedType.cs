@@ -20,4 +20,10 @@ public enum FeedType
     /// JavaScript and TypeScript packages (the npm registry protocol), stored in the <see cref="Artifact"/> tables.
     /// </summary>
     Npm = 2,
+
+    /// <summary>
+    /// Java, Kotlin and Scala libraries (the Maven repository layout), stored in the <see cref="Artifact"/>
+    /// tables with the files of each version in <see cref="ArtifactFile"/>.
+    /// </summary>
+    Maven = 3,
 }

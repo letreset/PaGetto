@@ -20,7 +20,7 @@ public class FeedResponse
     public string Description { get; set; }
     public int SortOrder { get; set; }
 
-    /// <summary>The package ecosystem the feed serves: <c>"NuGet"</c>, <c>"Pub"</c> or <c>"Npm"</c>.</summary>
+    /// <summary>The package ecosystem the feed serves: <c>"NuGet"</c>, <c>"Pub"</c>, <c>"Npm"</c> or <c>"Maven"</c>.</summary>
     [JsonConverter(typeof(JsonStringEnumConverter<FeedType>))]
     public FeedType Type { get; set; }
 
