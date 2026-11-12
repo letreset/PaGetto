@@ -20,6 +20,7 @@ public class PaGettoEndpointBuilder
         MapPackageMetadataRoutes(endpoints);
         MapPackageContentRoutes(endpoints);
         MapPubRoutes(endpoints);
+        MapNpmRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -150,6 +151,103 @@ public class PaGettoEndpointBuilder
             pattern: "packages/{name}/versions/{version}.tar.gz",
             defaults: new { controller = "PubPackage", action = "DownloadArchive" },
             constraints: get);
+    }
+
+    /// <summary>
+    /// The npm registry API of npm feeds. The registry is at <c>npm/</c> under the feed, so that
+    /// package names can't collide with the pages of the web UI (there are npm packages called
+    /// "connect" and "statistics").
+    /// See: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md
+    /// </summary>
+    public void MapNpmRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+        var put = new { httpMethod = new HttpMethodRouteConstraint("PUT") };
+        var delete = new { httpMethod = new HttpMethodRouteConstraint("DELETE") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/ping",
+            defaults: new { controller = "NpmPackage", action = "Ping" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/whoami",
+            defaults: new { controller = "NpmPackage", action = "WhoAmI" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/v1/search",
+            defaults: new { controller = "NpmPackage", action = "Search" },
+            constraints: get);
+
+        // A scoped name is sent as one segment here: @scope%2fname.
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/package/{name}/dist-tags",
+            defaults: new { controller = "NpmPackage", action = "GetDistTags" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/package/{name}/dist-tags/{tag}",
+            defaults: new { controller = "NpmPackage", action = "SetDistTag" },
+            constraints: put);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/package/{name}/dist-tags/{tag}",
+            defaults: new { controller = "NpmPackage", action = "RemoveDistTag" },
+            constraints: delete);
+
+        // Clients send a scoped name as @scope%2fname, which matches {name}; @scope/name matches
+        // the scoped routes. Tarball URLs are in the scoped form, like the npm registry's.
+        foreach (var prefix in new[] { "npm/{name}", "npm/@{scope}/{name}" })
+        {
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: prefix,
+                defaults: new { controller = "NpmPackage", action = "GetPackage" },
+                constraints: get);
+
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: prefix + "/-/{fileName}",
+                defaults: new { controller = "NpmPackage", action = "DownloadTarball" },
+                constraints: get);
+
+            // npm publish and npm deprecate send the package document to the first; npm unpublish
+            // of one version sends it to the second.
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: prefix,
+                defaults: new { controller = "NpmPackage", action = "PutPackage" },
+                constraints: put);
+
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: prefix + "/-rev/{rev}",
+                defaults: new { controller = "NpmPackage", action = "PutPackage" },
+                constraints: put);
+
+            // npm unpublish of a whole package.
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: prefix + "/-rev/{rev}",
+                defaults: new { controller = "NpmPackage", action = "UnpublishPackage" },
+                constraints: delete);
+        }
+
+        // The last step of npm unpublish of one version deletes the tarball. The client builds the
+        // URL from the tarball URL's path, which repeats the feed's path below a registry that is
+        // not at the root of its host, so any path is accepted.
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/{**path}",
+            defaults: new { controller = "NpmPackage", action = "DeleteTarball" },
+            constraints: delete);
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

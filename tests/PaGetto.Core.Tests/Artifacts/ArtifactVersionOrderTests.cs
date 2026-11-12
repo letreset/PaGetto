@@ -39,6 +39,18 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void PrefersTheVersionOfTheLatestTag()
+        {
+            ArtifactVersion[] versions = [Version("1.0.0", listed: false), Version("2.0.0-beta.1", isPrerelease: true)];
+
+            Assert.Equal("1.0.0", ArtifactVersionOrder.GetLatest(FeedType.Npm, versions, [Tag("latest", "1.0.0"), Tag("beta", "2.0.0-beta.1")]).Version);
+
+            // A tag of a version that is gone, or another tag, is ignored.
+            Assert.Equal("2.0.0-beta.1", ArtifactVersionOrder.GetLatest(FeedType.Npm, versions, [Tag("latest", "9.9.9")]).Version);
+            Assert.Equal("2.0.0-beta.1", ArtifactVersionOrder.GetLatest(FeedType.Npm, versions, [Tag("next", "1.0.0")]).Version);
+        }
+
+        [Fact]
         public void ReturnsNullWithoutVersions()
         {
             Assert.Null(ArtifactVersionOrder.GetLatest(FeedType.Pub, []));
@@ -56,10 +68,23 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsNpmVersionsByPrecedence()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Npm, [Version("1.0.0-beta.2"), Version("1.0.0"), Version("1.0.0-beta.10"), Version("0.10.0")]);
+
+            Assert.Equal(new[] { "1.0.0", "1.0.0-beta.10", "1.0.0-beta.2", "0.10.0" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));
         }
+    }
+
+    private static ArtifactTag Tag(string name, string version)
+    {
+        return new ArtifactTag { Name = name, Version = version };
     }
 
     private static ArtifactVersion Version(string version, bool isPrerelease = false, bool listed = true)

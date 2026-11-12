@@ -19,8 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Builds pub package archives; shared with the Core tests. -->
+    <!-- Build pub package archives and npm tarballs; shared with the Core tests. -->
     <Compile Include="..\PaGetto.Core.Tests\Support\PubArchiveBuilder.cs" Link="Support\PubArchiveBuilder.cs" />
+    <Compile Include="..\PaGetto.Core.Tests\Support\NpmTarballBuilder.cs" Link="Support\NpmTarballBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

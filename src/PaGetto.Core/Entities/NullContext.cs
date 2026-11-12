@@ -16,6 +16,7 @@ public class NullContext : IContext
     public DbSet<TargetFramework> TargetFrameworks { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<Artifact> Artifacts { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<ArtifactVersion> ArtifactVersions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public DbSet<ArtifactTag> ArtifactTags { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<User> Users { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<PersonalAccessToken> PersonalAccessTokens { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<Group> Groups { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }

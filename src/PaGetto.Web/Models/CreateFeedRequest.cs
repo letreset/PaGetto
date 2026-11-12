@@ -15,7 +15,7 @@ public class CreateFeedRequest
     public string Description { get; set; }
 
     /// <summary>
-    /// The package ecosystem the feed serves: <c>"NuGet"</c> or <c>"Pub"</c>. NuGet when omitted.
+    /// The package ecosystem the feed serves: <c>"NuGet"</c>, <c>"Pub"</c> or <c>"Npm"</c>. NuGet when omitted.
     /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter<FeedType>))]
     public FeedType Type { get; set; }

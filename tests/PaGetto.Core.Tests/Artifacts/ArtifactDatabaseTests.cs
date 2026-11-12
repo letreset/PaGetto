@@ -144,6 +144,92 @@ public class ArtifactDatabaseTests
         }
     }
 
+    public class UpdateVersionAsync : FactsBase
+    {
+        [Fact]
+        public async Task ChangesTheListingAndTheManifestTogether()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+
+            Assert.True(await Target.UpdateVersionAsync(Feed.Id, "my_package", "1.0.0", listed: false, "{\"deprecated\":\"old\"}", Ct));
+
+            var version = await Context.ArtifactVersions.AsNoTracking().SingleAsync(Ct);
+            Assert.False(version.Listed);
+            Assert.Equal("{\"deprecated\":\"old\"}", version.MetadataJson);
+        }
+
+        [Fact]
+        public async Task ReturnsFalseForAnUnknownVersion()
+        {
+            Assert.False(await Target.UpdateVersionAsync(Feed.Id, "my_package", "1.0.0", listed: true, "{}", Ct));
+        }
+    }
+
+    public class SetTagAsync : FactsBase
+    {
+        [Fact]
+        public async Task CreatesAndMovesATag()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("2.0.0-Beta"), Ct);
+
+            Assert.True(await Target.SetTagAsync(Feed.Id, "my_package", "next", "1.0.0", Ct));
+            Assert.True(await Target.SetTagAsync(Feed.Id, "my_package", "next", "2.0.0-beta", Ct));
+
+            // The tag points at the version as it was published.
+            var tag = Assert.Single(await Target.FindTagsAsync(Feed.Id, "my_package", Ct));
+            Assert.Equal("next", tag.Name);
+            Assert.Equal("2.0.0-Beta", tag.Version);
+        }
+
+        [Fact]
+        public async Task ReturnsFalseForAnUnknownVersion()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+
+            Assert.False(await Target.SetTagAsync(Feed.Id, "my_package", "next", "9.9.9", Ct));
+            Assert.False(await Target.SetTagAsync(Feed.Id, "other", "next", "1.0.0", Ct));
+            Assert.Empty(await Target.FindTagsAsync(Feed.Id, "my_package", Ct));
+        }
+    }
+
+    public class RemoveTagAsync : FactsBase
+    {
+        [Fact]
+        public async Task RemovesOnlyThatTag()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+            await Target.SetTagAsync(Feed.Id, "my_package", "latest", "1.0.0", Ct);
+            await Target.SetTagAsync(Feed.Id, "my_package", "next", "1.0.0", Ct);
+
+            Assert.True(await Target.RemoveTagAsync(Feed.Id, "my_package", "next", Ct));
+            Assert.False(await Target.RemoveTagAsync(Feed.Id, "my_package", "next", Ct));
+
+            Assert.Equal("latest", Assert.Single(await Target.FindTagsAsync(Feed.Id, "my_package", Ct)).Name);
+        }
+    }
+
+    public class HardDeleteVersionTags : FactsBase
+    {
+        [Fact]
+        public async Task RemovesTheTagsOfTheDeletedVersion()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("2.0.0"), Ct);
+            await Target.SetTagAsync(Feed.Id, "my_package", "latest", "1.0.0", Ct);
+            await Target.SetTagAsync(Feed.Id, "my_package", "next", "2.0.0", Ct);
+
+            await Target.HardDeleteVersionAsync(Feed.Id, "my_package", "2.0.0", Ct);
+
+            Assert.Equal("latest", Assert.Single(await Target.FindTagsAsync(Feed.Id, "my_package", Ct)).Name);
+
+            // The package goes with its last version, and its tags with it.
+            await Target.HardDeleteVersionAsync(Feed.Id, "my_package", "1.0.0", Ct);
+
+            Assert.Empty(await Context.ArtifactTags.ToListAsync(Ct));
+        }
+    }
+
     public class AddDownloadAsync : FactsBase
     {
         [Fact]

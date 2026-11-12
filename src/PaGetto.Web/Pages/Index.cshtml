@@ -449,6 +449,7 @@ else
         return feedType switch
         {
             FeedType.Pub => $"dart pub add {artifact.Name}:^{artifact.Version} --hosted-url {feedUrl}",
+            FeedType.Npm => $"npm install {artifact.Name}@{artifact.Version}",
             _ => artifact.Name,
         };
     }
