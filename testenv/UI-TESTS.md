@@ -205,6 +205,27 @@ These checks use the Dart feed of the data set. They need PaGetto 1.3.0 or later
 | D11 | `admin` | Dart > **Statistics** | 3 packages ("1 unlisted version"), 8 versions ("7 stable · 1 prerelease") and 23 total downloads. **Most downloaded**: contoso_core (14), contoso_http (6), contoso_widgets (3), each linking to its package page |
 | D12 | `carol` | Open `/feeds/dart/packages/contoso_core`, `/feeds/dart/upload` and `/feeds/internal/artifacts/contoso_core` | 404 for all three: NuGet pages don't exist on a Dart feed, and the Dart package page doesn't exist on a NuGet feed |
 
+## npm feeds
+
+The data set has no npm feed, so J1 creates one and the later checks use it. They need PaGetto 1.4.0 or later, Node.js with npm, and a personal access token of `admin` from **My Tokens** in place of `<token>`. Run the npm commands in an empty folder with this `.npmrc`:
+
+```ini
+registry=http://localhost:5000/feeds/js/npm/
+//localhost:5000/feeds/js/npm/:_authToken=<token>
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| J1 | `admin` | Admin > Feeds > **New feed**: slug `js`, type **npm**; open its **Settings**; give the group of `carol` Pull on it | The feed shows an **npm** badge and its copy button copies `http://localhost:5000/feeds/js/npm/`. Settings have no Retention section and no Deletion behavior setting, the mirror URL placeholder is `https://registry.npmjs.org` and there is no "Use NuGet V2" checkbox |
+| J2 | `admin` | In a folder with a `package.json` named `@contoso/ui` (version `1.0.0`, a description, a README.md), run `npm publish`; then bump to `1.1.0-beta.1` and run `npm publish --tag beta` | Both print `+ @contoso/ui@…`. `npm view @contoso/ui` shows the description and the dist-tags `latest: 1.0.0` and `beta: 1.1.0-beta.1`. `npm publish` of 1.0.0 again fails with "cannot publish over the previously published versions" |
+| J3 | `carol` | Open js (`/feeds/js/`), then @contoso/ui | "npm feed" above the feed name and one package @contoso/ui v1.0.0 with a **UI** tile. The package page shows 1.0.0 with a **latest** badge, the readme, install tabs **npm**, **Yarn**, **pnpm** and **package.json**, both versions under **Versions**, and **Download tarball** downloads `ui-1.0.0.tgz` |
+| J4 | `admin` | `npm deprecate @contoso/ui@1.0.0 "Use 2.x"`, reload the package page; then `npm deprecate @contoso/ui@1.0.0 ""` | After the first: a **deprecated** badge next to **latest** (1.0.0 stays the latest version, as npm's `latest` tag still points at it, also in the package list) and the note "This version is deprecated: Use 2.x.", and `npm install @contoso/ui@1.0.0` warns with the message. After the second, both are gone |
+| J5 | `admin` | `npm dist-tag add @contoso/ui@1.0.0 stable`, `npm dist-tag ls @contoso/ui`, `npm dist-tag rm @contoso/ui stable`, `npm dist-tag rm @contoso/ui latest` | The list has `beta`, `latest` and `stable`; removing `stable` works; removing `latest` fails with "The latest tag can't be removed." |
+| J6 | `carol` | js > **Connect** | Registry URL `http://localhost:5000/feeds/js/npm/` with a copy button, an "Authentication required" note that links to My Tokens, a "This feed has no mirror" note, and the tabs **.npmrc** (with `//localhost:5000/feeds/js/npm/:_authToken=YOUR_TOKEN`), **Scoped packages**, **Yarn**, **pnpm** and **Publish** |
+| J7 | none | `curl -i http://localhost:5000/feeds/js/npm/@contoso%2fui`; the same with `-u carol:<password>`; then with `-u carol:<password>` for `/feeds/js/v3/index.json` and `/feeds/internal/npm/@contoso%2fui` | Without credentials: 401. With them: 200 and JSON with both versions, each `dist.tarball` on `localhost:5000/feeds/js/npm/@contoso/ui/-/`. The NuGet API on the npm feed and the npm API on a NuGet feed: 404 |
+| J8 | `admin` | Add the mirror `https://registry.npmjs.org` to js (needs internet). In a folder with `package.json` `{}`, run `npm install express@4 JSONStream`, then reload js | The install succeeds and every `resolved` URL in `package-lock.json` is on `localhost:5000/feeds/js/npm/`. express, its dependencies and jsonstream are in the package list, and their versions carry a **mirror** label |
+| J9 | `admin` | `npm unpublish @contoso/ui@1.1.0-beta.1`, then on the package page of 1.0.0 **Deprecate 1.0.0**, **Undeprecate**, and **Delete 1.0.0**; delete the feed afterwards | The unpublish prints `- @contoso/ui@1.1.0-beta.1` and the version is gone from the page. The page buttons ask for confirmation and work; after the delete the package is gone. The audit log has `package_delete_succeeded`, `package_unlist_succeeded` and `package_relist_succeeded` rows for feed `js`. Do `down -v` afterwards |
+
 ## Small screens
 
 | # | Account | Steps | Expected |
