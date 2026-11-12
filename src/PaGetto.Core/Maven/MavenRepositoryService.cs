@@ -120,7 +120,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
                 }
                 catch (InvalidMavenPomException e)
                 {
-                    LogInvalidPom(e, path.FilePath, feed.Slug);
+                    LogPomRejected(e, path.FilePath, feed.Slug);
                     return Invalid(e.Message);
                 }
 
@@ -536,7 +536,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
     private partial void LogPublished(string fileName, string packageName, string packageVersion, string feedSlug);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A POM uploaded to {Path} in feed {FeedSlug} is invalid")]
-    private partial void LogInvalidPom(Exception exception, string path, string feedSlug);
+    private partial void LogPomRejected(Exception exception, string path, string feedSlug);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mirrored Maven file {Path} from {PackageSource}")]
     private partial void LogMirrored(string path, Uri packageSource);
