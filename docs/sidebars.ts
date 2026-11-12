@@ -24,6 +24,7 @@ const sidebars: SidebarsConfig = {
     'dart',
     'npm',
     'maven',
+    'pypi',
     'web-ui',
     'authentication',
     'configuration',

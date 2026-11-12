@@ -320,7 +320,7 @@ dotnet nuget push -s https://your-pagetto-url/v3/index.json \
 
 :::note
 
-When a PAT is used as a password, the username must be the token owner's username; it is not case-sensitive. For an Entra user that is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. Administrators see it on **Admin > Accounts**. Use the service index of the [feed](feeds.md#feed-urls) you want, e.g. `https://your-pagetto-url/feeds/internal/v3/index.json`.
+When a PAT is used as a password, the username must be the token owner's username; it is not case-sensitive. The username `__token__` also goes with any PAT, as Python clients send PyPI's API tokens. For an Entra user that is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. Administrators see it on **Admin > Accounts**. Use the service index of the [feed](feeds.md#feed-urls) you want, e.g. `https://your-pagetto-url/feeds/internal/v3/index.json`.
 
 :::
 
@@ -335,6 +335,10 @@ npm, Yarn and pnpm send a personal access token as a bearer token. Put it in `.n
 ## Using PaGetto from Maven, Gradle and sbt
 
 Maven, Gradle and sbt send a username and a personal access token with Basic authentication: in Maven's `settings.xml` as the `server` of the repository's id, in Gradle as the repository's `credentials`. See [Maven packages](maven.md#configure-the-client).
+
+## Using PaGetto from pip, uv, Poetry and twine
+
+Python clients send a personal access token with Basic authentication, with the username `__token__` as for PyPI's API tokens (the token owner's username works too): in `~/.netrc` for pip, in environment variables for uv, with `poetry config http-basic` for Poetry, and in `~/.pypirc` for twine. See [Python packages](pypi.md#configure-the-client).
 
 ## Full configuration reference
 

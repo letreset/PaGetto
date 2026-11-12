@@ -246,6 +246,38 @@ The data set has no Maven feed, so MV1 creates one and the later checks use it. 
 | MV8 | `admin` | Add the mirror `https://repo.maven.apache.org/maven2` to jvm (needs internet). In a Maven project that depends on `org.apache.commons:commons-lang3:3.14.0`, use the **Maven mirror** tab of Connect as `settings.xml`, run `mvn -U dependency:tree` with an empty local repository, then reload jvm | The build succeeds, every download is from `localhost:5000/feeds/jvm/maven2/`, and `dependency:tree` lists commons-lang3. commons-lang3 and the Maven plugins are in the package list, and their versions carry a **mirror** label |
 | MV9 | `admin` | On the package page of com.contoso:widgets 1.0.0: **Unlist 1.0.0**, reload its `maven-metadata.xml`, **Relist**, then **Delete 1.0.0**; delete the feed afterwards | While unlisted, 1.0.0 is missing from the metadata but its JAR still downloads. The buttons ask for confirmation and work; after the delete the version and its **Files** are gone. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `jvm`. Do `down -v` afterwards |
 
+## Python feeds
+
+The data set has no Python feed, so PY1 creates one and the later checks use it. They need PaGetto 1.6.0 or later, Python 3.9 or later with `pip install build twine uv`, and a personal access token of `admin` from **My Tokens** in place of `<token>`. A test project is a folder with a `README.md`, a package folder and this `pyproject.toml`:
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "Contoso.Widgets"
+version = "1.0.0"
+description = "Widgets for Contoso."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["requests>=2.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/contoso_widgets"]
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| PY1 | `admin` | Admin > Feeds > **New feed**: slug `py`, type **Python**; open its **Settings**; give the group of `carol` Pull on it | The feed shows a **Python** badge and its copy button copies `http://localhost:5000/feeds/py/pypi/simple/`. Settings have no Retention section and no Deletion behavior setting, the mirror URL placeholder is `https://pypi.org/simple` and the max package size "Applies to each file of a version." |
+| PY2 | `admin` | In the test project run `python -m build`, then `twine upload --repository-url http://localhost:5000/feeds/py/pypi/legacy/ -u __token__ -p <token> dist/*`; change the code, build again and upload again | The first upload prints `Uploading` for the wheel and the sdist and succeeds. The second fails with `409 Conflict` and `File already exists: contoso_widgets-1.0.0-py3-none-any.whl of contoso-widgets 1.0.0, and the feed does not allow overwriting it.` |
+| PY3 | `admin` | Change the version to `1.1.0b1`, then `uv build` and `uv publish --publish-url http://localhost:5000/feeds/py/pypi/legacy/ --username __token__ --password <token>`; run the same `uv publish` again with `--check-url http://localhost:5000/feeds/py/pypi/simple/` | The publish succeeds; the second one prints `already exists, skipping` for both files |
+| PY4 | `carol` | Open py (`/feeds/py/`), then Contoso.Widgets | "Python feed" above the feed name, the package as `Contoso.Widgets`, and **Install** copies `pip install Contoso.Widgets==1.0.0`. The package page shows 1.0.0 with a **latest** badge, the description, `Python >=3.9`, the tabs **pip**, **uv**, **Poetry** and **requirements.txt**, the readme, `requests >=2.0` under **Dependencies**, the wheel and sdist with sizes and SHA-256 under **Files** (each name downloads the file, the `.metadata` files are not listed), and 1.0.0 and 1.1.0b1 (marked prerelease) under **Versions**. `/feeds/py/artifacts/contoso-widgets` shows the same page |
+| PY5 | `carol` | py > **Connect** | Index URL `http://localhost:5000/feeds/py/pypi/simple/` and upload URL `http://localhost:5000/feeds/py/pypi/legacy/` with copy buttons, an "Authentication required" note that names `__token__` and links to My Tokens, a "This feed has no mirror" note, and the tabs **pip**, **uv**, **Poetry** (with `--priority=primary PyPI`) and **Publish** |
+| PY6 | none | `curl -i http://localhost:5000/feeds/py/pypi/simple/contoso-widgets/`; the same with `-u __token__:<token>`, then with `-H "Accept: application/vnd.pypi.simple.v1+json"`, and for `/pypi/simple/Contoso_Widgets/`; then with `-u carol:<password>` for `/feeds/py/v3/index.json` and `/feeds/internal/pypi/simple/` | Without credentials: 401 with `WWW-Authenticate: Basic realm="PaGetto"`. With them: 200 and an HTML page with a link per file, each with `#sha256=` and `data-requires-python="&gt;=3.9"`, and wheels with `data-core-metadata`; the JSON form lists the versions 1.0.0 and 1.1.0b1 and the files; the name that is not normalized answers 301 to `/pypi/simple/contoso-widgets/`. The NuGet API on the Python feed and the index on a NuGet feed: 404 |
+| PY7 | `admin` | Add the mirror `https://pypi.org/simple` to py (needs internet). In a new virtual environment run `pip install --index-url http://__token__:<token>@localhost:5000/feeds/py/pypi/simple/ Contoso.Widgets`, then reload py | The install succeeds with Contoso.Widgets 1.0.0 and requests and its dependencies, every download is from `localhost:5000/feeds/py/pypi/files/`, and pip downloads `….whl.metadata` files. requests and its dependencies are in the package list, and their versions carry a **mirror** label |
+| PY8 | `admin` | On the package page of Contoso.Widgets 1.0.0: **Yank 1.0.0**, reload `/feeds/py/pypi/simple/contoso-widgets/` and run `pip install "Contoso.Widgets==1.0.0"` as in PY7 in a new virtual environment; **Unyank**, then **Delete 1.0.0**; delete the feed afterwards | While yanked, the links of 1.0.0 carry `data-yanked`, and pip installs the pinned version with a warning that it is yanked. The buttons ask for confirmation and work; after the delete the version and its **Files** are gone. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `py`. Do `down -v` afterwards |
+
 ## Small screens
 
 | # | Account | Steps | Expected |
