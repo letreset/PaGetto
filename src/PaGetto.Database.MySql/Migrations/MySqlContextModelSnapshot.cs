@@ -51,6 +51,56 @@ namespace PaGetto.Database.MySql.Migrations
                     b.ToTable("Artifacts");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactFile", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<int>("ArtifactVersionKey")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("Md5")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("Sha1")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Sha512")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactVersionKey", "FileName")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactFiles");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
                 {
                     b.Property<int>("Key")
@@ -775,6 +825,17 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Navigation("Feed");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactFile", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.ArtifactVersion", "ArtifactVersion")
+                        .WithMany("Files")
+                        .HasForeignKey("ArtifactVersionKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArtifactVersion");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
@@ -905,6 +966,11 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Navigation("Tags");
 
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Feed", b =>

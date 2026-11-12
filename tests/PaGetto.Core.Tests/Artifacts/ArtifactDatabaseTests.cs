@@ -165,6 +165,92 @@ public class ArtifactDatabaseTests
         }
     }
 
+    public class UpdateManifestAsync : FactsBase
+    {
+        [Fact]
+        public async Task ChangesTheDescriptionAndTheManifest()
+        {
+            await Target.AddVersionAsync(Feed.Id, "com.example:my-lib", NewVersion("1.0"), Ct);
+
+            Assert.True(await Target.UpdateManifestAsync(Feed.Id, "com.example:my-lib", "1.0", "From the POM", "{\"packaging\":\"jar\"}", Ct));
+
+            var version = await Context.ArtifactVersions.AsNoTracking().SingleAsync(Ct);
+            Assert.Equal("From the POM", version.Description);
+            Assert.Equal("{\"packaging\":\"jar\"}", version.MetadataJson);
+            Assert.True(version.Listed);
+        }
+
+        [Fact]
+        public async Task ReturnsFalseForAnUnknownVersion()
+        {
+            Assert.False(await Target.UpdateManifestAsync(Feed.Id, "com.example:my-lib", "1.0", null, "{}", Ct));
+        }
+    }
+
+    public class AddOrReplaceFileAsync : FactsBase
+    {
+        [Fact]
+        public async Task AddsFilesAndTotalsTheirSize()
+        {
+            await Target.AddVersionAsync(Feed.Id, "com.example:my-lib", NewVersion("1.0"), Ct);
+
+            Assert.True(await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("my-lib-1.0.pom", 10), Ct));
+            Assert.True(await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("my-lib-1.0.jar", 100), Ct));
+
+            var files = await Target.FindFilesAsync(Feed.Id, "com.example:my-lib", "1.0", Ct);
+            Assert.Equal(new[] { "my-lib-1.0.jar", "my-lib-1.0.pom" }, files.Select(f => f.FileName));
+            Assert.Equal(110, (await Context.ArtifactVersions.AsNoTracking().SingleAsync(Ct)).Size);
+        }
+
+        [Fact]
+        public async Task ReplacesTheFileOfTheSameNameRegardlessOfCase()
+        {
+            await Target.AddVersionAsync(Feed.Id, "com.example:my-lib", NewVersion("1.0"), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("my-lib-1.0.jar", 100, "aaa"), Ct);
+
+            Assert.True(await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("My-Lib-1.0.jar", 50, "bbb"), Ct));
+
+            var file = Assert.Single(await Target.FindFilesAsync(Feed.Id, "com.example:my-lib", "1.0", Ct));
+            Assert.Equal("My-Lib-1.0.jar", file.FileName);
+            Assert.Equal("bbb", file.Sha256);
+            Assert.Equal(50, (await Context.ArtifactVersions.AsNoTracking().SingleAsync(Ct)).Size);
+        }
+
+        [Fact]
+        public async Task ReturnsFalseForAnUnknownVersion()
+        {
+            Assert.False(await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("my-lib-1.0.jar", 1), Ct));
+        }
+
+        [Fact]
+        public async Task FilesAreRemovedWithTheirVersion()
+        {
+            await Target.AddVersionAsync(Feed.Id, "com.example:my-lib", NewVersion("1.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "com.example:my-lib", NewVersion("2.0"), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "1.0", NewFile("my-lib-1.0.jar", 1), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "com.example:my-lib", "2.0", NewFile("my-lib-2.0.jar", 1), Ct);
+
+            await Target.HardDeleteVersionAsync(Feed.Id, "com.example:my-lib", "1.0", Ct);
+
+            Assert.Empty(await Target.FindFilesAsync(Feed.Id, "com.example:my-lib", "1.0", Ct));
+            Assert.Equal("my-lib-2.0.jar", (await Context.ArtifactFiles.AsNoTracking().SingleAsync(Ct)).FileName);
+        }
+
+        private static ArtifactFile NewFile(string fileName, long size, string sha256 = "c0ffee")
+        {
+            return new ArtifactFile
+            {
+                FileName = fileName,
+                Size = size,
+                Sha1 = "sha1",
+                Md5 = "md5",
+                Sha256 = sha256,
+                Sha512 = "sha512",
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+        }
+    }
+
     public class SetTagAsync : FactsBase
     {
         [Fact]

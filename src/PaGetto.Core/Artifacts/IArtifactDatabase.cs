@@ -44,6 +44,26 @@ public interface IArtifactDatabase
     Task<bool> UpdateVersionAsync(Guid feedId, string name, string version, bool listed, string metadataJson, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Changes the manifest and description of a version, e.g. once the POM of a Maven version
+    /// arrives after its other files.
+    /// </summary>
+    /// <returns>False if the version does not exist.</returns>
+    Task<bool> UpdateManifestAsync(Guid feedId, string name, string version, string description, string metadataJson, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Finds the files of a version (see <see cref="ArtifactFile"/>).
+    /// </summary>
+    /// <returns>The files, ordered by name. Empty if the version does not exist or has no files.</returns>
+    Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, string version, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Adds a file to a version, or replaces the file of the same name regardless of case, and
+    /// updates the version's size to the total of its files.
+    /// </summary>
+    /// <returns>False if the version does not exist.</returns>
+    Task<bool> AddOrReplaceFileAsync(Guid feedId, string name, string version, ArtifactFile file, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Removes a version and the tags that point at it, and the package itself once it has no
     /// versions left.
     /// </summary>

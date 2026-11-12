@@ -16,6 +16,7 @@ public interface IContext
     DbSet<Artifact> Artifacts { get; set; }
     DbSet<ArtifactVersion> ArtifactVersions { get; set; }
     DbSet<ArtifactTag> ArtifactTags { get; set; }
+    DbSet<ArtifactFile> ArtifactFiles { get; set; }
     DbSet<User> Users { get; set; }
     DbSet<PersonalAccessToken> PersonalAccessTokens { get; set; }
     DbSet<Group> Groups { get; set; }

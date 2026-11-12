@@ -13,6 +13,7 @@ using PaGetto.Core.Email;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Core.Maven;
 using PaGetto.Core.Metadata;
 using PaGetto.Core.Notifications;
 using PaGetto.Core.Npm;
@@ -145,6 +146,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<PubUpstreamClient>();
         services.TryAddTransient<INpmPackageService, NpmPackageService>();
         services.TryAddTransient<NpmUpstreamClient>();
+        services.TryAddTransient<IMavenRepositoryService, MavenRepositoryService>();
+        services.TryAddTransient<MavenUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

@@ -8,7 +8,7 @@ namespace PaGetto.Web.Helper;
 public static class FeedTypeNames
 {
     /// <summary>
-    /// The name of the ecosystem, e.g. "NuGet", "Dart" or "npm".
+    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm" or "Maven".
     /// </summary>
     public static string GetDisplayName(FeedType type)
     {
@@ -16,13 +16,14 @@ public static class FeedTypeNames
         {
             FeedType.Pub => "Dart",
             FeedType.Npm => "npm",
+            FeedType.Maven => "Maven",
             _ => "NuGet",
         };
     }
 
     /// <summary>
     /// The URL clients are configured with: the service index of a NuGet feed, the hosted URL of a
-    /// Dart feed, or the registry URL of an npm feed.
+    /// Dart feed, the registry URL of an npm feed, or the repository URL of a Maven feed.
     /// </summary>
     /// <param name="type">The feed's type.</param>
     /// <param name="feedUrl">The feed's root URL, e.g. <c>https://example.com/feeds/internal</c>.</param>
@@ -34,6 +35,7 @@ public static class FeedTypeNames
         {
             FeedType.Pub => feedUrl,
             FeedType.Npm => feedUrl + "/npm/",
+            FeedType.Maven => feedUrl + "/maven2/",
             _ => feedUrl + "/v3/index.json",
         };
     }

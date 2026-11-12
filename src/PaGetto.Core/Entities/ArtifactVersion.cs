@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace PaGetto.Core.Entities;
 
@@ -37,12 +38,12 @@ public class ArtifactVersion
     public string MetadataJson { get; set; }
 
     /// <summary>
-    /// The lowercase hex SHA-256 of the archive.
+    /// The lowercase hex SHA-256 of the archive. Null for a version made of several <see cref="Files"/>.
     /// </summary>
     public string ContentHash { get; set; }
 
     /// <summary>
-    /// The length of the archive in bytes.
+    /// The length of the archive in bytes, or the total length of the <see cref="Files"/>.
     /// </summary>
     public long Size { get; set; }
 
@@ -55,4 +56,9 @@ public class ArtifactVersion
     public string CachedFrom { get; set; }
 
     public DateTime Published { get; set; }
+
+    /// <summary>
+    /// The files of the version, for ecosystems whose versions have several (Maven). Empty otherwise.
+    /// </summary>
+    public List<ArtifactFile> Files { get; set; }
 }

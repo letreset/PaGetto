@@ -103,6 +103,77 @@ public class ArtifactDatabase : IArtifactDatabase
         return updated > 0;
     }
 
+    public async Task<bool> UpdateManifestAsync(Guid feedId, string name, string version, string description, string metadataJson, CancellationToken cancellationToken)
+    {
+        var updated = await Versions(feedId, name, version)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(v => v.Description, description).SetProperty(v => v.MetadataJson, metadataJson),
+                cancellationToken);
+
+        return updated > 0;
+    }
+
+    public async Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
+    {
+        var normalizedVersion = Normalize(version);
+
+        return await _context.ArtifactFiles
+            .AsNoTracking()
+            .Where(f => f.ArtifactVersion.Artifact.FeedId == feedId && f.ArtifactVersion.Artifact.Name == name)
+            .Where(f => f.ArtifactVersion.NormalizedVersion == normalizedVersion)
+            .OrderBy(f => f.FileName)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> AddOrReplaceFileAsync(Guid feedId, string name, string version, ArtifactFile file, CancellationToken cancellationToken)
+    {
+        // The second attempt is for the same file added by two requests at the same time: the
+        // loser fails on the file's unique index, and then replaces the file the winner added.
+        for (var attempt = 0; ; attempt++)
+        {
+            var target = await Versions(feedId, name, version)
+                .Include(v => v.Files)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (target == null)
+            {
+                return false;
+            }
+
+            var existing = target.Files.FirstOrDefault(f => string.Equals(f.FileName, file.FileName, StringComparison.OrdinalIgnoreCase));
+            if (existing == null)
+            {
+                existing = new ArtifactFile { ArtifactVersionKey = target.Key };
+                target.Files.Add(existing);
+            }
+
+            existing.FileName = file.FileName;
+            existing.Size = file.Size;
+            existing.Sha1 = file.Sha1;
+            existing.Md5 = file.Md5;
+            existing.Sha256 = file.Sha256;
+            existing.Sha512 = file.Sha512;
+            existing.CreatedAtUtc = file.CreatedAtUtc;
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                break;
+            }
+            catch (DbUpdateException e) when (attempt == 0 && _context.IsUniqueConstraintViolationException(e))
+            {
+                _context.ArtifactFiles.Entry(existing).State = EntityState.Detached;
+                _context.ArtifactVersions.Entry(target).State = EntityState.Detached;
+            }
+        }
+
+        // A single UPDATE statement, so files added at the same time are all counted.
+        await Versions(feedId, name, version)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.Size, v => v.Files.Sum(f => f.Size)), cancellationToken);
+
+        return true;
+    }
+
     public async Task<bool> HardDeleteVersionAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
         var artifact = await _context.Artifacts

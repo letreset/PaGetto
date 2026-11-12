@@ -21,6 +21,7 @@ public class PaGettoEndpointBuilder
         MapPackageContentRoutes(endpoints);
         MapPubRoutes(endpoints);
         MapNpmRoutes(endpoints);
+        MapMavenRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -248,6 +249,26 @@ public class PaGettoEndpointBuilder
             pattern: "npm/{**path}",
             defaults: new { controller = "NpmPackage", action = "DeleteTarball" },
             constraints: delete);
+    }
+
+    /// <summary>
+    /// The Maven repository of Maven feeds. The repository layout is nothing but paths, so it is at
+    /// <c>maven2/</c> under the feed, clear of the pages of the web UI.
+    /// See: https://maven.apache.org/repositories/layout.html
+    /// </summary>
+    public void MapMavenRoutes(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "maven2/{**path}",
+            defaults: new { controller = "MavenRepository", action = "Get" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("GET", "HEAD") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "maven2/{**path}",
+            defaults: new { controller = "MavenRepository", action = "Put" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

@@ -15,6 +15,9 @@ public class ArtifactStorageService : IArtifactStorageService
     private const string ArchiveFileName = "archive";
     private const string ReadmeFileName = "readme";
 
+    // The files of versions that have several (Maven), next to the archive and readme of the others.
+    private const string FilesFolderName = "files";
+
     private const string ArchiveContentType = "binary/octet-stream";
     private const string ReadmeContentType = "text/markdown";
 
@@ -61,8 +64,46 @@ public class ArtifactStorageService : IArtifactStorageService
         await _storage.DeleteAsync(GetPath(feedSlug, name, version, ReadmeFileName), cancellationToken);
     }
 
+    public async Task SaveFileAsync(string feedSlug, string name, string version, string fileName, Stream content, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        var path = GetFilePath(feedSlug, name, version, fileName);
+        var result = await _storage.PutAsync(path, content, ArchiveContentType, cancellationToken);
+        if (result == StoragePutResult.Conflict)
+        {
+            // A replaced file. Storage providers don't overwrite, so the old content goes first.
+            await _storage.DeleteAsync(path, cancellationToken);
+
+            content.Position = 0;
+            result = await _storage.PutAsync(path, content, ArchiveContentType, cancellationToken);
+            if (result == StoragePutResult.Conflict)
+            {
+                throw new InvalidOperationException($"Failed to store file {fileName} of package {name} {version} due to conflict");
+            }
+        }
+    }
+
+    public async Task<Stream> GetFileStreamAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken)
+    {
+        return await _storage.GetAsync(GetFilePath(feedSlug, name, version, fileName), cancellationToken);
+    }
+
+    public async Task DeleteFileAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken)
+    {
+        await _storage.DeleteAsync(GetFilePath(feedSlug, name, version, fileName), cancellationToken);
+    }
+
+    private static string GetFilePath(string feedSlug, string name, string version, string fileName)
+    {
+        return GetPath(feedSlug, name, version, Path.Combine(FilesFolderName, fileName));
+    }
+
     private static string GetPath(string feedSlug, string name, string version, string fileName)
     {
-        return Path.Combine(PackagesPathPrefix, feedSlug, name.ToLowerInvariant(), version.ToLowerInvariant(), fileName);
+        // A Maven name is groupId:artifactId; file systems such as NTFS don't allow the colon.
+        var folder = name.ToLowerInvariant().Replace(':', '/');
+
+        return Path.Combine(PackagesPathPrefix, feedSlug, folder, version.ToLowerInvariant(), fileName);
     }
 }

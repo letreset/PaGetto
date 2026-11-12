@@ -1,0 +1,211 @@
+@* The Connect page of a Maven feed: how to use it with Maven, Gradle and sbt. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Authentication
+@using PaGetto.Web.Helper
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var repositoryUrl = FeedTypeNames.GetClientUrl(FeedType.Maven, Url.PageLink("/Index"));
+    var host = new Uri(repositoryUrl).Host;
+    var id = FeedContext.CurrentFeed.Slug;
+
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = FeedContext.CurrentFeed.Mirrors?.Any(m => m.Enabled) == true;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "Maven",
+            content = new[]
+            {
+                "<!-- ~/.m2/settings.xml -->",
+                "<settings>",
+                "  <servers>",
+                "    <server>",
+                $"      <id>{id}</id>",
+                "      <username>USERNAME</username>",
+                $"      <password>{password}</password>",
+                "    </server>",
+                "  </servers>",
+                "  <profiles>",
+                "    <profile>",
+                $"      <id>{id}</id>",
+                "      <repositories>",
+                "        <repository>",
+                $"          <id>{id}</id>",
+                $"          <url>{repositoryUrl}</url>",
+                "          <snapshots><enabled>true</enabled></snapshots>",
+                "        </repository>",
+                "      </repositories>",
+                "    </profile>",
+                "  </profiles>",
+                "  <activeProfiles>",
+                $"    <activeProfile>{id}</activeProfile>",
+                "  </activeProfiles>",
+                "</settings>",
+            },
+            documentation = "https://maven.apache.org/settings.html",
+        },
+        new
+        {
+            name = "Maven mirror",
+            content = new[]
+            {
+                "<!-- ~/.m2/settings.xml: every download goes through this feed -->",
+                "<settings>",
+                "  <servers>",
+                "    <server>",
+                $"      <id>{id}</id>",
+                "      <username>USERNAME</username>",
+                $"      <password>{password}</password>",
+                "    </server>",
+                "  </servers>",
+                "  <mirrors>",
+                "    <mirror>",
+                $"      <id>{id}</id>",
+                "      <mirrorOf>*</mirrorOf>",
+                $"      <url>{repositoryUrl}</url>",
+                "    </mirror>",
+                "  </mirrors>",
+                "</settings>",
+            },
+            documentation = "https://maven.apache.org/guides/mini/guide-mirror-settings.html",
+        },
+        new
+        {
+            name = "Gradle",
+            content = new[]
+            {
+                "// settings.gradle.kts",
+                "dependencyResolutionManagement {",
+                "    repositories {",
+                "        maven {",
+                "            name = \"pagetto\"",
+                $"            url = uri(\"{repositoryUrl}\")",
+                "            credentials(PasswordCredentials::class)",
+                "        }",
+                "    }",
+                "}",
+                "",
+                "# ~/.gradle/gradle.properties",
+                "pagettoUsername=USERNAME",
+                $"pagettoPassword={password}",
+            },
+            documentation = "https://docs.gradle.org/current/userguide/declaring_repositories.html",
+        },
+        new
+        {
+            name = "sbt",
+            content = new[]
+            {
+                "// build.sbt",
+                $"resolvers += \"{id}\" at \"{repositoryUrl}\"",
+                $"credentials += Credentials(\"{NugetBasicAuthenticationHandler.MavenRealm}\", \"{host}\", \"USERNAME\", \"{password}\")",
+            },
+            documentation = "https://www.scala-sbt.org/1.x/docs/Resolvers.html",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                "<!-- pom.xml; mvn deploy uses the server of settings.xml with this id -->",
+                "<distributionManagement>",
+                "  <repository>",
+                $"    <id>{id}</id>",
+                $"    <url>{repositoryUrl}</url>",
+                "  </repository>",
+                "  <snapshotRepository>",
+                $"    <id>{id}</id>",
+                $"    <url>{repositoryUrl}</url>",
+                "  </snapshotRepository>",
+                "</distributionManagement>",
+                "",
+                "// build.gradle.kts, with plugins { `maven-publish` }; run ./gradlew publish",
+                "publishing {",
+                "    publications { create<MavenPublication>(\"maven\") { from(components[\"java\"]) } }",
+                "    repositories {",
+                "        maven {",
+                "            name = \"pagetto\"",
+                $"            url = uri(\"{repositoryUrl}\")",
+                "            credentials(PasswordCredentials::class)",
+                "        }",
+                "    }",
+                "}",
+            },
+            documentation = "https://maven.apache.org/plugins/maven-deploy-plugin/usage.html",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a Maven repository with Maven, Gradle and sbt.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Repository URL · @FeedContext.CurrentFeed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-url">@repositoryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-repository-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Use your username with a personal access token (PAT) in place of YOUR_TOKEN below. Accounts without web sign-in get their token from an administrator.</p>
+                    <p>Keep the token out of version control: in the settings.xml of your home folder, in ~/.gradle/gradle.properties, or in an environment variable.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages published to it. To get public packages through it as well, an administrator can add a mirror such as https://repo.maven.apache.org/maven2; until then, don't use "Maven mirror", and keep Maven Central next to this repository.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Task">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

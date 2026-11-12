@@ -42,6 +42,54 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.ToTable("Artifacts");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactFile", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ArtifactVersionKey")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Md5")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sha1")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sha512")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactVersionKey", "FileName")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactFiles");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
                 {
                     b.Property<int>("Key")
@@ -752,6 +800,17 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Navigation("Feed");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactFile", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.ArtifactVersion", "ArtifactVersion")
+                        .WithMany("Files")
+                        .HasForeignKey("ArtifactVersionKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArtifactVersion");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
@@ -882,6 +941,11 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Navigation("Tags");
 
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Feed", b =>

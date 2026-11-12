@@ -16,6 +16,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Web.Audit;
@@ -104,6 +105,16 @@ public class ArtifactModel : PageModel
     public NpmManifestSummary NpmManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a Maven version, read from its POM. Null on feeds of other types.
+    /// </summary>
+    public MavenPomSummary MavenPom { get; private set; }
+
+    /// <summary>
+    /// The files of the version, for ecosystems whose versions have several (Maven). Empty otherwise.
+    /// </summary>
+    public IReadOnlyList<ArtifactFile> Files { get; private set; } = [];
+
+    /// <summary>
     /// Whether the Manage section and the Relist links are shown: the user may delete from the feed,
     /// and the feed is not read-only.
     /// </summary>
@@ -165,6 +176,14 @@ public class ArtifactModel : PageModel
         {
             NpmManifest = NpmManifestSummary.Parse(Version.MetadataJson);
         }
+        else if (feed.Type == FeedType.Maven)
+        {
+            MavenPom = MavenPomSummary.Parse(Version.MetadataJson);
+            Files = await _artifacts.FindFilesAsync(feed.Id, Name, Version.Version, cancellationToken);
+
+            // The coordinates as published; the stored name is lowercased.
+            Name = MavenPom.Coordinates ?? Name;
+        }
 
         if (Version.HasReadme)
         {
@@ -201,12 +220,20 @@ public class ArtifactModel : PageModel
             "delete", id, version,
             async (feed, name) =>
             {
+                // The files are listed before the version and its file rows are gone.
+                var files = await _artifacts.FindFilesAsync(feed.Id, name, version, cancellationToken);
+
                 if (!await _artifacts.HardDeleteVersionAsync(feed.Id, name, version, cancellationToken))
                 {
                     return false;
                 }
 
                 await _storage.DeleteAsync(feed.Slug, name, version, cancellationToken);
+                foreach (var file in files)
+                {
+                    await _storage.DeleteFileAsync(feed.Slug, name, version, file.FileName, cancellationToken);
+                }
+
                 return true;
             },
             // version = null drops the ambient route value; without it the redirect would point at
