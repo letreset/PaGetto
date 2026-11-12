@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
     'feeds',
     'dart',
     'npm',
+    'maven',
     'web-ui',
     'authentication',
     'configuration',
