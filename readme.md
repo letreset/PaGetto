@@ -12,6 +12,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **Dart and Flutter packages**: a feed can be a hosted pub repository for `dart pub` and `flutter pub`, with a mirror of pub.dev.
 * **npm packages**: a feed can be an npm registry for npm, Yarn and pnpm, with scoped packages, dist-tags and a mirror of registry.npmjs.org.
 * **Maven packages**: a feed can be a Maven repository for Maven, Gradle and sbt (Java, Kotlin, Scala), with snapshots and a mirror of Maven Central.
+* **Python packages**: a feed can be a package index for pip, uv, Poetry and twine, with wheels, sdists, yanked versions and a mirror of PyPI.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.
