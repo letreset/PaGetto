@@ -98,12 +98,12 @@ public partial class MavenRepositoryService : IMavenRepositoryService
             return await CheckUploadedChecksumAsync(feed, path, checksum, content, cancellationToken);
         }
 
-        MavenFileContent file;
+        ArtifactFileContent file;
         try
         {
-            file = await MavenFileContent.ReadAsync(content, maxBytes, cancellationToken);
+            file = await ArtifactFileContent.ReadAsync(content, maxBytes, cancellationToken);
         }
-        catch (MavenFileTooLargeException e)
+        catch (ArtifactFileTooLargeException e)
         {
             return new MavenPutResult { Status = MavenPutStatus.TooLarge, Message = e.Message };
         }

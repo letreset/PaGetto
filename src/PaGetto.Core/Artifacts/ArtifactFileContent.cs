@@ -3,19 +3,18 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 
-namespace PaGetto.Core.Maven;
+namespace PaGetto.Core.Artifacts;
 
 /// <summary>
-/// A file read into a temporary file, with the checksums a Maven repository serves for it.
+/// A file read into a temporary file, with the checksums stored for it as an <see cref="ArtifactFile"/>.
 /// </summary>
-public sealed class MavenFileContent : IDisposable
+public sealed class ArtifactFileContent : IDisposable
 {
     private const int BufferSize = 81920;
 
-    private MavenFileContent()
+    private ArtifactFileContent()
     {
     }
 
@@ -36,8 +35,8 @@ public sealed class MavenFileContent : IDisposable
     /// <param name="source">The content.</param>
     /// <param name="maxBytes">The most the content may have.</param>
     /// <param name="cancellationToken">A token to cancel the task.</param>
-    /// <exception cref="MavenFileTooLargeException">The content has more than <paramref name="maxBytes"/>.</exception>
-    public static async Task<MavenFileContent> ReadAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
+    /// <exception cref="ArtifactFileTooLargeException">The content has more than <paramref name="maxBytes"/>.</exception>
+    public static async Task<ArtifactFileContent> ReadAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
     {
         var file = new FileStream(
             Path.GetTempFileName(),
@@ -49,14 +48,14 @@ public sealed class MavenFileContent : IDisposable
 
         try
         {
-#pragma warning disable CA5350, CA5351 // SHA-1 and MD5 are what Maven clients check files with, not for security.
+#pragma warning disable CA5350, CA5351 // SHA-1 and MD5 are what clients such as Maven check files with, not for security.
             using var sha1 = IncrementalHash.CreateHash(HashAlgorithmName.SHA1);
             using var md5 = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
 #pragma warning restore CA5350, CA5351
             using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             using var sha512 = IncrementalHash.CreateHash(HashAlgorithmName.SHA512);
 
-            var limited = new LimitedReadStream(source, maxBytes, () => new MavenFileTooLargeException(maxBytes));
+            var limited = new LimitedReadStream(source, maxBytes, () => new ArtifactFileTooLargeException(maxBytes));
             var buffer = new byte[BufferSize];
             long size = 0;
             int read;
@@ -76,7 +75,7 @@ public sealed class MavenFileContent : IDisposable
             await file.FlushAsync(cancellationToken);
             file.Position = 0;
 
-            return new MavenFileContent
+            return new ArtifactFileContent
             {
                 Stream = file,
                 Size = size,

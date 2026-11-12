@@ -1,13 +1,13 @@
 using System;
 
-namespace PaGetto.Core.Maven;
+namespace PaGetto.Core.Artifacts;
 
 /// <summary>
 /// Thrown for a file that is larger than the feed allows.
 /// </summary>
-public class MavenFileTooLargeException : Exception
+public class ArtifactFileTooLargeException : Exception
 {
-    public MavenFileTooLargeException(long maxBytes)
+    public ArtifactFileTooLargeException(long maxBytes)
         : base($"The file is larger than the feed's limit of {maxBytes / (1024 * 1024)} MiB.")
     {
     }
