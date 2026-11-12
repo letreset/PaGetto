@@ -84,6 +84,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsPythonVersionsAsPep440Does()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.PyPI, [Version("1.0rc1"), Version("1.10"), Version("1.0"), Version("1.0.post1"), Version("1.0.dev1"), Version("1.9")]);
+
+            Assert.Equal(new[] { "1.10", "1.9", "1.0.post1", "1.0", "1.0rc1", "1.0.dev1" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));

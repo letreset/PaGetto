@@ -22,6 +22,7 @@ public class PaGettoEndpointBuilder
         MapPubRoutes(endpoints);
         MapNpmRoutes(endpoints);
         MapMavenRoutes(endpoints);
+        MapPyPIRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -269,6 +270,40 @@ public class PaGettoEndpointBuilder
             pattern: "maven2/{**path}",
             defaults: new { controller = "MavenRepository", action = "Put" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The package index of PyPI feeds: the simple repository API, the files it links to and the
+    /// legacy upload API. It is at <c>pypi/</c> under the feed, clear of the pages of the web UI.
+    /// See: https://packaging.python.org/en/latest/specifications/simple-repository-api/
+    /// </summary>
+    public void MapPyPIRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "pypi/simple",
+            defaults: new { controller = "PyPIPackage", action = "Index" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "pypi/simple/{name}",
+            defaults: new { controller = "PyPIPackage", action = "Project" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "pypi/files/{name}/{version}/{fileName}",
+            defaults: new { controller = "PyPIPackage", action = "Download" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("GET", "HEAD") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "pypi/legacy",
+            defaults: new { controller = "PyPIPackage", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

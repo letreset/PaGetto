@@ -48,6 +48,13 @@ public class ArtifactStorageService : IArtifactStorageService
         }
     }
 
+    public async Task SaveReadmeAsync(string feedSlug, string name, string version, Stream readme, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(readme);
+
+        await ReplaceAsync(GetPath(feedSlug, name, version, ReadmeFileName), readme, ReadmeContentType, cancellationToken);
+    }
+
     public async Task<Stream> GetArchiveStreamAsync(string feedSlug, string name, string version, CancellationToken cancellationToken)
     {
         return await _storage.GetAsync(GetPath(feedSlug, name, version, ArchiveFileName), cancellationToken);
@@ -68,20 +75,7 @@ public class ArtifactStorageService : IArtifactStorageService
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        var path = GetFilePath(feedSlug, name, version, fileName);
-        var result = await _storage.PutAsync(path, content, ArchiveContentType, cancellationToken);
-        if (result == StoragePutResult.Conflict)
-        {
-            // A replaced file. Storage providers don't overwrite, so the old content goes first.
-            await _storage.DeleteAsync(path, cancellationToken);
-
-            content.Position = 0;
-            result = await _storage.PutAsync(path, content, ArchiveContentType, cancellationToken);
-            if (result == StoragePutResult.Conflict)
-            {
-                throw new InvalidOperationException($"Failed to store file {fileName} of package {name} {version} due to conflict");
-            }
-        }
+        await ReplaceAsync(GetFilePath(feedSlug, name, version, fileName), content, ArchiveContentType, cancellationToken);
     }
 
     public async Task<Stream> GetFileStreamAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken)
@@ -92,6 +86,23 @@ public class ArtifactStorageService : IArtifactStorageService
     public async Task DeleteFileAsync(string feedSlug, string name, string version, string fileName, CancellationToken cancellationToken)
     {
         await _storage.DeleteAsync(GetFilePath(feedSlug, name, version, fileName), cancellationToken);
+    }
+
+    private async Task ReplaceAsync(string path, Stream content, string contentType, CancellationToken cancellationToken)
+    {
+        var result = await _storage.PutAsync(path, content, contentType, cancellationToken);
+        if (result == StoragePutResult.Conflict)
+        {
+            // A replaced file. Storage providers don't overwrite, so the old content goes first.
+            await _storage.DeleteAsync(path, cancellationToken);
+
+            content.Position = 0;
+            result = await _storage.PutAsync(path, content, contentType, cancellationToken);
+            if (result == StoragePutResult.Conflict)
+            {
+                throw new InvalidOperationException($"Failed to store {path} due to conflict");
+            }
+        }
     }
 
     private static string GetFilePath(string feedSlug, string name, string version, string fileName)

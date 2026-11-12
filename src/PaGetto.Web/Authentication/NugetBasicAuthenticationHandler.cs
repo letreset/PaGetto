@@ -51,13 +51,14 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         // The pub client only reads a Bearer challenge, and shows its message to the user. sbt
-        // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet.
+        // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet, and
+        // PyPI feeds use it too.
         var endpointType = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type;
 
         Response.Headers.WWWAuthenticate = endpointType switch
         {
             FeedType.Pub => PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}"),
-            FeedType.Maven => $"Basic realm=\"{MavenRealm}\"",
+            FeedType.Maven or FeedType.PyPI => $"Basic realm=\"{MavenRealm}\"",
             _ => "Basic realm=\"NuGet Server\"",
         };
 
@@ -65,7 +66,7 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     }
 
     /// <summary>
-    /// The realm of the Basic challenge of Maven feeds, which sbt credentials name.
+    /// The realm of the Basic challenge of Maven and PyPI feeds, which sbt credentials name.
     /// </summary>
     public const string MavenRealm = "PaGetto";
 

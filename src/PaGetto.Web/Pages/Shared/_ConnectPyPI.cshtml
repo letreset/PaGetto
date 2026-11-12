@@ -1,0 +1,166 @@
+@* The Connect page of a PyPI feed: how to use it with pip, uv, Poetry and twine. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Authentication
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var indexUrl = Url.PyPISimpleIndex();
+    var uploadUrl = Url.PyPIUpload();
+    var host = new Uri(indexUrl).Host;
+
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = FeedContext.CurrentFeed.Mirrors?.Any(m => m.Enabled) == true;
+    var username = authMode == AuthenticationMode.Legacy ? "USERNAME" : FeedAuthenticationService.TokenUsername;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "pip",
+            content = new[]
+            {
+                "# pip.conf (~/.config/pip/pip.conf; %APPDATA%\\pip\\pip.ini on Windows)",
+                "[global]",
+                $"index-url = {indexUrl}",
+                "",
+                "# ~/.netrc (_netrc on Windows)",
+                $"machine {host}",
+                $"login {username}",
+                $"password {password}",
+            },
+            documentation = "https://pip.pypa.io/en/stable/topics/authentication/",
+        },
+        new
+        {
+            name = "uv",
+            content = new[]
+            {
+                "# pyproject.toml",
+                "[[tool.uv.index]]",
+                "name = \"pagetto\"",
+                $"url = \"{indexUrl}\"",
+                hasMirrors ? "default = true" : "# Packages found here are not looked up on PyPI.",
+                "",
+                "# The credentials, as environment variables",
+                $"UV_INDEX_PAGETTO_USERNAME={username}",
+                $"UV_INDEX_PAGETTO_PASSWORD={password}",
+            },
+            documentation = "https://docs.astral.sh/uv/concepts/indexes/",
+        },
+        new
+        {
+            name = "Poetry",
+            // Poetry stops using PyPI once a primary source is added, unless PyPI is added too.
+            content = hasMirrors
+                ? new[]
+                {
+                    $"poetry source add --priority=primary pagetto {indexUrl}",
+                    $"poetry config http-basic.pagetto {username} {password}",
+                }
+                : new[]
+                {
+                    $"poetry source add --priority=primary pagetto {indexUrl}",
+                    "poetry source add --priority=primary PyPI",
+                    $"poetry config http-basic.pagetto {username} {password}",
+                },
+            documentation = "https://python-poetry.org/docs/repositories/",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                "# ~/.pypirc; then: twine upload --repository pagetto dist/*",
+                "[distutils]",
+                "index-servers = pagetto",
+                "",
+                "[pagetto]",
+                $"repository = {uploadUrl}",
+                $"username = {username}",
+                $"password = {password}",
+                "",
+                "# or with uv",
+                $"uv publish --publish-url {uploadUrl} --username {username} --password {password}",
+            },
+            documentation = "https://twine.readthedocs.io/en/stable/",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a Python package index with pip, uv, Poetry and twine.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Index URL · @FeedContext.CurrentFeed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-index-url">@indexUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-index-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="form-label" style="margin: 12px 0 8px">Upload URL</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-upload-url">@uploadUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy upload URL" data-copy-target="#feed-upload-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Use the username @FeedAuthenticationService.TokenUsername with a personal access token (PAT) in place of YOUR_TOKEN below, the way PyPI's API tokens are used. Your own username works too. Accounts without web sign-in get their token from an administrator.</p>
+                    <p>Keep the token out of version control: in ~/.netrc, in your user configuration, or in an environment variable.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages published to it. To get public packages through it as well, an administrator can add a mirror such as https://pypi.org/simple; until then, keep PyPI next to this index.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

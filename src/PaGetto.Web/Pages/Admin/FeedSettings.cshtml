@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -235,7 +235,7 @@
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="MaxPackageSizeMiB">Max package size</label>
-                    @if (Model.Feed?.Type == FeedType.Maven)
+                    @if (Model.Feed?.Type is FeedType.Maven or FeedType.PyPI)
                     {
                         <div class="bgt-setting-help">Applies to each file of a version.</div>
                     }
@@ -328,6 +328,14 @@
                             Upstream Maven repositories such as https://repo.maven.apache.org/maven2, queried in order.
                             The first mirror that has a file serves it, and stores it in this feed. Versions published
                             to this feed come first; snapshots are not mirrored.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.PyPI)
+                    {
+                        <p>
+                            Upstream package indexes such as https://pypi.org/simple, queried in order. The first mirror
+                            that has a project lists all of its files, and a file is stored in this feed on its first
+                            download. Versions published to this feed come first.
                         </p>
                     }
                     else

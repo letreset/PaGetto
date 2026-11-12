@@ -5,6 +5,7 @@ using PaGetto.Core.Entities;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
+using PaGetto.Core.PyPI;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -29,6 +30,7 @@ public static class ArtifactVersionOrder
             FeedType.Pub => PubVersion.StringComparer,
             FeedType.Npm => NpmVersion.StringComparer,
             FeedType.Maven => MavenVersion.StringComparer,
+            FeedType.PyPI => PyPIVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }

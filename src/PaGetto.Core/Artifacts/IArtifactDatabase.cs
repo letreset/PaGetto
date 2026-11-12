@@ -57,6 +57,12 @@ public interface IArtifactDatabase
     Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, string version, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Finds the files of all versions of a package, e.g. for a PyPI project page.
+    /// </summary>
+    /// <returns>The files, each with its <see cref="ArtifactFile.ArtifactVersion"/>. Empty if the package does not exist.</returns>
+    Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a file to a version, or replaces the file of the same name regardless of case, and
     /// updates the version's size to the total of its files.
     /// </summary>
@@ -74,6 +80,12 @@ public interface IArtifactDatabase
     /// Increments a version's download count.
     /// </summary>
     Task AddDownloadAsync(Guid feedId, string name, string version, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Finds the names of all packages of a feed, e.g. for the root of a PyPI simple index.
+    /// </summary>
+    /// <returns>The names, in order.</returns>
+    Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Finds the packages whose name or description contains <paramref name="query"/>, ordered with

@@ -251,6 +251,60 @@ public class ArtifactDatabaseTests
         }
     }
 
+    public class FindFilesOfAllVersionsAsync : FactsBase
+    {
+        [Fact]
+        public async Task FindsTheFilesOfEveryVersionWithTheirVersion()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my-package", NewVersion("1.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "my-package", NewVersion("2.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "other", NewVersion("1.0"), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "my-package", "1.0", NewFile("my_package-1.0.tar.gz"), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "my-package", "2.0", NewFile("my_package-2.0.tar.gz"), Ct);
+            await Target.AddOrReplaceFileAsync(Feed.Id, "other", "1.0", NewFile("other-1.0.tar.gz"), Ct);
+
+            var files = await Target.FindFilesAsync(Feed.Id, "my-package", Ct);
+
+            Assert.Equal(new[] { "my_package-1.0.tar.gz", "my_package-2.0.tar.gz" }, files.Select(f => f.FileName));
+            Assert.Equal(new[] { "1.0", "2.0" }, files.Select(f => f.ArtifactVersion.Version));
+        }
+
+        [Fact]
+        public async Task IsEmptyForAnUnknownPackage()
+        {
+            Assert.Empty(await Target.FindFilesAsync(Feed.Id, "unknown", Ct));
+        }
+
+        private static ArtifactFile NewFile(string fileName)
+        {
+            return new ArtifactFile
+            {
+                FileName = fileName,
+                Size = 1,
+                Sha1 = "sha1",
+                Md5 = "md5",
+                Sha256 = "sha256",
+                Sha512 = "sha512",
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+        }
+    }
+
+    public class FindNamesAsync : FactsBase
+    {
+        [Fact]
+        public async Task FindsTheNamesOfTheFeedInOrder()
+        {
+            var other = AddFeed("other");
+            await Target.AddVersionAsync(Feed.Id, "zeta", NewVersion("1.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "alpha", NewVersion("1.0"), Ct);
+            await Target.AddVersionAsync(Feed.Id, "alpha", NewVersion("2.0"), Ct);
+            await Target.AddVersionAsync(other.Id, "beta", NewVersion("1.0"), Ct);
+
+            Assert.Equal(new[] { "alpha", "zeta" }, await Target.FindNamesAsync(Feed.Id, Ct));
+        }
+    }
+
     public class SetTagAsync : FactsBase
     {
         [Fact]
