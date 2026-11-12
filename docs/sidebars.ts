@@ -22,6 +22,7 @@ const sidebars: SidebarsConfig = {
     'upgrading',
     'feeds',
     'dart',
+    'npm',
     'web-ui',
     'authentication',
     'configuration',

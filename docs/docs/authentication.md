@@ -328,6 +328,10 @@ When a PAT is used as a password, the username must be the token owner's usernam
 
 `dart pub` and `flutter pub` send a personal access token as a bearer token. Add it once with `dart pub token add <feed URL>`; see [Dart and Flutter packages](dart.md#sign-in).
 
+## Using PaGetto from npm, Yarn and pnpm
+
+npm, Yarn and pnpm send a personal access token as a bearer token. Put it in `.npmrc` as the `_authToken` of the feed's registry URL (`.yarnrc.yml` for Yarn 2 and later); see [npm packages](npm.md#configure-the-client). `npm login` is not supported.
+
 ## Full configuration reference
 
 ```json

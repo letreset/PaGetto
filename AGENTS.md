@@ -32,11 +32,11 @@ Guidance for AI agents working in this repository.
 
 ## What is PaGetto
 
-A lightweight package server: ASP.NET Core on .NET 10, with pluggable database, storage and search backends. It started as a NuGet and symbol server (the NuGet v3 protocol) and also hosts Dart and Flutter packages (the pub protocol). Each feed serves one ecosystem.
+A lightweight package server: ASP.NET Core on .NET 10, with pluggable database, storage and search backends. It started as a NuGet and symbol server (the NuGet v3 protocol) and also hosts Dart and Flutter packages (the pub protocol) and npm packages (the npm registry API). Each feed serves one ecosystem.
 
 This repo is **letreset/PaGetto**. Its main features:
 - **Multi-feed**: each feed has its own packages, settings, mirror and permissions.
-- **Feed types**: a feed is a NuGet feed or a Dart (pub) feed. More ecosystems can be added the same way (see "Feed types and ecosystems").
+- **Feed types**: a feed is a NuGet feed, a Dart (pub) feed or an npm feed. More ecosystems can be added the same way (see "Feed types and ecosystems").
 - **Local/Entra/Hybrid auth**: users, groups, PATs and per-feed permissions.
 - **Admin UI**, PAT-expiry emails, and Data Protection keys persisted to storage.
 
@@ -59,7 +59,7 @@ This repo is **letreset/PaGetto**. Its main features:
 | Path | Contents |
 |---|---|
 | `src/PaGetto/` | Host: `Program.cs`, `Startup.cs` (DI and middleware pipeline), `ValidatePaGettoOptions`, `ConfigurePaGettoServer` (CORS, forms, forwarded headers, IIS), Data Protection key storage |
-| `src/PaGetto.Core/` | Business logic, database-agnostic. `Artifacts/` (packages of non-NuGet feeds), `Authentication/`, `Configuration/`, `Content/`, `Email/`, `Entities/`, `Feeds/`, `Indexing/`, `Metadata/`, `Notifications/`, `Pub/` (Dart), `Search/`, `ServiceIndex/`, `Statistics/`, `Storage/`, `Upstream/`, `Validation/` |
+| `src/PaGetto.Core/` | Business logic, database-agnostic. `Artifacts/` (packages of non-NuGet feeds), `Authentication/`, `Configuration/`, `Content/`, `Email/`, `Entities/`, `Feeds/`, `Indexing/`, `Metadata/`, `Notifications/`, `Npm/`, `Pub/` (Dart), `Search/`, `ServiceIndex/`, `Statistics/`, `Storage/`, `Upstream/`, `Validation/` |
 | `src/PaGetto.Web/` | Controllers, Razor Pages (`Pages/`, `Pages/Admin/`, `Pages/Account/`), `Middleware/`, `Authentication/`, routing (`PaGettoEndpointBuilder`, `Routes`), `PaGettoUrlGenerator` |
 | `src/PaGetto.Protocol/` | NuGet v3 client and models, used for upstream mirrors |
 | `src/PaGetto.Database.{Sqlite,SqlServer,PostgreSql,MySql}/` | EF Core context and migrations per provider |
@@ -109,22 +109,23 @@ Storage, database, search and email use `IProvider<T>`. Every implementation is 
 - Upstream clients come from `UpstreamClientFactory.CreateForFeed(feed)`: one enabled mirror gives a plain V2/V3 client, several give a `FallbackUpstreamClient` (merged version lists, download from the first mirror that has the package, failing mirrors skipped). Unless the feed's `UpstreamListingCacheSeconds` is 0, that client is wrapped in `CachingUpstreamClient`, which keeps non-empty version/metadata listings in the singleton `UpstreamListingCache`, keyed by feed id, `Feed.UpdatedAtUtc` (so saving the feed invalidates) and lowercased package id. Concurrent misses for a key share one upstream call, which runs with `CancellationToken.None` so one caller leaving doesn't cancel it for the others. `PackageService.MirrorAsync` serializes concurrent mirroring of the same `(feed, id, version)` through the singleton `PackageMirrorLock`.
 
 ### Feed types and ecosystems
-- `Feed.Type` (`FeedType`: `NuGet` = 0, `Pub` = 1) is set when a feed is created and never changes. The values are stored in the database. The default feed is always a NuGet feed.
+- `Feed.Type` (`FeedType`: `NuGet` = 0, `Pub` = 1, `Npm` = 2) is set when a feed is created and never changes. The values are stored in the database. The default feed is always a NuGet feed.
 - **NuGet** keeps its own model (`Package` and its child tables, `IPackageDatabase`, `IPackageStorageService`, search providers). Don't put other ecosystems into those tables: NuGet version normalization drops build metadata, which other ecosystems treat as part of the version.
-- **Every other ecosystem** stores its packages as artifacts: `Artifact` (feed, normalized name) and `ArtifactVersion` (version, lowercased `NormalizedVersion`, `Listed`, `Description`, the manifest as `MetadataJson`, SHA-256 `ContentHash`, `Size`, `Downloads`, `HasReadme`, `CachedFrom`, `Published`). `Core/Artifacts/` has what they share: `IArtifactDatabase` (reads are untracked), `IArtifactStorageService` (`packages/{feedSlug}/{name}/{version}/archive` and `/readme`) and `ArtifactVersionOrder` (version order per feed type).
+- **Every other ecosystem** stores its packages as artifacts: `Artifact` (feed, normalized name) and `ArtifactVersion` (version, lowercased `NormalizedVersion`, `Listed`, `Description`, the manifest as `MetadataJson`, SHA-256 `ContentHash`, `Size`, `Downloads`, `HasReadme`, `CachedFrom`, `Published`) and `ArtifactTag` (a named pointer to a version, e.g. an npm dist-tag; removed with its version). `Core/Artifacts/` has what they share: `IArtifactDatabase` (reads are untracked), `IArtifactStorageService` (`packages/{feedSlug}/{name}/{version}/archive` and `/readme`) and `ArtifactVersionOrder` (version order per feed type).
 - **Dart** is in `Core/Pub/`: `PubVersion` (pub's version order, build metadata included), `PubArchiveReader` and `PubspecYaml` (reads the gzipped tar archive and converts `pubspec.yaml` to JSON; the tar is read by `PubTarReader`, because `System.Formats.Tar` rejects the headers the pub client writes), `PubPackageService` (list, download with mirroring, publish) and `PubUpstreamClient` (mirrors of pub servers; the first mirror that has a package serves it, listings go through `UpstreamListingCache`).
+- **npm** is in `Core/Npm/`: `NpmVersion` (semver precedence), `NpmPackageName` (scoped names, which arrive as `@scope%2fname`, are stored lowercased), `NpmArchiveReader` (the tarball's `package.json` and readme, read with `PubTarReader`), `NpmTarballHashes` (SHA-512 `integrity`, SHA-1 `shasum`), `NpmPackageService` (the package document, publish, deprecate, unpublish, dist-tags, mirroring) and `NpmUpstreamClient`. A deprecated version is unlisted, with the message in its manifest. The registry is at `npm/` under the feed so names can't collide with web UI pages. Tarball URLs are built by `NpmUrlHelperExtensions.NpmTarball`, not by routing, because routing lowercases URLs.
 - A controller or Razor page model that belongs to one ecosystem carries `[FeedType(...)]`. `FeedTypeMiddleware` (after authorization) answers 404 when it is requested on a feed of another type. With user accounts it lets anonymous requests through to the endpoint's own challenge, so the feed type can't be probed. `NugetBasicAuthenticationHandler` picks the challenge from the endpoint: `Bearer realm="pub"` for pub endpoints, `Basic` otherwise.
-- The web UI: `Pages/Index` lists artifacts on non-NuGet feeds, `Pages/Artifact` (`/artifacts/{id}/{version?}`) is their package page, `Pages/Shared/_ConnectPub` their Connect page. `Pages/Package` and `Pages/Upload` are NuGet only. `FeedTypeNames` has the display names and client URLs.
-- **To add an ecosystem** (e.g. npm): add a `FeedType` value, a `Core/<Name>/` folder with its version rules, archive reader and package service on top of the artifact services, a case in `ArtifactVersionOrder` and `FeedTypeNames`, a controller with `[FeedType]` and its routes in `PaGettoEndpointBuilder`, and the ecosystem's parts of `Pages/Artifact` and Connect. No migration is needed unless the artifact tables lack something.
+- The web UI: `Pages/Index` lists artifacts on non-NuGet feeds, `Pages/Artifact` (`/artifacts/{id}/{version?}`) is their package page, `Pages/Shared/_ConnectPub` and `_ConnectNpm` their Connect pages. `Pages/Package` and `Pages/Upload` are NuGet only. `FeedTypeNames` has the display names and client URLs.
+- **To add an ecosystem** (e.g. PyPI): add a `FeedType` value, a `Core/<Name>/` folder with its version rules, archive reader and package service on top of the artifact services, a case in `ArtifactVersionOrder` and `FeedTypeNames`, a controller with `[FeedType]` and its routes in `PaGettoEndpointBuilder`, and the ecosystem's parts of `Pages/Artifact` and Connect. No migration is needed unless the artifact tables lack something.
 
 ### Authentication & authorization
 - `Authentication:Mode` is required (startup fails without it) and is one of `Legacy` (config-file `Authentication:ApiKeys`/`Credentials`, formerly `Config`, which is still accepted; the old top-level `ApiKey` fails validation), `Local`, `Entra` or `Hybrid`.
 - The `NugetBasicAuth` scheme is the default. It forwards to the cookie scheme (`PaGetto.Auth`, sliding expiry of `Authentication:SessionTimeoutMinutes`, default 60) when a cookie is present without an `Authorization` header, which separates browsers from client tools.
-- `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash. A PAT is accepted in the `X-NuGet-ApiKey` header, as the Basic password, or as a Bearer token (what `dart pub` sends).
+- `IFeedAuthenticationService` authenticates by PAT (`AuthenticateByTokenAsync`) or by username/password (`AuthenticateByCredentialsAsync`). Passwords use bcrypt; tokens are stored as prefix + hash. A PAT is accepted in the `X-NuGet-ApiKey` header, as the Basic password, or as a Bearer token (what `dart pub` and the npm clients send).
 - `FeedPermissionHandler` enforces per-feed permissions (pull/push/delete) for the current feed. User permissions come from groups via `PermissionService`, and `EntraRoleSyncService` syncs Entra app roles into local groups.
 
 ### Data model
-All entities are defined in `Core/Entities/AbstractContext.cs`: Feed, FeedMirror, Package, PackageDependency, PackageType, TargetFramework, Artifact, ArtifactVersion, User, Group, UserGroup, FeedPermission, PersonalAccessToken, AuditEvent.
+All entities are defined in `Core/Entities/AbstractContext.cs`: Feed, FeedMirror, Package, PackageDependency, PackageType, TargetFramework, Artifact, ArtifactVersion, ArtifactTag, User, Group, UserGroup, FeedPermission, PersonalAccessToken, AuditEvent.
 
 ### HTTP pipeline (`Startup.Configure`, in order)
 ForwardedHeaders → PathBase → HSTS (optional) → `SecurityHeadersMiddleware` → ResponseCompression → `/livez` → `FeedStaticFilePathMiddleware` → StaticFiles → Authentication → RateLimiter (only when `RequestRateLimit:Enabled`) → `FeedResolutionMiddleware` → Routing → Authorization → `FeedTypeMiddleware` → CORS → `OperationCancelledMiddleware` (maps `OperationCanceledException` to 409) → endpoints → health check (`HealthCheck:Path`).
@@ -142,6 +143,11 @@ The routes above answer on NuGet feeds. Dart feeds have the pub API ([repository
 - `GET /api/packages/{name}`, and the deprecated `GET /api/packages/{name}/versions/{version}`.
 - `GET /packages/{name}/versions/{version}.tar.gz`: the archive.
 - Publishing, in three steps: `GET /api/packages/versions/new`, `POST /api/packages/versions/newUpload` (multipart, part `file`; publishes the package and answers 204 with a `Location`), `GET /api/packages/versions/newUploadFinish` (reports the outcome, which is the only server message the client shows).
+
+npm feeds have the npm registry API under `npm/` (`NpmPackageController`). A scoped name is `@scope%2fname` in one segment or `@scope/name` in two:
+- `GET npm/{name}` (the package document; `?write=true` leaves out mirror-only versions), `GET npm/{name}/-/{name}-{version}.tgz`.
+- `PUT npm/{name}`: publish (with `_attachments`) or a changed document (deprecate; versions left out are unpublished). `PUT npm/{name}/-rev/{rev}` is the same, `DELETE npm/{name}/-rev/{rev}` unpublishes the package, and `DELETE npm/{**path}` takes the tarball delete of `npm unpublish`.
+- `GET npm/-/package/{name}/dist-tags`, `PUT`/`DELETE npm/-/package/{name}/dist-tags/{tag}`, `GET npm/-/v1/search`, `GET npm/-/ping`, `GET npm/-/whoami`.
 
 ## Configuration
 
