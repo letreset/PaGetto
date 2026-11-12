@@ -19,6 +19,7 @@ using PaGetto.Core.Feeds;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
+using PaGetto.Core.PyPI;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 
@@ -110,7 +111,13 @@ public class ArtifactModel : PageModel
     public MavenPomSummary MavenPom { get; private set; }
 
     /// <summary>
-    /// The files of the version, for ecosystems whose versions have several (Maven). Empty otherwise.
+    /// The manifest of a Python version, read from its core metadata. Null on feeds of other types.
+    /// </summary>
+    public PyPIManifestSummary PyPIManifest { get; private set; }
+
+    /// <summary>
+    /// The files of the version, for ecosystems whose versions have several (Maven, PyPI). Empty
+    /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
     public IReadOnlyList<ArtifactFile> Files { get; private set; } = [];
 
@@ -137,14 +144,13 @@ public class ArtifactModel : PageModel
 
         Name = id = DecodeName(id);
 
-        // Names are stored lowercased.
-        var versions = await _artifacts.FindVersionsAsync(feed.Id, id.ToLowerInvariant(), cancellationToken);
+        var versions = await _artifacts.FindVersionsAsync(feed.Id, GetStoredName(feed.Type, id), cancellationToken);
         if (versions.Count == 0)
         {
             return Page();
         }
 
-        Name = versions[0].Artifact.Name;
+        var storedName = Name = versions[0].Artifact.Name;
 
         var tags = await _artifacts.FindTagsAsync(feed.Id, Name, cancellationToken);
         var latest = ArtifactVersionOrder.GetLatest(feed.Type, versions, tags);
@@ -184,10 +190,20 @@ public class ArtifactModel : PageModel
             // The coordinates as published; the stored name is lowercased.
             Name = MavenPom.Coordinates ?? Name;
         }
+        else if (feed.Type == FeedType.PyPI)
+        {
+            PyPIManifest = PyPIManifestSummary.Parse(Version.MetadataJson);
+            Files = (await _artifacts.FindFilesAsync(feed.Id, Name, Version.Version, cancellationToken))
+                .Where(f => !PyPIPackageService.IsMetadataFile(f.FileName))
+                .ToList();
+
+            // The name as published; the stored name is normalized.
+            Name = PyPIManifest.Name ?? Name;
+        }
 
         if (Version.HasReadme)
         {
-            await using var readmeStream = await _storage.GetReadmeStreamAsync(feed.Slug, Name, Version.Version, cancellationToken);
+            await using var readmeStream = await _storage.GetReadmeStreamAsync(feed.Slug, storedName, Version.Version, cancellationToken);
             using var reader = new StreamReader(readmeStream);
 
             Readme = new HtmlString(Markdown.ToHtml(await reader.ReadToEndAsync(cancellationToken), _markdownPipeline));
@@ -276,8 +292,7 @@ public class ArtifactModel : PageModel
             return StatusCode(StatusCodes.Status403Forbidden);
         }
 
-        // Names are stored lowercased.
-        var found = await operation(feed, id.ToLowerInvariant());
+        var found = await operation(feed, GetStoredName(feed.Type, id));
         await _audit.PackageAsync(
             HttpContext,
             found ? LogLevel.Information : LogLevel.Warning,
@@ -285,6 +300,15 @@ public class ArtifactModel : PageModel
             feed.Slug, id, version);
 
         return found ? success : NotFound();
+    }
+
+    /// <summary>
+    /// The name a package is stored under: lowercased, and for Python projects normalized as well,
+    /// so <c>My_Package</c> is <c>my-package</c>.
+    /// </summary>
+    private static string GetStoredName(FeedType feedType, string id)
+    {
+        return feedType == FeedType.PyPI ? PyPIPackageName.Normalize(id) : id.ToLowerInvariant();
     }
 
     /// <summary>

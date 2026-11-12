@@ -18,6 +18,7 @@ using PaGetto.Core.Metadata;
 using PaGetto.Core.Notifications;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
+using PaGetto.Core.PyPI;
 using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
@@ -148,6 +149,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<NpmUpstreamClient>();
         services.TryAddTransient<IMavenRepositoryService, MavenRepositoryService>();
         services.TryAddTransient<MavenUpstreamClient>();
+        services.TryAddTransient<IPyPIPackageService, PyPIPackageService>();
+        services.TryAddTransient<PyPIUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

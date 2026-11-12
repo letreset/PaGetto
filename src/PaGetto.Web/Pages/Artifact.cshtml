@@ -6,6 +6,7 @@
 @using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
 @using PaGetto.Core.Maven
+@using PaGetto.Core.PyPI
 @using PaGetto.Web.Extensions
 @using PaGetto.Web.Helper
 @model ArtifactModel
@@ -59,25 +60,30 @@
     var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
     var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
 
-    // Dart calls an unlisted version "retracted", npm "deprecated".
+    // Dart calls an unlisted version "retracted", npm "deprecated", Python "yanked".
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
     var isMaven = feed.Type == FeedType.Maven;
+    var isPyPI = feed.Type == FeedType.PyPI;
 
     // A Maven package is named groupId:artifactId.
     var groupId = isMaven ? name[..name.IndexOf(':')] : null;
     var artifactId = isMaven ? name[(name.IndexOf(':') + 1)..] : null;
-    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : "unlisted";
-    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : "Unlist";
-    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : "Unlisting";
-    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : "Relist";
+    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : isPyPI ? "yanked" : "unlisted";
+    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : isPyPI ? "Yank" : "Unlist";
+    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : isPyPI ? "Yanking" : "Unlisting";
+    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : isPyPI ? "Unyank" : "Relist";
+
+    // A Python project's files are at its normalized name.
+    var pypiName = isPyPI ? PyPIPackageName.Normalize(name) : null;
 
     // The parts of the manifest the page shows, from the ecosystem's own summary.
-    var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines;
-    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies;
-    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links;
-    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License;
-    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords;
+    var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines
+        ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)] : null);
+    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies;
+    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links;
+    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License;
+    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
         ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
@@ -109,6 +115,13 @@
         installTabs.Add(new InstallTab { Name = "Gradle (Kotlin)", Content = [$"implementation(\"{groupId}:{artifactId}:{version}\")"] });
         installTabs.Add(new InstallTab { Name = "Gradle (Groovy)", Content = [$"implementation '{groupId}:{artifactId}:{version}'"] });
         installTabs.Add(new InstallTab { Name = "sbt", Content = [$"libraryDependencies += \"{groupId}\" % \"{artifactId}\" % \"{version}\""] });
+    }
+    else if (isPyPI)
+    {
+        installTabs.Add(new InstallTab { Name = "pip", Content = [$"pip install {name}=={version}"] });
+        installTabs.Add(new InstallTab { Name = "uv", Content = [$"uv add {name}=={version}"] });
+        installTabs.Add(new InstallTab { Name = "Poetry", Content = [$"poetry add {name}=={version}"] });
+        installTabs.Add(new InstallTab { Name = "requirements.txt", Content = [$"{name}=={version}"] });
     }
 }
 
@@ -193,7 +206,7 @@
                 {
                     await TabButton("dependencies", "Dependencies", dependencies.Count);
                 }
-                @if (isMaven)
+                @if (isMaven || isPyPI)
                 {
                     await TabButton("files", "Files", Model.Files.Count);
                 }
@@ -233,7 +246,7 @@
                 </div>
             }
 
-            @if (isMaven)
+            @if (isMaven || isPyPI)
             {
                 <div class="bgt-tab-body" x-show="tab === 'files'" x-cloak role="tabpanel">
                     <div class="bgt-table-wrap">
@@ -242,16 +255,21 @@
                                 <tr>
                                     <th>File</th>
                                     <th>Size</th>
-                                    <th>SHA-1</th>
+                                    <th>@(isPyPI ? "SHA-256" : "SHA-1")</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var file in Model.Files)
                                 {
+                                    // Python installers check files by SHA-256, Maven clients by SHA-1.
+                                    var fileUrl = isPyPI
+                                        ? Url.PyPIFile(pypiName, version, file.FileName)
+                                        : $"{feedUrl}/maven2/{MavenFileUrlPath(groupId, artifactId, version, file.FileName)}";
+                                    var hash = isPyPI ? file.Sha256 : file.Sha1;
                                     <tr>
-                                        <td class="mono"><a href="@($"{feedUrl}/maven2/{MavenFileUrlPath(groupId, artifactId, version, file.FileName)}")">@file.FileName</a></td>
+                                        <td class="mono"><a href="@fileUrl">@file.FileName</a></td>
                                         <td>@file.Size.ToFileSize()</td>
-                                        <td class="mono" title="@file.Sha1">@file.Sha1[..12]&hellip;</td>
+                                        <td class="mono" title="@hash">@hash[..12]&hellip;</td>
                                     </tr>
                                 }
                             </tbody>
@@ -407,7 +425,7 @@
         @if (topics?.Count > 0)
         {
             <div class="bgt-card bgt-side-card">
-                <div class="bgt-card-label">@(isNpm ? "Keywords" : "Topics")</div>
+                <div class="bgt-card-label">@(isNpm || isPyPI ? "Keywords" : "Topics")</div>
                 <div class="bgt-chips">
                     @foreach (var topic in topics)
                     {

@@ -10,6 +10,12 @@ namespace PaGetto.Core.Authentication;
 
 public partial class FeedAuthenticationService : IFeedAuthenticationService
 {
+    /// <summary>
+    /// The username that goes with a personal access token sent as a password by any user, the
+    /// way PyPI's API tokens are sent.
+    /// </summary>
+    public const string TokenUsername = "__token__";
+
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
     private readonly NugetAuthenticationOptions _authOptions;
@@ -57,13 +63,15 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
 
         // NuGet clients send a PAT as the basic auth password. A password in PAT format is only
         // checked as a token, so a PAT never counts as a failed login against the local account
-        // (which would lock the owner out after a few restores).
+        // (which would lock the owner out after a few restores). Python clients send it with the
+        // username __token__, as PyPI's API tokens are sent.
         if (password.StartsWith(TokenService.TokenPrefix, StringComparison.Ordinal))
         {
             var tokenResult = await AuthenticateByTokenAsync(password, cancellationToken);
             if (tokenResult.IsAuthenticated)
             {
-                if (!string.Equals(tokenResult.Username, username, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(tokenResult.Username, username, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(username, TokenUsername, StringComparison.Ordinal))
                 {
                     LogPatUsernameMismatch("LoginFailure", username, tokenResult.Username);
                     return new AuthResult(false, null, null);

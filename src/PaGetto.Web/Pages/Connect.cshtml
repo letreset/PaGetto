@@ -51,6 +51,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.PyPI)
+{
+    <partial name="_ConnectPyPI" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

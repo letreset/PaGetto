@@ -125,6 +125,16 @@ public class ArtifactDatabase : IArtifactDatabase
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, CancellationToken cancellationToken)
+    {
+        return await _context.ArtifactFiles
+            .AsNoTracking()
+            .Include(f => f.ArtifactVersion)
+            .Where(f => f.ArtifactVersion.Artifact.FeedId == feedId && f.ArtifactVersion.Artifact.Name == name)
+            .OrderBy(f => f.FileName)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> AddOrReplaceFileAsync(Guid feedId, string name, string version, ArtifactFile file, CancellationToken cancellationToken)
     {
         // The second attempt is for the same file added by two requests at the same time: the
@@ -210,6 +220,15 @@ public class ArtifactDatabase : IArtifactDatabase
         // A single UPDATE statement, so concurrent downloads don't overwrite each other's increments.
         await Versions(feedId, name, version)
             .ExecuteUpdateAsync(s => s.SetProperty(v => v.Downloads, v => v.Downloads + 1), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken)
+    {
+        return await _context.Artifacts
+            .Where(a => a.FeedId == feedId)
+            .OrderBy(a => a.Name)
+            .Select(a => a.Name)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<ArtifactSearchResult> SearchAsync(Guid feedId, string query, int skip, int take, CancellationToken cancellationToken)

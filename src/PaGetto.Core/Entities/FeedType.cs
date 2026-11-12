@@ -26,4 +26,10 @@ public enum FeedType
     /// tables with the files of each version in <see cref="ArtifactFile"/>.
     /// </summary>
     Maven = 3,
+
+    /// <summary>
+    /// Python packages (the simple repository API and the legacy upload API of PyPI), stored in the
+    /// <see cref="Artifact"/> tables with the wheels and sdists of each version in <see cref="ArtifactFile"/>.
+    /// </summary>
+    PyPI = 4,
 }

@@ -21,6 +21,12 @@ public interface IArtifactStorageService
     /// <param name="cancellationToken">A token to cancel the task.</param>
     Task SaveAsync(string feedSlug, string name, string version, Stream archive, Stream readme, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Persists the readme of a version whose content is stored as files (see
+    /// <see cref="SaveFileAsync"/>), replacing the readme if it is already stored.
+    /// </summary>
+    Task SaveReadmeAsync(string feedSlug, string name, string version, Stream readme, CancellationToken cancellationToken);
+
     Task<Stream> GetArchiveStreamAsync(string feedSlug, string name, string version, CancellationToken cancellationToken);
 
     Task<Stream> GetReadmeStreamAsync(string feedSlug, string name, string version, CancellationToken cancellationToken);

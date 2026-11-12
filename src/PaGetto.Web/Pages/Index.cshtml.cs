@@ -10,6 +10,7 @@ using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Maven;
+using PaGetto.Core.PyPI;
 using PaGetto.Core.Search;
 using PaGetto.Protocol.Models;
 using PaGetto.Web.Authentication;
@@ -202,8 +203,13 @@ public class IndexModel : PageModel
 
         return new ArtifactListItem
         {
-            // Maven coordinates as published; the stored name is lowercased.
-            Name = (feedType == FeedType.Maven ? MavenPomSummary.Parse(latest.MetadataJson).Coordinates : null) ?? artifact.Name,
+            // Maven coordinates and Python project names as published; the stored name is normalized.
+            Name = feedType switch
+            {
+                FeedType.Maven => MavenPomSummary.Parse(latest.MetadataJson).Coordinates,
+                FeedType.PyPI => PyPIManifestSummary.Parse(latest.MetadataJson).Name,
+                _ => null,
+            } ?? artifact.Name,
             Version = latest.Version,
             Description = latest.Description,
             Listed = latest.Listed,
