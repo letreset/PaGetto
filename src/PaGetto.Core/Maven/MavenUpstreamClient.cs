@@ -86,12 +86,12 @@ public partial class MavenUpstreamClient
     /// <param name="cancellationToken">A token to cancel the task.</param>
     /// <returns>The file, or null if no mirror has it.</returns>
     /// <exception cref="InvalidDataException">The file does not match the mirror's checksum.</exception>
-    /// <exception cref="MavenFileTooLargeException">The file is larger than <paramref name="maxBytes"/>.</exception>
+    /// <exception cref="ArtifactFileTooLargeException">The file is larger than <paramref name="maxBytes"/>.</exception>
     public virtual async Task<MavenUpstreamFile> DownloadFileOrNullAsync(Feed feed, string path, long maxBytes, CancellationToken cancellationToken)
     {
         foreach (var mirror in _feedSettings.GetMirrorOptions(feed))
         {
-            MavenFileContent content = null;
+            ArtifactFileContent content = null;
             try
             {
                 using var client = _clients.CreateHttpClient(mirror, feed.Id, authenticate: true);
@@ -110,7 +110,7 @@ public partial class MavenUpstreamClient
 
                 await using (var body = await response.Content.ReadAsStreamAsync(cancellationToken))
                 {
-                    content = await MavenFileContent.ReadAsync(body, maxBytes, cancellationToken);
+                    content = await ArtifactFileContent.ReadAsync(body, maxBytes, cancellationToken);
                 }
 
                 var expectedSha1 = await GetSha1OrNullAsync(client, GetUrl(mirror, path + ".sha1"), cancellationToken);

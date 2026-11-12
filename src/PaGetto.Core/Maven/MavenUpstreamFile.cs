@@ -1,4 +1,5 @@
 using System;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Configuration;
 
 namespace PaGetto.Core.Maven;
@@ -8,7 +9,7 @@ namespace PaGetto.Core.Maven;
 /// </summary>
 public sealed class MavenUpstreamFile : IDisposable
 {
-    public MavenFileContent Content { get; init; }
+    public ArtifactFileContent Content { get; init; }
 
     /// <summary>
     /// The mirror the file came from.
