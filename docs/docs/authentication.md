@@ -332,6 +332,10 @@ When a PAT is used as a password, the username must be the token owner's usernam
 
 npm, Yarn and pnpm send a personal access token as a bearer token. Put it in `.npmrc` as the `_authToken` of the feed's registry URL (`.yarnrc.yml` for Yarn 2 and later); see [npm packages](npm.md#configure-the-client). `npm login` is not supported.
 
+## Using PaGetto from Maven, Gradle and sbt
+
+Maven, Gradle and sbt send a username and a personal access token with Basic authentication: in Maven's `settings.xml` as the `server` of the repository's id, in Gradle as the repository's `credentials`. See [Maven packages](maven.md#configure-the-client).
+
 ## Full configuration reference
 
 ```json
