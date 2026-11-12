@@ -14,7 +14,7 @@ public class ArtifactSearchResult
     public int TotalHits { get; set; }
 
     /// <summary>
-    /// The packages on this page, each with all of its versions.
+    /// The packages on this page, each with all of its versions and tags.
     /// </summary>
     public IReadOnlyList<Artifact> Artifacts { get; set; }
 }

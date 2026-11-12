@@ -93,10 +93,22 @@ public class ArtifactDatabase : IArtifactDatabase
         return updated > 0;
     }
 
+    public async Task<bool> UpdateVersionAsync(Guid feedId, string name, string version, bool listed, string metadataJson, CancellationToken cancellationToken)
+    {
+        var updated = await Versions(feedId, name, version)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(v => v.Listed, listed).SetProperty(v => v.MetadataJson, metadataJson),
+                cancellationToken);
+
+        return updated > 0;
+    }
+
     public async Task<bool> HardDeleteVersionAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
         var artifact = await _context.Artifacts
             .Include(a => a.Versions)
+            .Include(a => a.Tags)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(a => a.FeedId == feedId && a.Name == name, cancellationToken);
 
         var normalizedVersion = Normalize(version);
@@ -114,6 +126,7 @@ public class ArtifactDatabase : IArtifactDatabase
         else
         {
             _context.ArtifactVersions.Remove(found);
+            _context.ArtifactTags.RemoveRange(artifact.Tags.Where(t => Normalize(t.Version) == normalizedVersion));
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -154,10 +167,70 @@ public class ArtifactDatabase : IArtifactDatabase
             .Skip(skip)
             .Take(take)
             .Include(a => a.Versions)
+            .Include(a => a.Tags)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
         return new ArtifactSearchResult { TotalHits = totalHits, Artifacts = page };
+    }
+
+    public async Task<IReadOnlyList<ArtifactTag>> FindTagsAsync(Guid feedId, string name, CancellationToken cancellationToken)
+    {
+        return await _context.ArtifactTags
+            .AsNoTracking()
+            .Where(t => t.Artifact.FeedId == feedId && t.Artifact.Name == name)
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> SetTagAsync(Guid feedId, string name, string tag, string version, CancellationToken cancellationToken)
+    {
+        var target = await Versions(feedId, name, version)
+            .Select(v => new { v.ArtifactKey, v.Version })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (target == null)
+        {
+            return false;
+        }
+
+        // The second attempt is for a tag created by another request at the same time: the loser
+        // fails on the tag's unique index, and then moves the tag the winner created.
+        for (var attempt = 0; ; attempt++)
+        {
+            var existing = await _context.ArtifactTags
+                .FirstOrDefaultAsync(t => t.ArtifactKey == target.ArtifactKey && t.Name == tag, cancellationToken);
+
+            if (existing != null)
+            {
+                existing.Version = target.Version;
+            }
+            else
+            {
+                existing = new ArtifactTag { ArtifactKey = target.ArtifactKey, Name = tag, Version = target.Version };
+                _context.ArtifactTags.Add(existing);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return true;
+            }
+            catch (DbUpdateException e) when (attempt == 0 && _context.IsUniqueConstraintViolationException(e))
+            {
+                _context.ArtifactTags.Entry(existing).State = EntityState.Detached;
+            }
+        }
+    }
+
+    public async Task<bool> RemoveTagAsync(Guid feedId, string name, string tag, CancellationToken cancellationToken)
+    {
+        var deleted = await _context.ArtifactTags
+            .Where(t => t.Artifact.FeedId == feedId && t.Artifact.Name == name && t.Name == tag)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deleted > 0;
     }
 
     private IQueryable<ArtifactVersion> Versions(Guid feedId, string name, string version)

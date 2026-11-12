@@ -37,7 +37,15 @@ public interface IArtifactDatabase
     Task<bool> SetListedAsync(Guid feedId, string name, string version, bool listed, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Removes a version, and the package itself once it has no versions left.
+    /// Changes whether a version is listed together with its manifest, e.g. for an npm deprecation,
+    /// whose message is part of the manifest.
+    /// </summary>
+    /// <returns>False if the version does not exist.</returns>
+    Task<bool> UpdateVersionAsync(Guid feedId, string name, string version, bool listed, string metadataJson, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a version and the tags that point at it, and the package itself once it has no
+    /// versions left.
     /// </summary>
     /// <returns>False if the version does not exist.</returns>
     Task<bool> HardDeleteVersionAsync(Guid feedId, string name, string version, CancellationToken cancellationToken);
@@ -52,6 +60,24 @@ public interface IArtifactDatabase
     /// name matches first. A null or empty query matches every package of the feed.
     /// </summary>
     Task<ArtifactSearchResult> SearchAsync(Guid feedId, string query, int skip, int take, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Finds the tags of a package.
+    /// </summary>
+    /// <returns>The tags. Empty if the package does not exist.</returns>
+    Task<IReadOnlyList<ArtifactTag>> FindTagsAsync(Guid feedId, string name, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Points a tag at a version of the package, creating the tag or moving it.
+    /// </summary>
+    /// <returns>False if the package has no such version.</returns>
+    Task<bool> SetTagAsync(Guid feedId, string name, string tag, string version, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a tag of a package.
+    /// </summary>
+    /// <returns>False if the package has no such tag.</returns>
+    Task<bool> RemoveTagAsync(Guid feedId, string name, string tag, CancellationToken cancellationToken);
 }
 
 /// <summary>

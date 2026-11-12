@@ -1,0 +1,146 @@
+@* The Connect page of an npm feed: how to use it with npm, Yarn and pnpm. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Entities
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Helper
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var registryUrl = FeedTypeNames.GetClientUrl(FeedType.Npm, Url.PageLink("/Index"));
+
+    // npm matches credentials to a registry by its URL without the scheme.
+    var authKey = registryUrl[registryUrl.IndexOf("//", StringComparison.Ordinal)..];
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = FeedContext.CurrentFeed.Mirrors?.Any(m => m.Enabled) == true;
+    var token = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = ".npmrc",
+            content = new[]
+            {
+                "# .npmrc next to package.json, or in your home folder",
+                $"registry={registryUrl}",
+                $"{authKey}:_authToken={token}",
+            },
+            documentation = "https://docs.npmjs.com/cli/configuring-npm/npmrc",
+        },
+        new
+        {
+            name = "Scoped packages",
+            content = new[]
+            {
+                "# .npmrc: only packages of @my-scope come from this feed",
+                $"@my-scope:registry={registryUrl}",
+                $"{authKey}:_authToken={token}",
+            },
+            documentation = "https://docs.npmjs.com/cli/using-npm/scope",
+        },
+        new
+        {
+            name = "Yarn",
+            content = new[]
+            {
+                "# .yarnrc.yml (Yarn 2 and later; Yarn 1 reads .npmrc)",
+                $"npmRegistryServer: \"{registryUrl}\"",
+                "npmAlwaysAuth: true",
+                $"npmAuthToken: \"{token}\"",
+            },
+            documentation = "https://yarnpkg.com/configuration/yarnrc",
+        },
+        new
+        {
+            name = "pnpm",
+            content = new[]
+            {
+                "# pnpm reads .npmrc, or set it with:",
+                $"pnpm config set registry {registryUrl}",
+                $"pnpm config set {authKey}:_authToken {token}",
+            },
+            documentation = "https://pnpm.io/npmrc",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                "# in the package's folder",
+                $"npm publish --registry {registryUrl}",
+                "",
+                "# or in package.json",
+                $"\"publishConfig\": {{ \"registry\": \"{registryUrl}\" }}",
+            },
+            documentation = "https://docs.npmjs.com/cli/commands/npm-publish",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as an npm registry with <code>npm</code>, Yarn and pnpm.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Registry URL · @FeedContext.CurrentFeed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-registry-url">@registryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-registry-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Create a personal access token (PAT) and put it in place of YOUR_TOKEN below. Accounts without web sign-in get their token from an administrator.</p>
+                    <p>Keep the token out of version control: put it in the .npmrc of your home folder, or write <code>${NPM_TOKEN}</code> and set that environment variable.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages published to it. To install public packages through it as well, an administrator can add a mirror such as https://registry.npmjs.org; otherwise use "Scoped packages".</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Task">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

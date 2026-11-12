@@ -27,6 +27,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public const int MaxPackageDependencyVersionRangeLength = 256;
 
     public const int MaxArtifactVersionLength = 128;
+    public const int MaxArtifactTagLength = 128;
     public const int MaxContentHashLength = 128;
 
     public const int MaxUsernameLength = 256;
@@ -65,6 +66,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<TargetFramework> TargetFrameworks { get; set; }
     public DbSet<Artifact> Artifacts { get; set; }
     public DbSet<ArtifactVersion> ArtifactVersions { get; set; }
+    public DbSet<ArtifactTag> ArtifactTags { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<PersonalAccessToken> PersonalAccessTokens { get; set; }
     public DbSet<Group> Groups { get; set; }
@@ -155,6 +157,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<TargetFramework>(BuildTargetFrameworkEntity);
         builder.Entity<Artifact>(BuildArtifactEntity);
         builder.Entity<ArtifactVersion>(BuildArtifactVersionEntity);
+        builder.Entity<ArtifactTag>(BuildArtifactTagEntity);
         builder.Entity<User>(BuildUserEntity);
         builder.Entity<PersonalAccessToken>(BuildPersonalAccessTokenEntity);
         builder.Entity<Group>(BuildGroupEntity);
@@ -308,6 +311,25 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
             .WithOne(v => v.Artifact)
             .HasForeignKey(v => v.ArtifactKey)
             .OnDelete(DeleteBehavior.Cascade);
+
+        artifact.HasMany(a => a.Tags)
+            .WithOne(t => t.Artifact)
+            .HasForeignKey(t => t.ArtifactKey)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void BuildArtifactTagEntity(EntityTypeBuilder<ArtifactTag> tag)
+    {
+        tag.HasKey(t => t.Key);
+        tag.HasIndex(t => new { t.ArtifactKey, t.Name }).IsUnique();
+
+        tag.Property(t => t.Name)
+            .HasMaxLength(MaxArtifactTagLength)
+            .IsRequired();
+
+        tag.Property(t => t.Version)
+            .HasMaxLength(MaxArtifactVersionLength)
+            .IsRequired();
     }
 
     private void BuildArtifactVersionEntity(EntityTypeBuilder<ArtifactVersion> version)

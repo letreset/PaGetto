@@ -23,4 +23,9 @@ public class Artifact
     public DateTime CreatedAtUtc { get; set; }
 
     public List<ArtifactVersion> Versions { get; set; }
+
+    /// <summary>
+    /// Names that point at one of the versions, such as the npm dist-tags <c>latest</c> and <c>next</c>.
+    /// </summary>
+    public List<ArtifactTag> Tags { get; set; }
 }

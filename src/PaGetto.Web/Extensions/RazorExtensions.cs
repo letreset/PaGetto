@@ -56,7 +56,8 @@ public static class RazorExtensions
     {
         if (string.IsNullOrEmpty(packageId)) return "?";
 
-        var lastSegment = packageId[(packageId.LastIndexOf('.') + 1)..];
+        // The last part of a dotted NuGet id, or the name of a scoped npm package (@scope/name).
+        var lastSegment = packageId[(packageId.LastIndexOfAny(['.', '/']) + 1)..];
         if (lastSegment.Length == 0) lastSegment = packageId;
 
         return lastSegment[..Math.Min(2, lastSegment.Length)].ToUpperInvariant();

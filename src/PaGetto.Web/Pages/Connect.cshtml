@@ -39,6 +39,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Npm)
+{
+    <partial name="_ConnectNpm" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

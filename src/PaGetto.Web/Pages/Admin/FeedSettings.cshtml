@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(isNuGetFeed ? "https://api.nuget.org/v3/index.json" : "https://pub.dev")" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -319,8 +319,9 @@
                     else
                     {
                         <p>
-                            Upstream pub servers such as https://pub.dev, queried in order. The first mirror that has a
-                            package serves all of its versions. Versions published to this feed come first.
+                            Upstream @(Model.Feed?.Type == FeedType.Npm ? "npm registries such as https://registry.npmjs.org" : "pub servers such as https://pub.dev"),
+                            queried in order. The first mirror that has a package serves all of its versions. Versions
+                            published to this feed come first.
                         </p>
                     }
                 </div>

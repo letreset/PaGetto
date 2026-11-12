@@ -18,7 +18,7 @@ namespace PaGetto.Database.MySql.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4", DelegationModes.ApplyToDatabases);
@@ -49,6 +49,35 @@ namespace PaGetto.Database.MySql.Migrations
                         .IsUnique();
 
                     b.ToTable("Artifacts");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<int>("ArtifactKey")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactKey", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactTags");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
@@ -746,6 +775,17 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Navigation("Feed");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
+                        .WithMany("Tags")
+                        .HasForeignKey("ArtifactKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
@@ -862,6 +902,8 @@ namespace PaGetto.Database.MySql.Migrations
 
             modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
                 {
+                    b.Navigation("Tags");
+
                     b.Navigation("Versions");
                 });
 

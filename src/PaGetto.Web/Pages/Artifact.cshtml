@@ -58,13 +58,25 @@
     var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
     var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
 
-    // Dart calls an unlisted version "retracted".
+    // Dart calls an unlisted version "retracted", npm "deprecated".
     var isPub = feed.Type == FeedType.Pub;
-    var unlistedLabel = isPub ? "retracted" : "unlisted";
-    var unlistVerb = isPub ? "Retract" : "Unlist";
-    var relistVerb = isPub ? "Restore" : "Relist";
+    var isNpm = feed.Type == FeedType.Npm;
+    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : "unlisted";
+    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : "Unlist";
+    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : "Unlisting";
+    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : "Relist";
 
-    var downloadUrl = isPub ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version }) : null;
+    // The parts of the manifest the page shows, from the ecosystem's own summary.
+    var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines;
+    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies;
+    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links;
+    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords;
+
+    string DownloadUrl(string rowVersion) => isPub
+        ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
+        : isNpm ? Url.NpmTarball(name, rowVersion) : null;
+
+    var downloadUrl = DownloadUrl(version);
 
     var installTabs = new List<InstallTab>();
     if (isPub)
@@ -76,6 +88,13 @@
         });
         installTabs.Add(new InstallTab { Name = "Dart", Content = [$"dart pub add {name}:^{version} --hosted-url {feedUrl}"] });
         installTabs.Add(new InstallTab { Name = "Flutter", Content = [$"flutter pub add {name}:^{version} --hosted-url {feedUrl}"] });
+    }
+    else if (isNpm)
+    {
+        installTabs.Add(new InstallTab { Name = "npm", Content = [$"npm install {name}@{version}"] });
+        installTabs.Add(new InstallTab { Name = "Yarn", Content = [$"yarn add {name}@{version}"] });
+        installTabs.Add(new InstallTab { Name = "pnpm", Content = [$"pnpm add {name}@{version}"] });
+        installTabs.Add(new InstallTab { Name = "package.json", Content = ["\"dependencies\": {", $"  \"{name}\": \"^{version}\"", "}"] });
     }
 }
 
@@ -108,10 +127,10 @@
                     <p class="bgt-detail-desc">@current.Description</p>
                 }
 
-                @if (Model.Pubspec?.Environment.Count > 0)
+                @if (environment?.Count > 0)
                 {
                     <div class="bgt-chips">
-                        @foreach (var constraint in Model.Pubspec.Environment)
+                        @foreach (var constraint in environment)
                         {
                             <span class="bgt-fw" title="The @constraint.Key versions this package supports.">@constraint.Key @constraint.Value</span>
                         }
@@ -127,7 +146,11 @@
                 {
                     <li><icon name="info" size="15" />This is a prerelease version of @name.</li>
                 }
-                @if (!current.Listed)
+                @if (!current.Listed && isNpm)
+                {
+                    <li><icon name="info" size="15" />This version is deprecated: @(string.IsNullOrEmpty(Model.NpmManifest.Deprecated) ? "no reason given" : Model.NpmManifest.Deprecated). Clients warn when they install it.</li>
+                }
+                else if (!current.Listed)
                 {
                     <li><icon name="info" size="15" />This version is @unlistedLabel. Clients don't select it for new installs.</li>
                 }
@@ -152,9 +175,9 @@
         <div class="bgt-card bgt-card-clip" x-data="{ tab: 'readme' }">
             <div class="bgt-tabs" role="tablist" aria-label="Package details">
                 @{ await TabButton("readme", "Readme", null); }
-                @if (Model.Pubspec != null)
+                @if (dependencies != null)
                 {
-                    await TabButton("dependencies", "Dependencies", Model.Pubspec.Dependencies.Count);
+                    await TabButton("dependencies", "Dependencies", dependencies.Count);
                 }
                 @{ await TabButton("versions", "Versions", Model.Versions.Count); }
             </div>
@@ -170,17 +193,17 @@
                 }
             </div>
 
-            @if (Model.Pubspec != null)
+            @if (dependencies != null)
             {
                 <div class="bgt-tab-body" x-show="tab === 'dependencies'" x-cloak role="tabpanel">
-                    @if (Model.Pubspec.Dependencies.Count == 0)
+                    @if (dependencies.Count == 0)
                     {
                         <p class="text-muted mb-0">This package has no dependencies.</p>
                     }
                     else
                     {
                         <div class="bgt-dep-group">
-                            @foreach (var dependency in Model.Pubspec.Dependencies)
+                            @foreach (var dependency in dependencies)
                             {
                                 <div class="bgt-dep">
                                     <a asp-page="Artifact" asp-route-id="@dependency.Key" asp-route-version="@null">@dependency.Key</a>
@@ -216,7 +239,7 @@
 
                                 <tr class="@(selected ? "current" : null)" x-show="(includePrerelease || !@isPrerelease) && (showAll || !includePrerelease || @alwaysShow)">
                                     <td class="bgt-ver">
-                                        <a asp-page="Artifact" asp-route-version="@row.Version" class="@(row.Listed ? null : "bgt-unlisted")">@row.Version</a>
+                                        <a asp-page="Artifact" asp-route-id="@name" asp-route-version="@row.Version" class="@(row.Listed ? null : "bgt-unlisted")">@row.Version</a>
                                         @if (selected)
                                         {
                                             <span class="bgt-badge bgt-badge-ok ms-2">current</span>
@@ -248,9 +271,9 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub)
+                                        @if (isPub || isNpm)
                                         {
-                                            <a href="@Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = row.Version })" class="text-muted" style="font-size: 13px">Download</a>
+                                            <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
                                     </td>
                                 </tr>
@@ -308,15 +331,19 @@
                 <div><span>Type</span><span>@FeedTypeNames.GetDisplayName(feed.Type)</span></div>
                 <div><span>Updated</span><span>@Html.DisplayDate(Model.LastUpdated, Model.LastUpdated.Humanize(culture: CultureInfo.InvariantCulture))</span></div>
                 <div><span>Size</span><span>@current.Size.ToFileSize()</span></div>
+                @if (!string.IsNullOrEmpty(Model.NpmManifest?.License))
+                {
+                    <div><span>License</span><span>@Model.NpmManifest.License</span></div>
+                }
                 @if (!string.IsNullOrEmpty(current.ContentHash))
                 {
                     <div><span>SHA-256</span><span class="mono" title="@current.ContentHash">@current.ContentHash[..12]&hellip;</span></div>
                 }
             </div>
-            @if (Model.Pubspec?.Links.Count > 0)
+            @if (links?.Count > 0)
             {
                 <div class="bgt-side-links">
-                    @foreach (var link in Model.Pubspec.Links)
+                    @foreach (var link in links)
                     {
                         <a href="@link.Value" rel="noopener noreferrer">@LinkLabel(link.Key) &#x2197;</a>
                     }
@@ -324,16 +351,16 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download archive</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm ? "tarball" : "archive")</a>
             }
         </div>
 
-        @if (Model.Pubspec?.Topics.Count > 0)
+        @if (topics?.Count > 0)
         {
             <div class="bgt-card bgt-side-card">
-                <div class="bgt-card-label">Topics</div>
+                <div class="bgt-card-label">@(isNpm ? "Keywords" : "Topics")</div>
                 <div class="bgt-chips">
-                    @foreach (var topic in Model.Pubspec.Topics)
+                    @foreach (var topic in topics)
                     {
                         <span class="bgt-chip bgt-chip-lg">@topic</span>
                     }
@@ -345,7 +372,7 @@
         {
             <div class="bgt-danger-zone">
                 <div class="bgt-card-label mb-1">Manage</div>
-                <p>@(unlistVerb)ing keeps the file, but clients no longer select this version for new installs. Deleting permanently removes this version and its files.</p>
+                <p>@unlistGerund keeps the file, but clients no longer select this version for new installs. Deleting permanently removes this version and its files.</p>
                 <div class="bgt-actions">
                     @if (current.Listed)
                     {
@@ -403,7 +430,7 @@
         {
             "homepage" => "Homepage",
             "repository" => "Source repository",
-            "issue_tracker" => "Issue tracker",
+            "issue_tracker" or "bugs" => "Issue tracker",
             "documentation" => "Documentation",
             _ => pubspecField,
         };

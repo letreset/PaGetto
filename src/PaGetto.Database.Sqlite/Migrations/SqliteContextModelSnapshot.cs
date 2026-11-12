@@ -15,7 +15,7 @@ namespace PaGetto.Database.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
                 {
@@ -40,6 +40,33 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .IsUnique();
 
                     b.ToTable("Artifacts");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ArtifactKey")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactKey", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ArtifactTags");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
@@ -725,6 +752,17 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Navigation("Feed");
                 });
 
+            modelBuilder.Entity("PaGetto.Core.Entities.ArtifactTag", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
+                        .WithMany("Tags")
+                        .HasForeignKey("ArtifactKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+                });
+
             modelBuilder.Entity("PaGetto.Core.Entities.ArtifactVersion", b =>
                 {
                     b.HasOne("PaGetto.Core.Entities.Artifact", "Artifact")
@@ -841,6 +879,8 @@ namespace PaGetto.Database.Sqlite.Migrations
 
             modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
                 {
+                    b.Navigation("Tags");
+
                     b.Navigation("Versions");
                 });
 

@@ -15,4 +15,9 @@ public enum FeedType
     /// Dart and Flutter packages (the pub protocol), stored in the <see cref="Artifact"/> tables.
     /// </summary>
     Pub = 1,
+
+    /// <summary>
+    /// JavaScript and TypeScript packages (the npm registry protocol), stored in the <see cref="Artifact"/> tables.
+    /// </summary>
+    Npm = 2,
 }

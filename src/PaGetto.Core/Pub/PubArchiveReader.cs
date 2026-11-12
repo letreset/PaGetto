@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 
 namespace PaGetto.Core.Pub;
 
@@ -38,7 +39,11 @@ public static class PubArchiveReader
         try
         {
             await using var gzip = new GZipStream(archive, CompressionMode.Decompress, leaveOpen: true);
-            await using var limited = new LimitedReadStream(gzip, MaxUncompressedBytes);
+            await using var limited = new LimitedReadStream(
+                gzip,
+                MaxUncompressedBytes,
+                () => new InvalidPubArchiveException(
+                    $"The package is larger than {MaxUncompressedBytes / 1024 / 1024} MiB when decompressed."));
             var tar = new PubTarReader(limited);
 
             while (await tar.GetNextEntryAsync(cancellationToken) is { } entry)
@@ -109,77 +114,5 @@ public static class PubArchiveReader
         // The reader skips a byte order mark.
         using var reader = new StreamReader(new MemoryStream(content), Encoding.UTF8);
         return reader.ReadToEnd();
-    }
-
-    /// <summary>
-    /// Fails once more than a number of bytes were read from the inner stream.
-    /// </summary>
-    private sealed class LimitedReadStream : Stream
-    {
-        private readonly Stream _inner;
-        private long _remaining;
-
-        public LimitedReadStream(Stream inner, long limit)
-        {
-            _inner = inner;
-            _remaining = limit;
-        }
-
-        public override bool CanRead => true;
-        public override bool CanSeek => false;
-        public override bool CanWrite => false;
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return Count(_inner.Read(buffer, offset, count));
-        }
-
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-        {
-            return Count(await _inner.ReadAsync(buffer, cancellationToken));
-        }
-
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            return ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
-        }
-
-        public override void Flush()
-        {
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
-
-        private int Count(int read)
-        {
-            _remaining -= read;
-            if (_remaining < 0)
-            {
-                throw new InvalidPubArchiveException(
-                    $"The package is larger than {MaxUncompressedBytes / 1024 / 1024} MiB when decompressed.");
-            }
-
-            return read;
-        }
     }
 }

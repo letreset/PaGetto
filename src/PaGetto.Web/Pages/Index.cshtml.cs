@@ -197,7 +197,7 @@ public class IndexModel : PageModel
 
     private static ArtifactListItem ToListItem(FeedType feedType, Artifact artifact)
     {
-        var latest = ArtifactVersionOrder.GetLatest(feedType, artifact.Versions);
+        var latest = ArtifactVersionOrder.GetLatest(feedType, artifact.Versions, artifact.Tags);
 
         return new ArtifactListItem
         {

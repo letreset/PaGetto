@@ -16,6 +16,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
@@ -98,6 +99,11 @@ public class ArtifactModel : PageModel
     public PubspecSummary Pubspec { get; private set; }
 
     /// <summary>
+    /// The manifest of an npm package. Null on feeds of other types.
+    /// </summary>
+    public NpmManifestSummary NpmManifest { get; private set; }
+
+    /// <summary>
     /// Whether the Manage section and the Relist links are shown: the user may delete from the feed,
     /// and the feed is not read-only.
     /// </summary>
@@ -118,7 +124,7 @@ public class ArtifactModel : PageModel
         CanManage = !_feedSettings.GetIsReadOnlyMode(feed)
             && await FeedAccessGuard.CanDeleteFromCurrentFeedAsync(HttpContext, _feedContext, _permissions, authMode, cancellationToken);
 
-        Name = id;
+        Name = id = DecodeName(id);
 
         // Names are stored lowercased.
         var versions = await _artifacts.FindVersionsAsync(feed.Id, id.ToLowerInvariant(), cancellationToken);
@@ -129,7 +135,8 @@ public class ArtifactModel : PageModel
 
         Name = versions[0].Artifact.Name;
 
-        var latest = ArtifactVersionOrder.GetLatest(feed.Type, versions);
+        var tags = await _artifacts.FindTagsAsync(feed.Id, Name, cancellationToken);
+        var latest = ArtifactVersionOrder.GetLatest(feed.Type, versions, tags);
         if (string.IsNullOrEmpty(version))
         {
             Version = latest;
@@ -154,6 +161,10 @@ public class ArtifactModel : PageModel
         {
             Pubspec = PubspecSummary.Parse(Version.MetadataJson);
         }
+        else if (feed.Type == FeedType.Npm)
+        {
+            NpmManifest = NpmManifestSummary.Parse(Version.MetadataJson);
+        }
 
         if (Version.HasReadme)
         {
@@ -171,7 +182,7 @@ public class ArtifactModel : PageModel
         return await ManageVersionAsync(
             "unlist", id, version,
             (feed, name) => _artifacts.SetListedAsync(feed.Id, name, version, listed: false, cancellationToken),
-            RedirectToPage(new { id, version }),
+            RedirectToPage(new { id = DecodeName(id), version }),
             cancellationToken);
     }
 
@@ -180,7 +191,7 @@ public class ArtifactModel : PageModel
         return await ManageVersionAsync(
             "relist", id, version,
             (feed, name) => _artifacts.SetListedAsync(feed.Id, name, version, listed: true, cancellationToken),
-            RedirectToPage(new { id, version }),
+            RedirectToPage(new { id = DecodeName(id), version }),
             cancellationToken);
     }
 
@@ -200,7 +211,7 @@ public class ArtifactModel : PageModel
             },
             // version = null drops the ambient route value; without it the redirect would point at
             // the version that was just deleted.
-            RedirectToPage(new { id, version = (string)null }),
+            RedirectToPage(new { id = DecodeName(id), version = (string)null }),
             cancellationToken);
     }
 
@@ -224,6 +235,8 @@ public class ArtifactModel : PageModel
             return NotFound();
         }
 
+        id = DecodeName(id);
+
         if (!await FeedAccessGuard.CanDeleteFromCurrentFeedAsync(HttpContext, _feedContext, _permissions, authMode, cancellationToken))
         {
             await _audit.PackageAsync(HttpContext, LogLevel.Warning, $"package_{action}_unauthorized", feed.Slug, id, version);
@@ -245,5 +258,14 @@ public class ArtifactModel : PageModel
             feed.Slug, id, version);
 
         return found ? success : NotFound();
+    }
+
+    /// <summary>
+    /// A scoped npm name has a slash, which is in the URL as <c>%2F</c>. ASP.NET Core leaves that
+    /// encoded in route values.
+    /// </summary>
+    private static string DecodeName(string id)
+    {
+        return id.Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
     }
 }
