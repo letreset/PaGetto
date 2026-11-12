@@ -129,10 +129,13 @@ public class PyPIRepositoryIntegrationTests : IDisposable
         await _app.CreatePyPIFeedAsync(Feed);
         await _client.PublishPythonAsync(Feed, "my-package", "1.0");
 
-        using var response = await _client.GetAsync(PyPITestClient.ProjectUrl(Feed, "My_Package"));
+        // A Host header the client chose doesn't end up in the redirect.
+        using var request = new HttpRequestMessage(HttpMethod.Get, PyPITestClient.ProjectUrl(Feed, "My_Package"));
+        request.Headers.Host = "evil.example";
+        using var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
-        Assert.Equal($"http://localhost/feeds/{Feed}/pypi/simple/my-package/", response.Headers.Location?.ToString());
+        Assert.Equal($"/feeds/{Feed}/pypi/simple/my-package/", response.Headers.Location?.ToString());
     }
 
     [Fact]

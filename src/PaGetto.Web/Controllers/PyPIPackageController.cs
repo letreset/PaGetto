@@ -125,10 +125,11 @@ public class PyPIPackageController : Controller
         }
 
         // Clients normalize the name themselves, but the page of a name is at its normalized name.
+        // The redirect is a path on this server, not built from the Host header the client sent.
         var normalized = PyPIPackageName.Normalize(name);
         if (name != normalized)
         {
-            return RedirectPermanent(Url.PyPIProject(normalized));
+            return LocalRedirectPermanent($"{Request.PathBase.ToUriComponent()}/pypi/simple/{Uri.EscapeDataString(normalized)}/");
         }
 
         var project = await _packages.GetProjectOrNullAsync(_feedContext.CurrentFeed, normalized, cancellationToken);
