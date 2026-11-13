@@ -8,6 +8,7 @@ using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
+using PaGetto.Core.RubyGems;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -35,6 +36,7 @@ public static class ArtifactVersionOrder
             FeedType.PyPI => PyPIVersion.StringComparer,
             FeedType.Cargo => CargoVersion.StringComparer,
             FeedType.Go => GoVersion.StringComparer,
+            FeedType.RubyGems => RubyGemsVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }

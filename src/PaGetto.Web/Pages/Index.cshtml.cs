@@ -13,6 +13,7 @@ using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
 using PaGetto.Core.Maven;
 using PaGetto.Core.PyPI;
+using PaGetto.Core.RubyGems;
 using PaGetto.Core.Search;
 using PaGetto.Protocol.Models;
 using PaGetto.Web.Authentication;
@@ -205,14 +206,15 @@ public class IndexModel : PageModel
 
         return new ArtifactListItem
         {
-            // Maven coordinates, Python project and crate names as published, and Go module paths; the
-            // stored name is normalized.
+            // Maven coordinates, Python project, crate and gem names as published, and Go module paths;
+            // the stored name is normalized.
             Name = feedType switch
             {
                 FeedType.Maven => MavenPomSummary.Parse(latest.MetadataJson).Coordinates,
                 FeedType.PyPI => PyPIManifestSummary.Parse(latest.MetadataJson).Name,
                 FeedType.Cargo => CargoManifestSummary.Parse(latest.MetadataJson).Name,
                 FeedType.Go => GoModuleManifest.Parse(latest.MetadataJson).Module,
+                FeedType.RubyGems => RubyGemsManifest.Parse(latest.MetadataJson).Name,
                 _ => null,
             } ?? artifact.Name,
             Id = artifact.Name,

@@ -44,4 +44,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables.
     /// </summary>
     Go = 6,
+
+    /// <summary>
+    /// Ruby gems (the compact index of RubyGems.org and its push API), stored in the
+    /// <see cref="Artifact"/> tables with the gem file of each platform of a version in <see cref="ArtifactFile"/>.
+    /// </summary>
+    RubyGems = 7,
 }
