@@ -8,6 +8,7 @@
 @using PaGetto.Core.Go
 @using PaGetto.Core.Maven
 @using PaGetto.Core.PyPI
+@using PaGetto.Core.RubyGems
 @using PaGetto.Web.Extensions
 @using PaGetto.Web.Helper
 @model ArtifactModel
@@ -61,14 +62,15 @@
     var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
     var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
 
-    // Dart calls an unlisted version "retracted", npm "deprecated", Python and Cargo "yanked".
+    // Dart calls an unlisted version "retracted", npm "deprecated", Python, Cargo and RubyGems "yanked".
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
     var isMaven = feed.Type == FeedType.Maven;
     var isPyPI = feed.Type == FeedType.PyPI;
     var isCargo = feed.Type == FeedType.Cargo;
     var isGo = feed.Type == FeedType.Go;
-    var isYanked = isPyPI || isCargo;
+    var isRubyGems = feed.Type == FeedType.RubyGems;
+    var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
     var groupId = isMaven ? name[..name.IndexOf(':')] : null;
@@ -85,12 +87,16 @@
     var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines
         ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)]
             : Model.CargoManifest?.RustVersion is { } rustVersion ? [KeyValuePair.Create("Rust", rustVersion)]
-            : Model.GoMod?.GoVersion is { } goVersion ? [KeyValuePair.Create("Go", goVersion)] : null);
+            : Model.GoMod?.GoVersion is { } goVersion ? [KeyValuePair.Create("Go", goVersion)]
+            : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)] : null);
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
-        ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList();
-    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links;
-    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License;
+        ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
+        ?? Model.RubyGemsManifest?.Dependencies;
+    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
+        ?? Model.RubyGemsManifest?.Links;
+    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
+        ?? Model.RubyGemsManifest?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
@@ -143,6 +149,13 @@
     {
         installTabs.Add(new InstallTab { Name = "go get", Content = [$"go get {name}@{version}"] });
         installTabs.Add(new InstallTab { Name = "go.mod", Content = [$"require {name} {version}"] });
+    }
+    else if (isRubyGems)
+    {
+        var gemSource = Url.RubyGemsSource();
+        installTabs.Add(new InstallTab { Name = "Bundler", Content = [$"bundle add {name} --version \"{version}\" --source \"{gemSource}\""] });
+        installTabs.Add(new InstallTab { Name = "Gemfile", Content = [$"source \"{gemSource}\" do", $"  gem \"{name}\", \"{version}\"", "end"] });
+        installTabs.Add(new InstallTab { Name = "gem install", Content = [$"gem install {name} -v {version} --source {gemSource}"] });
     }
 }
 
@@ -227,7 +240,7 @@
                 {
                     await TabButton("dependencies", "Dependencies", dependencies.Count);
                 }
-                @if (isMaven || isPyPI)
+                @if (isMaven || isPyPI || isRubyGems)
                 {
                     await TabButton("files", "Files", Model.Files.Count);
                 }
@@ -267,7 +280,7 @@
                 </div>
             }
 
-            @if (isMaven || isPyPI)
+            @if (isMaven || isPyPI || isRubyGems)
             {
                 <div class="bgt-tab-body" x-show="tab === 'files'" x-cloak role="tabpanel">
                     <div class="bgt-table-wrap">
@@ -276,17 +289,17 @@
                                 <tr>
                                     <th>File</th>
                                     <th>Size</th>
-                                    <th>@(isPyPI ? "SHA-256" : "SHA-1")</th>
+                                    <th>@(isMaven ? "SHA-1" : "SHA-256")</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var file in Model.Files)
                                 {
-                                    // Python installers check files by SHA-256, Maven clients by SHA-1.
-                                    var fileUrl = isPyPI
-                                        ? Url.PyPIFile(pypiName, version, file.FileName)
+                                    // Python and Ruby installers check files by SHA-256, Maven clients by SHA-1.
+                                    var fileUrl = isPyPI ? Url.PyPIFile(pypiName, version, file.FileName)
+                                        : isRubyGems ? Url.RubyGemsGem(file.FileName)
                                         : $"{feedUrl}/maven2/{MavenFileUrlPath(groupId, artifactId, version, file.FileName)}";
-                                    var hash = isPyPI ? file.Sha256 : file.Sha1;
+                                    var hash = isMaven ? file.Sha1 : file.Sha256;
                                     <tr>
                                         <td class="mono"><a href="@fileUrl">@file.FileName</a></td>
                                         <td>@file.Size.ToFileSize()</td>

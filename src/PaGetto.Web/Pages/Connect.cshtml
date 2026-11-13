@@ -69,6 +69,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.RubyGems)
+{
+    <partial name="_ConnectRubyGems" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

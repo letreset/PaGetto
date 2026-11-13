@@ -21,6 +21,7 @@ using PaGetto.Core.Notifications;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
+using PaGetto.Core.RubyGems;
 using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
@@ -157,6 +158,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<CargoUpstreamClient>();
         services.TryAddTransient<IGoModuleService, GoModuleService>();
         services.TryAddTransient<GoUpstreamClient>();
+        services.TryAddTransient<IRubyGemsPackageService, RubyGemsPackageService>();
+        services.TryAddTransient<RubyGemsUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

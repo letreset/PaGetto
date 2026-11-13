@@ -22,6 +22,7 @@ using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
+using PaGetto.Core.RubyGems;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 
@@ -134,7 +135,12 @@ public class ArtifactModel : PageModel
     public GoModFile GoMod { get; private set; }
 
     /// <summary>
-    /// The files of the version, for ecosystems whose versions have several (Maven, PyPI). Empty
+    /// The manifest of a gem version, from its gemspecs. Null on feeds of other types.
+    /// </summary>
+    public RubyGemsManifestSummary RubyGemsManifest { get; private set; }
+
+    /// <summary>
+    /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
     public IReadOnlyList<ArtifactFile> Files { get; private set; } = [];
@@ -232,6 +238,14 @@ public class ArtifactModel : PageModel
 
             // The module path; the stored name is escaped.
             Name = manifest.Module ?? (GoModulePath.TryUnescape(Name, out var modulePath) ? modulePath : Name);
+        }
+        else if (feed.Type == FeedType.RubyGems)
+        {
+            RubyGemsManifest = RubyGemsManifestSummary.Parse(Version.MetadataJson);
+            Files = await _artifacts.FindFilesAsync(feed.Id, Name, Version.Version, cancellationToken);
+
+            // The name as published; the stored name is lowercased.
+            Name = RubyGemsManifest.Name ?? Name;
         }
 
         if (Version.HasReadme)
