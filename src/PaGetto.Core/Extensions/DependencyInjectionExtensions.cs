@@ -13,6 +13,7 @@ using PaGetto.Core.Content;
 using PaGetto.Core.Email;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Go;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Metadata;
@@ -154,6 +155,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<PyPIUpstreamClient>();
         services.TryAddTransient<ICargoPackageService, CargoPackageService>();
         services.TryAddTransient<CargoUpstreamClient>();
+        services.TryAddTransient<IGoModuleService, GoModuleService>();
+        services.TryAddTransient<GoUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

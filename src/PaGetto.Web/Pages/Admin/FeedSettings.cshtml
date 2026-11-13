@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -336,6 +336,14 @@
                             Upstream package indexes such as https://pypi.org/simple, queried in order. The first mirror
                             that has a project lists all of its files, and a file is stored in this feed on its first
                             download. Versions published to this feed come first.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.Go)
+                    {
+                        <p>
+                            Upstream module proxies such as https://proxy.golang.org, queried in order. The first mirror
+                            that lists a module lists all of its versions, and a version is stored in this feed when its
+                            zip is first downloaded. Versions uploaded to this feed come first.
                         </p>
                     }
                     else

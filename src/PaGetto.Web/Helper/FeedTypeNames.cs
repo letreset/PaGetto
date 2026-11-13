@@ -8,7 +8,7 @@ namespace PaGetto.Web.Helper;
 public static class FeedTypeNames
 {
     /// <summary>
-    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python" or "Rust".
+    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python", "Rust" or "Go".
     /// </summary>
     public static string GetDisplayName(FeedType type)
     {
@@ -19,6 +19,7 @@ public static class FeedTypeNames
             FeedType.Maven => "Maven",
             FeedType.PyPI => "Python",
             FeedType.Cargo => "Rust",
+            FeedType.Go => "Go",
             _ => "NuGet",
         };
     }
@@ -26,7 +27,7 @@ public static class FeedTypeNames
     /// <summary>
     /// The URL clients are configured with: the service index of a NuGet feed, the hosted URL of a
     /// Dart feed, the registry URL of an npm feed, the repository URL of a Maven feed, the index
-    /// URL of a PyPI feed, or the sparse index URL of a Cargo feed.
+    /// URL of a PyPI feed, the sparse index URL of a Cargo feed, or the GOPROXY URL of a Go feed.
     /// </summary>
     /// <param name="type">The feed's type.</param>
     /// <param name="feedUrl">The feed's root URL, e.g. <c>https://example.com/feeds/internal</c>.</param>
@@ -41,6 +42,7 @@ public static class FeedTypeNames
             FeedType.Maven => feedUrl + "/maven2/",
             FeedType.PyPI => feedUrl + "/pypi/simple/",
             FeedType.Cargo => "sparse+" + feedUrl + "/cargo/index/",
+            FeedType.Go => feedUrl + "/go",
             _ => feedUrl + "/v3/index.json",
         };
     }

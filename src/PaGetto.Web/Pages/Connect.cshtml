@@ -63,6 +63,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Go)
+{
+    <partial name="_ConnectGo" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }
