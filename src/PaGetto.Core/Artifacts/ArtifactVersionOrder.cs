@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using PaGetto.Core.Cargo;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
@@ -31,6 +32,7 @@ public static class ArtifactVersionOrder
             FeedType.Npm => NpmVersion.StringComparer,
             FeedType.Maven => MavenVersion.StringComparer,
             FeedType.PyPI => PyPIVersion.StringComparer,
+            FeedType.Cargo => CargoVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }

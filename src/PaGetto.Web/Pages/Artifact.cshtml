@@ -60,34 +60,39 @@
     var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
     var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
 
-    // Dart calls an unlisted version "retracted", npm "deprecated", Python "yanked".
+    // Dart calls an unlisted version "retracted", npm "deprecated", Python and Cargo "yanked".
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
     var isMaven = feed.Type == FeedType.Maven;
     var isPyPI = feed.Type == FeedType.PyPI;
+    var isCargo = feed.Type == FeedType.Cargo;
+    var isYanked = isPyPI || isCargo;
 
     // A Maven package is named groupId:artifactId.
     var groupId = isMaven ? name[..name.IndexOf(':')] : null;
     var artifactId = isMaven ? name[(name.IndexOf(':') + 1)..] : null;
-    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : isPyPI ? "yanked" : "unlisted";
-    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : isPyPI ? "Yank" : "Unlist";
-    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : isPyPI ? "Yanking" : "Unlisting";
-    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : isPyPI ? "Unyank" : "Relist";
+    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : isYanked ? "yanked" : "unlisted";
+    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : isYanked ? "Yank" : "Unlist";
+    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : isYanked ? "Yanking" : "Unlisting";
+    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : isYanked ? "Unyank" : "Relist";
 
     // A Python project's files are at its normalized name.
     var pypiName = isPyPI ? PyPIPackageName.Normalize(name) : null;
 
     // The parts of the manifest the page shows, from the ecosystem's own summary.
     var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines
-        ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)] : null);
-    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies;
-    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links;
-    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License;
-    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords;
+        ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)]
+            : Model.CargoManifest?.RustVersion is { } rustVersion ? [KeyValuePair.Create("Rust", rustVersion)] : null);
+    var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
+        ?? Model.CargoManifest?.Dependencies;
+    var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links;
+    var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License;
+    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
         ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
-        : isNpm ? Url.NpmTarball(name, rowVersion) : null;
+        : isNpm ? Url.NpmTarball(name, rowVersion)
+        : isCargo ? $"{Url.CargoDownloads()}/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(rowVersion)}/download" : null;
 
     var downloadUrl = DownloadUrl(version);
 
@@ -122,6 +127,12 @@
         installTabs.Add(new InstallTab { Name = "uv", Content = [$"uv add {name}=={version}"] });
         installTabs.Add(new InstallTab { Name = "Poetry", Content = [$"poetry add {name}=={version}"] });
         installTabs.Add(new InstallTab { Name = "requirements.txt", Content = [$"{name}=={version}"] });
+    }
+    else if (isCargo)
+    {
+        // The feed's slug is the registry name its Connect page configures.
+        installTabs.Add(new InstallTab { Name = "Cargo", Content = [$"cargo add {name}@{version} --registry {feed.Slug}"] });
+        installTabs.Add(new InstallTab { Name = "Cargo.toml", Content = ["[dependencies]", $"{name} = {{ version = \"{version}\", registry = \"{feed.Slug}\" }}"] });
     }
 }
 
@@ -334,7 +345,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm)
+                                        @if (isPub || isNpm || isCargo)
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -418,14 +429,14 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm ? "tarball" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm ? "tarball" : isCargo ? "crate" : "archive")</a>
             }
         </div>
 
         @if (topics?.Count > 0)
         {
             <div class="bgt-card bgt-side-card">
-                <div class="bgt-card-label">@(isNpm || isPyPI ? "Keywords" : "Topics")</div>
+                <div class="bgt-card-label">@(isNpm || isPyPI || isCargo ? "Keywords" : "Topics")</div>
                 <div class="bgt-chips">
                     @foreach (var topic in topics)
                     {

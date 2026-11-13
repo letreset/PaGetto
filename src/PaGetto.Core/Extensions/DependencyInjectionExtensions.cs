@@ -7,6 +7,7 @@ using System.Text;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Cargo;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Content;
 using PaGetto.Core.Email;
@@ -151,6 +152,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<MavenUpstreamClient>();
         services.TryAddTransient<IPyPIPackageService, PyPIPackageService>();
         services.TryAddTransient<PyPIUpstreamClient>();
+        services.TryAddTransient<ICargoPackageService, CargoPackageService>();
+        services.TryAddTransient<CargoUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

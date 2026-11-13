@@ -32,4 +32,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables with the wheels and sdists of each version in <see cref="ArtifactFile"/>.
     /// </summary>
     PyPI = 4,
+
+    /// <summary>
+    /// Rust crates (Cargo's sparse registry protocol and the registry web API), stored in the
+    /// <see cref="Artifact"/> tables.
+    /// </summary>
+    Cargo = 5,
 }

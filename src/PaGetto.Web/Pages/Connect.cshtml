@@ -57,6 +57,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Cargo)
+{
+    <partial name="_ConnectCargo" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

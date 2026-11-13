@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Cargo;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
@@ -116,6 +117,11 @@ public class ArtifactModel : PageModel
     public PyPIManifestSummary PyPIManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a crate version. Null on feeds of other types.
+    /// </summary>
+    public CargoManifestSummary CargoManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -199,6 +205,13 @@ public class ArtifactModel : PageModel
 
             // The name as published; the stored name is normalized.
             Name = PyPIManifest.Name ?? Name;
+        }
+        else if (feed.Type == FeedType.Cargo)
+        {
+            CargoManifest = CargoManifestSummary.Parse(Version.MetadataJson);
+
+            // The name as published; the stored name is lowercased.
+            Name = CargoManifest.Name ?? Name;
         }
 
         if (Version.HasReadme)

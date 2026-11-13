@@ -23,6 +23,7 @@ public class PaGettoEndpointBuilder
         MapNpmRoutes(endpoints);
         MapMavenRoutes(endpoints);
         MapPyPIRoutes(endpoints);
+        MapCargoRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -304,6 +305,58 @@ public class PaGettoEndpointBuilder
             pattern: "pypi/legacy",
             defaults: new { controller = "PyPIPackage", action = "Upload" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+    }
+
+    /// <summary>
+    /// The registry of Cargo feeds: the sparse index and the registry web API, which also serves
+    /// the crates. It is at <c>cargo/</c> under the feed, clear of the pages of the web UI.
+    /// See: https://doc.rust-lang.org/cargo/reference/registries.html
+    /// </summary>
+    public void MapCargoRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/index/config.json",
+            defaults: new { controller = "CargoRegistry", action = "Config" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/index/{**path}",
+            defaults: new { controller = "CargoRegistry", action = "Index" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/api/v1/crates",
+            defaults: new { controller = "CargoRegistry", action = "Search" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/api/v1/crates/new",
+            defaults: new { controller = "CargoRegistry", action = "Publish" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/api/v1/crates/{name}/{version}/download",
+            defaults: new { controller = "CargoRegistry", action = "Download" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/api/v1/crates/{name}/{version}/yank",
+            defaults: new { controller = "CargoRegistry", action = "Yank" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("DELETE") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cargo/api/v1/crates/{name}/{version}/unyank",
+            defaults: new { controller = "CargoRegistry", action = "Unyank" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

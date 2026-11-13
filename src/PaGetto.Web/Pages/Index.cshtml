@@ -409,7 +409,7 @@ else
                                 <span><icon name="arrow-down" size="13" />@DownloadsLabel(artifact.TotalDownloads)</span>
                             </div>
                         </div>
-                        <button type="button" class="bgt-install-btn bgt-above bgt-desktop-only" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, artifact)">
+                        <button type="button" class="bgt-install-btn bgt-above bgt-desktop-only" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact)">
                             <icon name="copy" size="13" /><span class="bgt-copy-label">Install</span>
                         </button>
                     </div>
@@ -431,7 +431,7 @@ else
                         <p class="bgt-pkg-desc">@artifact.Description</p>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="flex-grow-1"></span>
-                            <button type="button" class="bgt-install-btn bgt-above" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, artifact)">
+                            <button type="button" class="bgt-install-btn bgt-above" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact)">
                                 <icon name="copy" size="12" /><span class="bgt-copy-label">Install</span>
                             </button>
                         </div>
@@ -444,7 +444,7 @@ else
     }
 
     // The command copied by the Install button of an artifact, matching the first tab of its page.
-    private static string ArtifactInstallCommand(FeedType feedType, string feedUrl, IndexModel.ArtifactListItem artifact)
+    private static string ArtifactInstallCommand(FeedType feedType, string feedUrl, string feedSlug, IndexModel.ArtifactListItem artifact)
     {
         return feedType switch
         {
@@ -452,6 +452,7 @@ else
             FeedType.Npm => $"npm install {artifact.Name}@{artifact.Version}",
             FeedType.Maven => MavenDependency(artifact.Name, artifact.Version),
             FeedType.PyPI => $"pip install {artifact.Name}=={artifact.Version}",
+            FeedType.Cargo => $"cargo add {artifact.Name}@{artifact.Version} --registry {feedSlug}",
             _ => artifact.Name,
         };
     }

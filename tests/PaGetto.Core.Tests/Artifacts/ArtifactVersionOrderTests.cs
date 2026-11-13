@@ -92,6 +92,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsCrateVersionsAsCargoDoes()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Cargo, [Version("1.0.0-rc.1"), Version("1.10.0"), Version("1.0.0"), Version("1.0.0-beta.11"), Version("1.0.0-beta.2"), Version("1.9.0")]);
+
+            Assert.Equal(new[] { "1.10.0", "1.9.0", "1.0.0", "1.0.0-rc.1", "1.0.0-beta.11", "1.0.0-beta.2" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));
