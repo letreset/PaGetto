@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
     'npm',
     'maven',
     'pypi',
+    'cargo',
     'web-ui',
     'authentication',
     'configuration',
