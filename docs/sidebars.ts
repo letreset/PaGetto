@@ -27,6 +27,7 @@ const sidebars: SidebarsConfig = {
     'pypi',
     'cargo',
     'go',
+    'rubygems',
     'web-ui',
     'authentication',
     'configuration',
