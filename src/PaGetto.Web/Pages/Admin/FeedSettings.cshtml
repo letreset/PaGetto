@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -341,7 +341,7 @@
                     else
                     {
                         <p>
-                            Upstream @(Model.Feed?.Type == FeedType.Npm ? "npm registries such as https://registry.npmjs.org" : "pub servers such as https://pub.dev"),
+                            Upstream @(Model.Feed?.Type switch { FeedType.Npm => "npm registries such as https://registry.npmjs.org", FeedType.Cargo => "sparse registries such as https://index.crates.io", _ => "pub servers such as https://pub.dev" }),
                             queried in order. The first mirror that has a package serves all of its versions. Versions
                             published to this feed come first.
                         </p>

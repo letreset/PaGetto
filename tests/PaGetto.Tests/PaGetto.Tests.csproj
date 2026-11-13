@@ -22,6 +22,7 @@
     <!-- Build pub package archives and npm tarballs; shared with the Core tests. -->
     <Compile Include="..\PaGetto.Core.Tests\Support\PubArchiveBuilder.cs" Link="Support\PubArchiveBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\NpmTarballBuilder.cs" Link="Support\NpmTarballBuilder.cs" />
+    <Compile Include="..\PaGetto.Core.Tests\Support\CargoCrateBuilder.cs" Link="Support\CargoCrateBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>
