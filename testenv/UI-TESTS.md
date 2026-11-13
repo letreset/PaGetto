@@ -278,6 +278,37 @@ packages = ["src/contoso_widgets"]
 | PY7 | `admin` | Add the mirror `https://pypi.org/simple` to py (needs internet). In a new virtual environment run `pip install --index-url http://__token__:<token>@localhost:5000/feeds/py/pypi/simple/ Contoso.Widgets`, then reload py | The install succeeds with Contoso.Widgets 1.0.0 and requests and its dependencies, every download is from `localhost:5000/feeds/py/pypi/files/`, and pip downloads `….whl.metadata` files. requests and its dependencies are in the package list, and their versions carry a **mirror** label |
 | PY8 | `admin` | On the package page of Contoso.Widgets 1.0.0: **Yank 1.0.0**, reload `/feeds/py/pypi/simple/contoso-widgets/` and run `pip install "Contoso.Widgets==1.0.0"` as in PY7 in a new virtual environment; **Unyank**, then **Delete 1.0.0**; delete the feed afterwards | While yanked, the links of 1.0.0 carry `data-yanked`, and pip installs the pinned version with a warning that it is yanked. The buttons ask for confirmation and work; after the delete the version and its **Files** are gone. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `py`. Do `down -v` afterwards |
 
+## Rust feeds
+
+The data set has no Rust feed, so CG1 creates one and the later checks use it. They need PaGetto 1.7.0 or later, Cargo 1.74 or later, internet access for crates.io, and a personal access token of `admin` from **My Tokens** in place of `<token>`. The test crate is made with `cargo new --lib contoso_widgets`, gets a `README.md`, and has this `Cargo.toml`:
+
+```toml
+[package]
+name = "contoso_widgets"
+version = "1.0.0"
+edition = "2021"
+description = "Widgets for Contoso."
+license = "MIT"
+repository = "https://example.com/contoso/widgets"
+keywords = ["widgets"]
+rust-version = "1.70"
+publish = ["rs"]
+
+[dependencies]
+itoa = "1"
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| CG1 | `admin` | Admin > Feeds > **New feed**: slug `rs`, type **Rust**; open its **Settings**; give the group of `carol` Pull on it | The feed shows a **Rust** badge and its copy button copies `sparse+http://localhost:5000/feeds/rs/cargo/index/`. Settings have no Retention section and no Deletion behavior setting, and the mirror URL placeholder is `https://index.crates.io` |
+| CG2 | `admin` | Put the **Cargo** tab of rs > **Connect** into the test crate's `.cargo/config.toml` (without the `cargo login` lines), run `cargo login --registry rs` and paste `<token>`, then `cargo publish --registry rs`; run `cargo publish --registry rs --allow-dirty` again | The first publish uploads and succeeds. The second fails with `crate contoso_widgets@1.0.0 already exists on `rs` index` |
+| CG3 | `admin` | Change the version to `1.1.0-beta.1` and run `cargo publish --registry rs --allow-dirty`; then `cargo search --registry rs widgets` | The publish succeeds. The search prints `contoso_widgets = "1.0.0"` with `# Widgets for Contoso.` |
+| CG4 | `carol` | Open rs (`/feeds/rs/`), then contoso_widgets | "Rust feed" above the feed name, and **Install** copies `cargo add contoso_widgets@1.0.0 --registry rs`. The package page shows 1.0.0 with a **latest** badge, the description, `Rust 1.70`, the tabs **Cargo** and **Cargo.toml**, the readme, `itoa ^1` under **Dependencies**, 1.0.0 and 1.1.0-beta.1 (marked prerelease) under **Versions** with **Download** links, the license MIT, a **Source repository** link, the keyword `widgets`, and a **Download crate** button that downloads `contoso_widgets-1.0.0.crate` |
+| CG5 | `carol` | rs > **Connect** | Index URL `sparse+http://localhost:5000/feeds/rs/cargo/index/` with a copy button, an "Authentication required" note that links to My Tokens, a "This feed has no mirror" note, and the tabs **Cargo** (with `[registries.rs]`, `credential-provider = ["cargo:token"]`, `cargo login --registry rs` and `CARGO_REGISTRIES_RS_TOKEN`), **Cargo.toml** and **Publish** |
+| CG6 | none | `curl -i http://localhost:5000/feeds/rs/cargo/index/config.json`; the same with `-H "Authorization: <token>"`, then for `/feeds/rs/cargo/index/co/nt/contoso_widgets` and `/feeds/rs/cargo/index/contoso_widgets`; then with the token for `/feeds/rs/v3/index.json` and `/feeds/internal/cargo/index/config.json` | Without the token: 401 with `WWW-Authenticate: Cargo login_url="http://localhost:5000/feeds/rs/connect"`. With it: `config.json` has `dl`, `api` and `"auth-required":true`; the index file has one JSON line per version with `cksum` and `"yanked":false`, and `itoa` with `"req":"^1"` and the crates.io index as `registry`; the path without its prefix is 404. The NuGet API on the Rust feed and the registry on a NuGet feed: 404 |
+| CG7 | `admin` | Add the mirror `https://index.crates.io` to rs. In a new crate with `contoso_widgets = { version = "1", registry = "rs" }` as its dependency and the **Cargo** tab of Connect with `[source.crates-io]` as its `.cargo/config.toml`, set `CARGO_HOME` to an empty folder, set `CARGO_REGISTRIES_RS_TOKEN=<token>` and run `cargo build`; then reload rs | The build succeeds, and Cargo downloads contoso_widgets and itoa from `localhost:5000/feeds/rs/`. itoa is in the package list, and its version carries a **mirror** label |
+| CG8 | `admin` | Run `cargo yank --registry rs contoso_widgets@1.0.0` in the test crate and reload its package page and index file; `cargo yank --registry rs contoso_widgets@1.0.0 --undo`; then on the package page **Yank 1.0.0**, **Unyank**, and **Delete 1.1.0-beta.1**; delete the feed afterwards | While yanked, the page marks 1.0.0 **yanked** and its index line has `"yanked":true`. The buttons ask for confirmation and work; after the delete the version is gone. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `rs`. Do `down -v` afterwards |
+
 ## Small screens
 
 | # | Account | Steps | Expected |

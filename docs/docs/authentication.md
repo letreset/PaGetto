@@ -340,6 +340,10 @@ Maven, Gradle and sbt send a username and a personal access token with Basic aut
 
 Python clients send a personal access token with Basic authentication, with the username `__token__` as for PyPI's API tokens (the token owner's username works too): in `~/.netrc` for pip, in environment variables for uv, with `poetry config http-basic` for Poetry, and in `~/.pypirc` for twine. See [Python packages](pypi.md#configure-the-client).
 
+## Using PaGetto from Cargo
+
+Cargo sends a personal access token as the whole `Authorization` header, without a scheme, and a Rust feed asks it to send the token with every request. Store it with `cargo login --registry <name>` or in the environment variable `CARGO_REGISTRIES_<NAME>_TOKEN`. See [Rust crates](cargo.md#configure-cargo).
+
 ## Full configuration reference
 
 ```json
