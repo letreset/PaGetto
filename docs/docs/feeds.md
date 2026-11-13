@@ -2,7 +2,7 @@
 
 A **feed** is a separate package source inside one PaGetto server. Each feed has its own packages, its own settings (overwrites, deletion, retention, size limit, read-only mode), its own read-through mirror and its own permissions. Use feeds to keep, for example, `internal` packages apart from `experimental` ones, or to give each team a mirror of nuget.org with different rules.
 
-Every feed has a **type**, the kind of packages it serves: **NuGet**, **Dart**, **npm**, **Maven**, **Python** or **Rust**. This page describes NuGet feeds and what all feeds share; [Dart and Flutter packages](dart.md) covers Dart feeds, [npm packages](npm.md) npm feeds, [Maven packages](maven.md) Maven feeds, [Python packages](pypi.md) Python feeds and [Rust crates](cargo.md) Rust feeds.
+Every feed has a **type**, the kind of packages it serves: **NuGet**, **Dart**, **npm**, **Maven**, **Python**, **Rust** or **Go**. This page describes NuGet feeds and what all feeds share; [Dart and Flutter packages](dart.md) covers Dart feeds, [npm packages](npm.md) npm feeds, [Maven packages](maven.md) Maven feeds, [Python packages](pypi.md) Python feeds, [Rust crates](cargo.md) Rust feeds and [Go modules](go.md) Go feeds.
 
 ## Feed URLs
 
@@ -21,7 +21,7 @@ The **default feed** is created on first start and can't be deleted. Its URLs ar
 
 Feeds are managed by administrators on **Admin > Feeds**. This needs `Authentication:Mode` set to `Local`, `Entra` or `Hybrid` (see [Authentication](authentication.md)). The `Legacy` mode has no administrators, so only the default feed exists.
 
-- **Create** a feed with **New feed**: a slug, a type, a display name (at most 256 characters) and an optional description (at most 4000 characters). A slug is lowercase letters, digits and hyphens, can't start or end with a hyphen, and is at most 128 characters. It becomes part of the URL, so choose it with care. The type (NuGet, [Dart](dart.md), [npm](npm.md), [Maven](maven.md), [Python](pypi.md) or [Rust](cargo.md)) can't be changed afterwards either.
+- **Create** a feed with **New feed**: a slug, a type, a display name (at most 256 characters) and an optional description (at most 4000 characters). A slug is lowercase letters, digits and hyphens, can't start or end with a hyphen, and is at most 128 characters. It becomes part of the URL, so choose it with care. The type (NuGet, [Dart](dart.md), [npm](npm.md), [Maven](maven.md), [Python](pypi.md), [Rust](cargo.md) or [Go](go.md)) can't be changed afterwards either.
 - **Reorder** feeds by dragging them. The order is used wherever feeds are listed in the UI.
 - Open a feed's **Settings** to change its display name, description and [settings](#feed-settings).
 - **Delete** a feed with its trash button. This deletes all of its packages from the database and storage. It can't be undone.
@@ -31,7 +31,7 @@ There is also a small JSON API at `/api/v1/feeds`. It only accepts the web UI's 
 | Request | Effect |
 |---|---|
 | `GET /api/v1/feeds`, `GET /api/v1/feeds/{slug}` | List all feeds, or get one |
-| `POST /api/v1/feeds` | Create a feed from `slug`, `name`, `description` and `type` (`"NuGet"`, the default, `"Pub"` for a Dart feed, `"Npm"` for an npm feed, `"Maven"` for a Maven feed, `"PyPI"` for a Python feed or `"Cargo"` for a Rust feed) |
+| `POST /api/v1/feeds` | Create a feed from `slug`, `name`, `description` and `type` (`"NuGet"`, the default, `"Pub"` for a Dart feed, `"Npm"` for an npm feed, `"Maven"` for a Maven feed, `"PyPI"` for a Python feed, `"Cargo"` for a Rust feed or `"Go"` for a Go feed) |
 | `PUT /api/v1/feeds/{slug}` | Change only the `name` and `description` |
 | `DELETE /api/v1/feeds/{slug}` | Delete the feed and its packages. The default feed returns `409 Conflict` |
 
@@ -60,7 +60,7 @@ Set the values you want for most feeds in configuration, and override only where
 
 ## Mirror (read-through cache)
 
-A NuGet feed can mirror an upstream NuGet feed, for example nuget.org (a Dart feed mirrors pub servers such as pub.dev, see [Mirror pub.dev](dart.md#mirror-pubdev), an npm feed npm registries, see [Mirror registry.npmjs.org](npm.md#mirror-registrynpmjsorg), a Maven feed Maven repositories, see [Mirror Maven Central](maven.md#mirror-maven-central), a Python feed package indexes, see [Mirror PyPI](pypi.md#mirror-pypi), and a Rust feed sparse registries, see [Mirror crates.io](cargo.md#mirror-cratesio)). When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream source, stores it in the feed and serves it. Later restores are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
+A NuGet feed can mirror an upstream NuGet feed, for example nuget.org (a Dart feed mirrors pub servers such as pub.dev, see [Mirror pub.dev](dart.md#mirror-pubdev), an npm feed npm registries, see [Mirror registry.npmjs.org](npm.md#mirror-registrynpmjsorg), a Maven feed Maven repositories, see [Mirror Maven Central](maven.md#mirror-maven-central), a Python feed package indexes, see [Mirror PyPI](pypi.md#mirror-pypi), a Rust feed sparse registries, see [Mirror crates.io](cargo.md#mirror-cratesio), and a Go feed module proxies, see [Mirror proxy.golang.org](go.md#mirror-proxygolangorg)). When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream source, stores it in the feed and serves it. Later restores are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
 
 Mirrors are listed on each feed's settings page, under **Mirrors**. Use **Add mirror** to add one; each mirror has these settings:
 

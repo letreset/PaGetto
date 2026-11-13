@@ -309,6 +309,37 @@ itoa = "1"
 | CG7 | `admin` | Add the mirror `https://index.crates.io` to rs. In a new crate with `contoso_widgets = { version = "1", registry = "rs" }` as its dependency and the **Cargo** tab of Connect with `[source.crates-io]` as its `.cargo/config.toml`, set `CARGO_HOME` to an empty folder, set `CARGO_REGISTRIES_RS_TOKEN=<token>` and run `cargo build`; then reload rs | The build succeeds, and Cargo downloads contoso_widgets and itoa from `localhost:5000/feeds/rs/`. itoa is in the package list, and its version carries a **mirror** label |
 | CG8 | `admin` | Run `cargo yank --registry rs contoso_widgets@1.0.0` in the test crate and reload its package page and index file; `cargo yank --registry rs contoso_widgets@1.0.0 --undo`; then on the package page **Yank 1.0.0**, **Unyank**, and **Delete 1.1.0-beta.1**; delete the feed afterwards | While yanked, the page marks 1.0.0 **yanked** and its index line has `"yanked":true`. The buttons ask for confirmation and work; after the delete the version is gone. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `rs`. Do `down -v` afterwards |
 
+## Go feeds
+
+The data set has no Go feed, so GO1 creates one and the later checks use it. They need Go 1.21 or later, Git, internet access for proxy.golang.org, and a personal access token of `admin` from **My Tokens** in place of `<token>`. The go command only sends credentials over HTTPS, so its checks go through a TLS proxy on the test environment's network, with the go command in a container that trusts the proxy's certificate:
+
+```bash
+docker run -d --name go-tls --network pagetto-test_default --network-alias pagetto.test caddy:2 caddy reverse-proxy --from https://pagetto.test --to pagetto:8080 --internal-certs
+docker cp go-tls:/data/caddy/pki/authorities/local/root.crt ./root.crt
+docker run --rm -it --network pagetto-test_default -v "$PWD:/work" -w /work -e SSL_CERT_FILE=/work/root.crt -e NETRC=/work/netrc golang:1.25 bash
+```
+
+`netrc` holds `machine pagetto.test login __token__ password <token>`. The test module is a Git repository with this `go.mod`, a `widgets.go` with `package widgets` and a `README.md`, tagged `v1.0.0`:
+
+```
+module example.com/Contoso/widgets
+
+go 1.22
+
+require rsc.io/quote v1.5.2
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| GO1 | `admin` | Admin > Feeds > **New feed**: slug `golang`, type **Go**; open its **Settings**; give the group of `carol` Pull on it | The feed shows a **Go** badge and its copy button copies `http://localhost:5000/feeds/golang/go`. Settings have no Retention section and no Deletion behavior setting, the mirror URL placeholder is `https://proxy.golang.org`, and the mirror text speaks of module proxies |
+| GO2 | `admin` | In the test module run `git archive --format=zip --prefix=example.com/Contoso/widgets@v1.0.0/ -o module.zip v1.0.0`, then the `curl` of the **Upload** tab of golang > **Connect** with `admin` and `<token>` and the path `example.com/!contoso/widgets/@v/v1.0.0.zip`; run it again | The first upload answers 201. The second answers 409 with `Version v1.0.0 of module example.com/Contoso/widgets already exists.` |
+| GO3 | `admin` | Upload the same zip to `.../@v/v1.0.1.zip`, and a zip made with `--prefix=example.com/other@v1.0.0/` to `.../@v/v1.0.0.zip` | Both answer 400: the first says the files are not in the folder `example.com/Contoso/widgets@v1.0.1/`, the second the same for its folder |
+| GO4 | none | In the go container, in a new module with `GOPROXY=https://pagetto.test/feeds/golang/go,https://proxy.golang.org,direct` and `GONOSUMDB=example.com/*`: `go get example.com/Contoso/widgets@latest`, `go build ./...`, `go mod verify`, `go list -m -versions example.com/Contoso/widgets` | The module is added at v1.0.0, rsc.io/quote comes from proxy.golang.org, `go mod verify` prints `all modules verified`, and the version list is `v1.0.0` |
+| GO5 | `carol` | Open golang (`/feeds/golang/`), then example.com/Contoso/widgets | "Go feed" above the feed name, and **Install** copies `go get example.com/Contoso/widgets@v1.0.0`. The package page shows v1.0.0 with a **latest** badge, `Go 1.22`, the tabs **go get** and **go.mod** (`require example.com/Contoso/widgets v1.0.0`), the readme, `rsc.io/quote v1.5.2` under **Dependencies**, v1.0.0 under **Versions** with a **Download** link, and a **Download zip** button that downloads the zip from `/feeds/golang/go/example.com/!contoso/widgets/@v/v1.0.0.zip` |
+| GO6 | `carol` | golang > **Connect** | GOPROXY URL `http://localhost:5000/feeds/golang/go` with a copy button, an "Authentication required" note that says credentials go over HTTPS only and links to My Tokens, a "This feed has no mirror" note, and the tabs **Go** (with `go env -w GOPROXY=...,https://proxy.golang.org,direct`, `GONOSUMDB` and the `.netrc` lines), **go get** and **Upload** |
+| GO7 | none | `curl -i http://localhost:5000/feeds/golang/go/example.com/!contoso/widgets/@v/list`; the same with `-u __token__:<token>`, then for `@latest`, `@v/v1.0.0.info`, `@v/v1.0.0.mod` and `example.com/Contoso/widgets/@v/list`; then with the token for `/feeds/golang/v3/index.json` and `/feeds/internal/go/example.com/!contoso/widgets/@v/list` | Without the token: 401 with `WWW-Authenticate: Basic realm="PaGetto"`. With it: the list is `v1.0.0`, `@latest` and `.info` are `{"Version":"v1.0.0","Time":"…"}`, `.mod` is the `go.mod` of the module, and the unescaped path is 404. The NuGet API on the Go feed and the proxy on a NuGet feed: 404 |
+| GO8 | `admin` | Add the mirror `https://proxy.golang.org` to golang. In the go container, with a new module cache (`GOMODCACHE=/tmp/mod`), `GOPROXY=https://pagetto.test/feeds/golang/go` and `GONOSUMDB=example.com/*`, run `go build ./...` in the module of GO4; reload golang; then on the package page of example.com/Contoso/widgets **Unlist v1.0.0**, reload the `@v/list` of GO7, **Relist**, and **Delete v1.0.0**; delete the feed afterwards | The build succeeds, rsc.io/quote and its dependencies are downloaded from `pagetto.test/feeds/golang/go/` and checked against sum.golang.org, and they are in the package list; on their package pages the version has a **mirror** label. While unlisted, the list is empty and the version is marked **unlisted**. The buttons ask for confirmation and work. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `golang`. Do `down -v` and `docker rm -f go-tls` afterwards |
+
 ## Small screens
 
 | # | Account | Steps | Expected |
