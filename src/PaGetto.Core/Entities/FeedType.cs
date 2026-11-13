@@ -38,4 +38,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables.
     /// </summary>
     Cargo = 5,
+
+    /// <summary>
+    /// Go modules (the GOPROXY protocol, with an upload endpoint of this server), stored in the
+    /// <see cref="Artifact"/> tables.
+    /// </summary>
+    Go = 6,
 }

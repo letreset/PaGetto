@@ -17,6 +17,7 @@ using PaGetto.Core.Cargo;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Go;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
@@ -72,6 +73,12 @@ public class ArtifactModel : PageModel
     public string Name { get; private set; }
 
     /// <summary>
+    /// The name in the links to the package's pages: the stored name. Routing lowercases URLs, which
+    /// keeps the escaped path of a Go module but would turn its module path into another module.
+    /// </summary>
+    public string Id { get; private set; }
+
+    /// <summary>
     /// The requested version when the package has no such version; the page then says so instead
     /// of showing another version.
     /// </summary>
@@ -122,6 +129,11 @@ public class ArtifactModel : PageModel
     public CargoManifestSummary CargoManifest { get; private set; }
 
     /// <summary>
+    /// The <c>go.mod</c> file of a module version. Null on feeds of other types.
+    /// </summary>
+    public GoModFile GoMod { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -156,7 +168,7 @@ public class ArtifactModel : PageModel
             return Page();
         }
 
-        var storedName = Name = versions[0].Artifact.Name;
+        var storedName = Name = Id = versions[0].Artifact.Name;
 
         var tags = await _artifacts.FindTagsAsync(feed.Id, Name, cancellationToken);
         var latest = ArtifactVersionOrder.GetLatest(feed.Type, versions, tags);
@@ -212,6 +224,14 @@ public class ArtifactModel : PageModel
 
             // The name as published; the stored name is lowercased.
             Name = CargoManifest.Name ?? Name;
+        }
+        else if (feed.Type == FeedType.Go)
+        {
+            var manifest = GoModuleManifest.Parse(Version.MetadataJson);
+            GoMod = GoModFile.Parse(manifest.Mod);
+
+            // The module path; the stored name is escaped.
+            Name = manifest.Module ?? (GoModulePath.TryUnescape(Name, out var modulePath) ? modulePath : Name);
         }
 
         if (Version.HasReadme)
@@ -317,11 +337,18 @@ public class ArtifactModel : PageModel
 
     /// <summary>
     /// The name a package is stored under: lowercased, and for Python projects normalized as well,
-    /// so <c>My_Package</c> is <c>my-package</c>.
+    /// so <c>My_Package</c> is <c>my-package</c>. A Go module path is case-sensitive, so it is
+    /// escaped instead: <c>example.com/My</c> is <c>example.com/!my</c>, and an escaped path, which
+    /// the links of the web UI use, is taken as it is.
     /// </summary>
     private static string GetStoredName(FeedType feedType, string id)
     {
-        return feedType == FeedType.PyPI ? PyPIPackageName.Normalize(id) : id.ToLowerInvariant();
+        return feedType switch
+        {
+            FeedType.PyPI => PyPIPackageName.Normalize(id),
+            FeedType.Go => GoModulePath.TryUnescape(id, out _) ? id : GoModulePath.Escape(id),
+            _ => id.ToLowerInvariant(),
+        };
     }
 
     /// <summary>

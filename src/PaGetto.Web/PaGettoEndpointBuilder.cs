@@ -24,6 +24,7 @@ public class PaGettoEndpointBuilder
         MapMavenRoutes(endpoints);
         MapPyPIRoutes(endpoints);
         MapCargoRoutes(endpoints);
+        MapGoRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -356,6 +357,26 @@ public class PaGettoEndpointBuilder
             name: null,
             pattern: "cargo/api/v1/crates/{name}/{version}/unyank",
             defaults: new { controller = "CargoRegistry", action = "Unyank" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The module proxy of Go feeds (the GOPROXY protocol) and its upload of module zips. Module
+    /// paths have slashes, so it is at <c>go/</c> under the feed, clear of the pages of the web UI.
+    /// See: https://go.dev/ref/mod#goproxy-protocol
+    /// </summary>
+    public void MapGoRoutes(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "go/{**path}",
+            defaults: new { controller = "GoProxy", action = "Get" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("GET") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "go/{**path}",
+            defaults: new { controller = "GoProxy", action = "Upload" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 

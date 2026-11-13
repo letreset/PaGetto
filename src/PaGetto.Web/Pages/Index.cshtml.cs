@@ -10,6 +10,7 @@ using PaGetto.Core.Cargo;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Go;
 using PaGetto.Core.Maven;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.Search;
@@ -204,14 +205,17 @@ public class IndexModel : PageModel
 
         return new ArtifactListItem
         {
-            // Maven coordinates, and Python project and crate names as published; the stored name is normalized.
+            // Maven coordinates, Python project and crate names as published, and Go module paths; the
+            // stored name is normalized.
             Name = feedType switch
             {
                 FeedType.Maven => MavenPomSummary.Parse(latest.MetadataJson).Coordinates,
                 FeedType.PyPI => PyPIManifestSummary.Parse(latest.MetadataJson).Name,
                 FeedType.Cargo => CargoManifestSummary.Parse(latest.MetadataJson).Name,
+                FeedType.Go => GoModuleManifest.Parse(latest.MetadataJson).Module,
                 _ => null,
             } ?? artifact.Name,
+            Id = artifact.Name,
             Version = latest.Version,
             Description = latest.Description,
             Listed = latest.Listed,
@@ -225,6 +229,13 @@ public class IndexModel : PageModel
     public class ArtifactListItem
     {
         public string Name { get; init; }
+
+        /// <summary>
+        /// The stored name, which links use: routing lowercases URLs, which keeps the escaped path of
+        /// a Go module but would turn its module path into another module.
+        /// </summary>
+        public string Id { get; init; }
+
         public string Version { get; init; }
         public string Description { get; init; }
         public bool Listed { get; init; }
