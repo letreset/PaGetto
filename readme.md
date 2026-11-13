@@ -14,6 +14,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **Maven packages**: a feed can be a Maven repository for Maven, Gradle and sbt (Java, Kotlin, Scala), with snapshots and a mirror of Maven Central.
 * **Python packages**: a feed can be a package index for pip, uv, Poetry and twine, with wheels, sdists, yanked versions and a mirror of PyPI.
 * **Rust crates**: a feed can be a Cargo registry with the sparse protocol, for installing, `cargo publish` and `cargo yank`, with a mirror of crates.io.
+* **Go modules**: a feed can be a Go module proxy (GOPROXY) for `go get`, with uploads of module zips and a mirror of proxy.golang.org.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.

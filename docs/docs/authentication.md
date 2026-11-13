@@ -344,6 +344,10 @@ Python clients send a personal access token with Basic authentication, with the 
 
 Cargo sends a personal access token as the whole `Authorization` header, without a scheme, and a Rust feed asks it to send the token with every request. Store it with `cargo login --registry <name>` or in the environment variable `CARGO_REGISTRIES_<NAME>_TOKEN`. See [Rust crates](cargo.md#configure-cargo).
 
+## Using PaGetto from Go
+
+The go command sends the credentials of a server's host from `~/.netrc` (`%USERPROFILE%\_netrc` on Windows) with Basic authentication, and only over HTTPS. Use the login `__token__` (or your username) and a personal access token as the password. See [Go modules](go.md#authentication).
+
 ## Full configuration reference
 
 ```json
