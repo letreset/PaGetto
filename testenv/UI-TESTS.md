@@ -340,6 +340,42 @@ require rsc.io/quote v1.5.2
 | GO7 | none | `curl -i http://localhost:5000/feeds/golang/go/example.com/!contoso/widgets/@v/list`; the same with `-u __token__:<token>`, then for `@latest`, `@v/v1.0.0.info`, `@v/v1.0.0.mod` and `example.com/Contoso/widgets/@v/list`; then with the token for `/feeds/golang/v3/index.json` and `/feeds/internal/go/example.com/!contoso/widgets/@v/list` | Without the token: 401 with `WWW-Authenticate: Basic realm="PaGetto"`. With it: the list is `v1.0.0`, `@latest` and `.info` are `{"Version":"v1.0.0","Time":"…"}`, `.mod` is the `go.mod` of the module, and the unescaped path is 404. The NuGet API on the Go feed and the proxy on a NuGet feed: 404 |
 | GO8 | `admin` | Add the mirror `https://proxy.golang.org` to golang. In the go container, with a new module cache (`GOMODCACHE=/tmp/mod`), `GOPROXY=https://pagetto.test/feeds/golang/go` and `GONOSUMDB=example.com/*`, run `go build ./...` in the module of GO4; reload golang; then on the package page of example.com/Contoso/widgets **Unlist v1.0.0**, reload the `@v/list` of GO7, **Relist**, and **Delete v1.0.0**; delete the feed afterwards | The build succeeds, rsc.io/quote and its dependencies are downloaded from `pagetto.test/feeds/golang/go/` and checked against sum.golang.org, and they are in the package list; on their package pages the version has a **mirror** label. While unlisted, the list is empty and the version is marked **unlisted**. The buttons ask for confirmation and work. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `golang`. Do `down -v` and `docker rm -f go-tls` afterwards |
 
+## Ruby feeds
+
+The data set has no Ruby feed, so RG1 creates one and the later checks use it. They need internet access for rubygems.org, and a personal access token of `admin` from **My Tokens** in place of `<token>`. The Ruby clients run in a container on the test environment's network, where the server is `pagetto:8080`:
+
+```bash
+docker run --rm -it --network pagetto-test_default -v "$PWD:/work" -w /work ruby:3.4-slim bash
+```
+
+The test gem is a folder with `lib/contoso_widgets.rb` (`module ContosoWidgets; end`), a `README.md` and this `contoso_widgets.gemspec`:
+
+```ruby
+Gem::Specification.new do |s|
+  s.name = "contoso_widgets"
+  s.version = ENV.fetch("VERSION", "1.0.0")
+  s.platform = ENV.fetch("PLAT", Gem::Platform::RUBY)
+  s.summary = "Contoso widgets"
+  s.authors = ["Contoso"]
+  s.license = "MIT"
+  s.homepage = "https://example.com/widgets"
+  s.files = ["lib/contoso_widgets.rb", "README.md"]
+  s.required_ruby_version = ">= 3.0"
+  s.add_dependency "rack", "~> 3.0"
+end
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| RG1 | `admin` | Admin > Feeds > **New feed**: slug `gems`, type **Ruby**; open its **Settings**; give the group of `carol` Pull on it | The feed shows a **Ruby** badge and its copy button copies `http://localhost:5000/feeds/gems/rubygems/`. Settings have no Retention section and no Deletion behavior setting, Max package size says it applies to each file, the mirror URL placeholder is `https://rubygems.org`, and the mirror text speaks of gem servers with a compact index |
+| RG2 | `admin` | In the container, `gem build contoso_widgets.gemspec` and `PLAT=java gem build contoso_widgets.gemspec`; with `GEM_HOST_API_KEY=<token>`, `gem push` both with `--host http://pagetto:8080/feeds/gems/rubygems`; push the first again; change the README, build it again and push it | The pushes print `Successfully registered gem: contoso_widgets (1.0.0)` and `(1.0.0-java)`; pushing the same file again succeeds; the changed gem answers `Repushing of gem versions is not allowed: ...` |
+| RG3 | `admin` | Push a gem with the token of `carol`, and a file that is not a gem (`gem push README.md ...`) with the token of `admin` | `carol`: `You do not have permission to change gems of this feed.` The file: `The gem is not a valid tar archive.` |
+| RG4 | none | In the container, without a mirror on gems: a `Gemfile` with `source "https://rubygems.org"` and `source "http://pagetto:8080/feeds/gems/rubygems/" do gem "contoso_widgets" end`; `bundle config set --global pagetto __token__:<token>`; `bundle install`; then `gem install contoso_widgets --source http://__token__:<token>@pagetto:8080/feeds/gems/rubygems/` | Bundler installs contoso_widgets 1.0.0 from the feed and rack from rubygems.org; `gem install` installs contoso_widgets and rack |
+| RG5 | `carol` | Open gems (`/feeds/gems/`), then contoso_widgets | "Ruby feed" above the feed name, and **Install** copies `bundle add contoso_widgets --version "1.0.0" --source "http://localhost:5000/feeds/gems/rubygems/"`. The package page shows v1.0.0 with a **latest** badge, `Ruby >= 3.0`, the tabs **Bundler**, **Gemfile** and **gem install**, the readme, `rack ~> 3.0` under **Dependencies**, `contoso_widgets-1.0.0.gem` and `contoso_widgets-1.0.0-java.gem` with their SHA-256 under **Files**, MIT, and **Homepage** |
+| RG6 | `carol` | gems > **Connect** | Gem source URL `http://localhost:5000/feeds/gems/rubygems/` with a copy button, an "Authentication required" note that links to My Tokens, a "This feed has no mirror" note, and the tabs **Bundler** (a `Gemfile` with rubygems.org and a source block, and `bundle config set --global localhost __token__:YOUR_TOKEN`), **gem** and **Push** (`GEM_HOST_API_KEY`, `gem push ... --host http://localhost:5000/feeds/gems/rubygems` and `gem yank`) |
+| RG7 | none | `curl -i http://localhost:5000/feeds/gems/rubygems/versions`; the same with `-u __token__:<token>`, then for `info/contoso_widgets`, `names` and `specs.4.8.gz`; then with the token for `/feeds/gems/v3/index.json` and `/feeds/internal/rubygems/versions` | Without the token: 401 with `WWW-Authenticate: Basic realm="PaGetto"`. With it: `/versions` lists `contoso_widgets 1.0.0,1.0.0-java` with an MD5, `info` has a line per platform with `rack:~> 3.0` and `checksum:`, `names` lists contoso_widgets, and `specs.4.8.gz` is 404. The NuGet API on the Ruby feed and the gem server on a NuGet feed: 404 |
+| RG8 | `admin` | Add the mirror `https://rubygems.org` to gems. In a new container, a `Gemfile` with only `source "http://pagetto:8080/feeds/gems/rubygems/"`, `gem "contoso_widgets"` and `gem "nokogiri"`, and the `bundle config` of RG4: `bundle install`; reload gems; then `gem yank contoso_widgets -v 1.0.0 --host ...` and reload the `info` of RG7 and the package page; **Unyank 1.0.0**, and **Delete 1.0.0**; delete the feed afterwards | Bundler installs everything from the feed, nokogiri as its platform gem (e.g. `x86_64-linux-gnu`). rack and nokogiri are in the package list, and their versions carry a **mirror** label. After the yank, `gem yank` prints `Successfully yanked gem: contoso_widgets (1.0.0)`, the `info` file is empty after its `---`, and the page marks 1.0.0 **yanked**. The buttons ask for confirmation and work. The audit log has `package_upload_succeeded`, `package_unlist_succeeded`, `package_relist_succeeded` and `package_delete_succeeded` rows for feed `gems`. Do `down -v` afterwards |
+
 ## Small screens
 
 | # | Account | Steps | Expected |

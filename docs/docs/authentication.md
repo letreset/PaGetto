@@ -348,6 +348,10 @@ Cargo sends a personal access token as the whole `Authorization` header, without
 
 The go command sends the credentials of a server's host from `~/.netrc` (`%USERPROFILE%\_netrc` on Windows) with Basic authentication, and only over HTTPS. Use the login `__token__` (or your username) and a personal access token as the password. See [Go modules](go.md#authentication).
 
+## Using PaGetto from Ruby
+
+Bundler and gem install send Basic credentials: store them with `bundle config set --global <host> __token__:<token>`, or put them in the gem source URL. gem push and gem yank send a personal access token as the whole `Authorization` header, from `GEM_HOST_API_KEY` or `~/.gem/credentials`. See [Ruby gems](rubygems.md#authentication).
+
 ## Full configuration reference
 
 ```json
