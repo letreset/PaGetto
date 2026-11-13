@@ -460,6 +460,7 @@ else
             FeedType.PyPI => $"pip install {artifact.Name}=={artifact.Version}",
             FeedType.Cargo => $"cargo add {artifact.Name}@{artifact.Version} --registry {feedSlug}",
             FeedType.Go => $"go get {artifact.Name}@{artifact.Version}",
+            FeedType.RubyGems => $"bundle add {artifact.Name} --version \"{artifact.Version}\" --source \"{feedUrl}/rubygems/\"",
             _ => artifact.Name,
         };
     }

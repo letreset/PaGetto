@@ -25,6 +25,7 @@ public class PaGettoEndpointBuilder
         MapPyPIRoutes(endpoints);
         MapCargoRoutes(endpoints);
         MapGoRoutes(endpoints);
+        MapRubyGemsRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -378,6 +379,59 @@ public class PaGettoEndpointBuilder
             pattern: "go/{**path}",
             defaults: new { controller = "GoProxy", action = "Upload" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The gem server of RubyGems feeds: the compact index, the gem files, the gemspecs of
+    /// <c>gem install</c> and the push API. It is at <c>rubygems/</c> under the feed, clear of the
+    /// pages of the web UI, and clients use it as their gem source.
+    /// See: https://guides.rubygems.org/rubygems-org-compact-index-api/
+    /// </summary>
+    public void MapRubyGemsRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET", "HEAD") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/versions",
+            defaults: new { controller = "RubyGems", action = "Versions" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/info/{name}",
+            defaults: new { controller = "RubyGems", action = "Info" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/names",
+            defaults: new { controller = "RubyGems", action = "Names" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/gems/{fileName}",
+            defaults: new { controller = "RubyGems", action = "Download" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/quick/Marshal.4.8/{fileName}",
+            defaults: new { controller = "RubyGems", action = "QuickSpec" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/api/v1/gems",
+            defaults: new { controller = "RubyGems", action = "Push" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "rubygems/api/v1/gems/yank",
+            defaults: new { controller = "RubyGems", action = "Yank" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("DELETE") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

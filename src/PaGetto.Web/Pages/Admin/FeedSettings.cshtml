@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", FeedType.RubyGems => "https://rubygems.org", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -235,7 +235,7 @@
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="MaxPackageSizeMiB">Max package size</label>
-                    @if (Model.Feed?.Type is FeedType.Maven or FeedType.PyPI)
+                    @if (Model.Feed?.Type is FeedType.Maven or FeedType.PyPI or FeedType.RubyGems)
                     {
                         <div class="bgt-setting-help">Applies to each file of a version.</div>
                     }
@@ -344,6 +344,14 @@
                             Upstream module proxies such as https://proxy.golang.org, queried in order. The first mirror
                             that lists a module lists all of its versions, and a version is stored in this feed when its
                             zip is first downloaded. Versions uploaded to this feed come first.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.RubyGems)
+                    {
+                        <p>
+                            Upstream gem servers with a compact index such as https://rubygems.org, queried in order.
+                            The first mirror that has a gem lists all of its versions, and a gem file is stored in this
+                            feed on its first download. Versions pushed to this feed come first.
                         </p>
                     }
                     else
