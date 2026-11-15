@@ -11,7 +11,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />
     <PackageVersion Include="Azure.Storage.Common" Version="12.29.0" />
     <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
-    <PackageVersion Include="MailKit" Version="4.18.2" />
+    <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="Microsoft.Graph" Version="6.10.0" />
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.15" />
