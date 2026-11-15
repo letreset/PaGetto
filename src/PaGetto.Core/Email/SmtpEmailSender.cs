@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Configuration;
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
@@ -54,7 +55,7 @@ public class SmtpEmailSender : IEmailSender
             await client.AuthenticateAsync(_smtpOptions.Username, _smtpOptions.Password, cancellationToken);
         }
 
-        await client.SendAsync(mimeMessage, cancellationToken);
+        await client.SendAsync(new SendRequest(mimeMessage), cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
     }
 
