@@ -39,3 +39,8 @@ updates:
     groups:
       docker:
         patterns: ["*"]
+    ignore:
+      # The image's .NET major version must match the app's target framework (global.json),
+      # so it moves only together with a retarget, by hand.
+      - dependency-name: "dotnet/*"
+        update-types: ["version-update:semver-major"]
