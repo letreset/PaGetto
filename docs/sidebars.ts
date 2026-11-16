@@ -28,6 +28,7 @@ const sidebars: SidebarsConfig = {
     'cargo',
     'go',
     'rubygems',
+    'hex',
     'web-ui',
     'authentication',
     'configuration',
