@@ -14,6 +14,7 @@ using PaGetto.Core.Email;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
+using PaGetto.Core.Hex;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Metadata;
@@ -160,6 +161,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<GoUpstreamClient>();
         services.TryAddTransient<IRubyGemsPackageService, RubyGemsPackageService>();
         services.TryAddTransient<RubyGemsUpstreamClient>();
+        services.TryAddTransient<IHexPackageService, HexPackageService>();
+        services.TryAddTransient<HexUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

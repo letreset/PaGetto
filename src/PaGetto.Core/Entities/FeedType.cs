@@ -50,4 +50,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables with the gem file of each platform of a version in <see cref="ArtifactFile"/>.
     /// </summary>
     RubyGems = 7,
+
+    /// <summary>
+    /// Elixir and Erlang packages (the Hex repository format and HTTP API), stored in the
+    /// <see cref="Artifact"/> tables.
+    /// </summary>
+    Hex = 8,
 }

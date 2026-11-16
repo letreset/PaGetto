@@ -461,6 +461,7 @@ else
             FeedType.Cargo => $"cargo add {artifact.Name}@{artifact.Version} --registry {feedSlug}",
             FeedType.Go => $"go get {artifact.Name}@{artifact.Version}",
             FeedType.RubyGems => $"bundle add {artifact.Name} --version \"{artifact.Version}\" --source \"{feedUrl}/rubygems/\"",
+            FeedType.Hex => $"{{:{artifact.Name}, \"~> {artifact.Version}\", repo: \"{feedSlug}\"}}",
             _ => artifact.Name,
         };
     }
