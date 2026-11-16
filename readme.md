@@ -17,6 +17,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **Go modules**: a feed can be a Go module proxy (GOPROXY) for `go get`, with uploads of module zips and a mirror of proxy.golang.org.
 * **Ruby gems**: a feed can be a gem server with the compact index for Bundler and `gem install`, with `gem push`, `gem yank`, platform gems and a mirror of rubygems.org.
 * **Hex packages**: a feed can be a Hex repository for Elixir and Erlang, with a signed registry for Mix and Rebar3, `mix hex.publish`, `mix hex.retire` and a mirror of hex.pm.
+* **PHP packages**: a feed can be a Composer repository, with uploads of package zips and a mirror of Packagist.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.
