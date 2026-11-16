@@ -5,6 +5,7 @@ using PaGetto.Core.Extensions;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Controllers;
 using PaGetto.Web.Helper;
+using PaGetto.Web.Hex;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace PaGetto.Web.Extensions;
@@ -29,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddTransient<IUrlGenerator, PaGettoUrlGenerator>();
         services.AddSingleton<WebAuditLog>();
+        services.AddSingleton<HexRegistryKeyStore>();
 
         services.AddSingleton(ApplicationVersionHelper.GetVersion());
 

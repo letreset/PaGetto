@@ -26,6 +26,7 @@ public class PaGettoEndpointBuilder
         MapCargoRoutes(endpoints);
         MapGoRoutes(endpoints);
         MapRubyGemsRoutes(endpoints);
+        MapHexRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -432,6 +433,91 @@ public class PaGettoEndpointBuilder
             pattern: "rubygems/api/v1/gems/yank",
             defaults: new { controller = "RubyGems", action = "Yank" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("DELETE") });
+    }
+
+    /// <summary>
+    /// The Hex repository of Hex feeds and the parts of the Hex HTTP API that publish and retire
+    /// packages. The repository is at <c>hex/</c> under the feed, clear of the pages of the web UI,
+    /// and the API at <c>hex/api/</c>.
+    /// See: https://github.com/hexpm/specifications/blob/main/endpoints.md
+    /// </summary>
+    public void MapHexRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET", "HEAD") };
+        var post = new { httpMethod = new HttpMethodRouteConstraint("POST") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/names",
+            defaults: new { controller = "HexRepository", action = "Names" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/versions",
+            defaults: new { controller = "HexRepository", action = "Versions" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/packages/{name}",
+            defaults: new { controller = "HexRepository", action = "Package" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/tarballs/{fileName}",
+            defaults: new { controller = "HexRepository", action = "Tarball" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/public_key",
+            defaults: new { controller = "HexRepository", action = "PublicKey" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/packages/{name}/releases",
+            defaults: new { controller = "HexRepository", action = "Publish" },
+            constraints: post);
+
+        // Hex clients before hex_core 0.10 publish here.
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/publish",
+            defaults: new { controller = "HexRepository", action = "Publish" },
+            constraints: post);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/packages/{name}/releases/{version}/retire",
+            defaults: new { controller = "HexRepository", action = "Retire" },
+            constraints: post);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/packages/{name}/releases/{version}/retire",
+            defaults: new { controller = "HexRepository", action = "Unretire" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("DELETE") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/packages/{name}",
+            defaults: new { controller = "HexRepository", action = "PackageInfo" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/repos/{repository}/packages/{name}",
+            defaults: new { controller = "HexRepository", action = "OtherRepositoryPackage" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "hex/api/users/me",
+            defaults: new { controller = "HexRepository", action = "Me" },
+            constraints: get);
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

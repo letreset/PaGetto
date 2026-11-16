@@ -18,6 +18,7 @@ using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
+using PaGetto.Core.Hex;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
@@ -140,6 +141,11 @@ public class ArtifactModel : PageModel
     public RubyGemsManifestSummary RubyGemsManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a Hex package version. Null on feeds of other types.
+    /// </summary>
+    public HexManifest HexManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -246,6 +252,10 @@ public class ArtifactModel : PageModel
 
             // The name as published; the stored name is lowercased.
             Name = RubyGemsManifest.Name ?? Name;
+        }
+        else if (feed.Type == FeedType.Hex)
+        {
+            HexManifest = HexManifest.Parse(Version.MetadataJson);
         }
 
         if (Version.HasReadme)

@@ -1,0 +1,188 @@
+@* The Connect page of a Hex feed: how to use it as a Hex repository with Mix and Rebar3. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@using PaGetto.Web.Hex
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+@inject HexRegistryKeyStore RegistryKeys
+
+@{
+    var feed = FeedContext.CurrentFeed;
+    var repositoryUrl = Url.HexRepository();
+    var apiUrl = Url.HexApi();
+
+    // The feed's slug is the repository's name, which clients check the registry against.
+    var repository = feed.Slug;
+    var publicKey = await RegistryKeys.GetPublicKeyPemAsync(feed, Context.RequestAborted);
+    var fingerprint = HexRegistryKeyStore.GetFingerprint(publicKey);
+
+    var authMode = AuthOptions.Value.Mode;
+    var requiresToken = authMode != AuthenticationMode.Legacy;
+    var hasMirrors = feed.Mirrors?.Any(m => m.Enabled) == true;
+    var token = requiresToken ? "YOUR_TOKEN" : "API_KEY";
+
+    var mixRepo = new List<string>
+    {
+        $"mix hex.repo add {repository} {repositoryUrl} \\",
+        requiresToken ? $"  --fetch-public-key {fingerprint} \\" : $"  --fetch-public-key {fingerprint}",
+    };
+
+    if (requiresToken)
+    {
+        mixRepo.Add($"  --auth-key {token}");
+    }
+
+    mixRepo.Add("");
+    mixRepo.Add("# mix.exs");
+    mixRepo.Add($"{{:my_package, \"~> 1.0\", repo: \"{repository}\"}}");
+
+    if (hasMirrors)
+    {
+        mixRepo.Add("");
+        mixRepo.Add("# Dependencies of packages from this feed come from this feed too,");
+        mixRepo.Add("# which gets the packages of its mirror on their first download.");
+    }
+
+    var rebarRepo = new List<string>
+    {
+        "%% rebar.config (in the project, or ~/.config/rebar3/rebar.config)",
+        "{hex, [",
+        "  {repos, [",
+        $"    #{{name => <<\"{repository}\">>,",
+        $"      repo_url => <<\"{repositoryUrl}\">>,",
+    };
+
+    if (requiresToken)
+    {
+        rebarRepo.Add($"      repo_key => <<\"{token}\">>,");
+    }
+
+    // The key's lines are part of the binary, so they are not indented.
+    rebarRepo.Add($"      repo_public_key => <<\"{publicKey.TrimEnd()}\">>}}");
+    rebarRepo.Add("  ]}");
+    rebarRepo.Add("]}.");
+    rebarRepo.Add("");
+    rebarRepo.Add("{deps, [{my_package, \"1.0.0\"}]}.");
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "Mix",
+            content = mixRepo.ToArray(),
+            documentation = "https://hexdocs.pm/hex/Mix.Tasks.Hex.Repo.html",
+        },
+        new
+        {
+            name = "Rebar3",
+            content = rebarRepo.ToArray(),
+            documentation = "https://rebar3.org/docs/package_management/hex_package_management/",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                $"export HEX_API_URL={apiUrl}",
+                $"export HEX_API_KEY={token}",
+                "",
+                "mix hex.publish package",
+                "mix hex.retire my_package 1.0.0 deprecated --message \"Use 1.0.1\"",
+                "mix hex.retire my_package 1.0.0 --unretire",
+            },
+            documentation = "https://hexdocs.pm/hex/Mix.Tasks.Hex.Publish.html",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a Hex repository for Elixir and Erlang packages.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Repository URL · @feed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-url">@repositoryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-repository-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="form-label" style="margin: 16px 0 8px">Repository name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-name">@repository</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy repository name" data-copy-target="#feed-repository-name">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="form-label" style="margin: 16px 0 8px">Public key fingerprint</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-public-key-fingerprint">@fingerprint</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy fingerprint" data-copy-target="#feed-public-key-fingerprint">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bgt-callout">
+        <icon name="info" size="18" />
+        <div>
+            <div class="bgt-callout-title">Signed registry</div>
+            <div class="bgt-callout-body">
+                <p>This feed signs its registry with its own key. Clients check the signature with the public key, which Mix downloads from @(repositoryUrl)/public_key and checks against the fingerprint above. Add the repository under the name @repository: clients also check that the registry is the one of that name.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (requiresToken)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Mix and Rebar3 send a personal access token (PAT) with every request to this repository, and mix hex.publish sends it as HEX_API_KEY. Use your token in place of YOUR_TOKEN below. Accounts without web sign-in get their token from an administrator.</p>
+                    <p>Keep the token out of version control: mix hex.repo stores it in ~/.hex/hex.config.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages published to it. Dependencies from hex.pm still come from hex.pm; an administrator can add a mirror such as https://repo.hex.pm to get them through this feed.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

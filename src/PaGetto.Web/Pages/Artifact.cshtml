@@ -6,6 +6,7 @@
 @using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
 @using PaGetto.Core.Go
+@using PaGetto.Core.Hex
 @using PaGetto.Core.Maven
 @using PaGetto.Core.PyPI
 @using PaGetto.Core.RubyGems
@@ -62,7 +63,7 @@
     var maxDownloads = Math.Max(1, Model.Versions.Max(v => v.Downloads));
     var hasPrerelease = Model.Versions.Any(v => v.IsPrerelease);
 
-    // Dart calls an unlisted version "retracted", npm "deprecated", Python, Cargo and RubyGems "yanked".
+    // Dart calls an unlisted version "retracted", npm "deprecated", Python, Cargo and RubyGems "yanked", Hex "retired".
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
     var isMaven = feed.Type == FeedType.Maven;
@@ -70,15 +71,16 @@
     var isCargo = feed.Type == FeedType.Cargo;
     var isGo = feed.Type == FeedType.Go;
     var isRubyGems = feed.Type == FeedType.RubyGems;
+    var isHex = feed.Type == FeedType.Hex;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
     var groupId = isMaven ? name[..name.IndexOf(':')] : null;
     var artifactId = isMaven ? name[(name.IndexOf(':') + 1)..] : null;
-    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : isYanked ? "yanked" : "unlisted";
-    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : isYanked ? "Yank" : "Unlist";
-    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : isYanked ? "Yanking" : "Unlisting";
-    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : isYanked ? "Unyank" : "Relist";
+    var unlistedLabel = isPub ? "retracted" : isNpm ? "deprecated" : isYanked ? "yanked" : isHex ? "retired" : "unlisted";
+    var unlistVerb = isPub ? "Retract" : isNpm ? "Deprecate" : isYanked ? "Yank" : isHex ? "Retire" : "Unlist";
+    var unlistGerund = isPub ? "Retracting" : isNpm ? "Deprecating" : isYanked ? "Yanking" : isHex ? "Retiring" : "Unlisting";
+    var relistVerb = isPub ? "Restore" : isNpm ? "Undeprecate" : isYanked ? "Unyank" : isHex ? "Unretire" : "Relist";
 
     // A Python project's files are at its normalized name.
     var pypiName = isPyPI ? PyPIPackageName.Normalize(name) : null;
@@ -88,22 +90,26 @@
         ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)]
             : Model.CargoManifest?.RustVersion is { } rustVersion ? [KeyValuePair.Create("Rust", rustVersion)]
             : Model.GoMod?.GoVersion is { } goVersion ? [KeyValuePair.Create("Go", goVersion)]
-            : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)] : null);
+            : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)]
+            : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)] : null);
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
-        ?? Model.RubyGemsManifest?.Dependencies;
+        ?? Model.RubyGemsManifest?.Dependencies
+        ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList();
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
-        ?? Model.RubyGemsManifest?.Links;
+        ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
-        ?? Model.RubyGemsManifest?.License;
+        ?? Model.RubyGemsManifest?.License
+        ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null);
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
         ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
         : isNpm ? Url.NpmTarball(name, rowVersion)
         : isCargo ? $"{Url.CargoDownloads()}/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(rowVersion)}/download"
-        : isGo ? Url.GoZip(name, rowVersion) : null;
+        : isGo ? Url.GoZip(name, rowVersion)
+        : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar" : null;
 
     var downloadUrl = DownloadUrl(version);
 
@@ -156,6 +162,12 @@
         installTabs.Add(new InstallTab { Name = "Bundler", Content = [$"bundle add {name} --version \"{version}\" --source \"{gemSource}\""] });
         installTabs.Add(new InstallTab { Name = "Gemfile", Content = [$"source \"{gemSource}\" do", $"  gem \"{name}\", \"{version}\"", "end"] });
         installTabs.Add(new InstallTab { Name = "gem install", Content = [$"gem install {name} -v {version} --source {gemSource}"] });
+    }
+    else if (isHex)
+    {
+        // The feed's slug is the repository name its Connect page configures.
+        installTabs.Add(new InstallTab { Name = "Mix", Content = [$"{{:{name}, \"~> {version}\", repo: \"{feed.Slug}\"}}"] });
+        installTabs.Add(new InstallTab { Name = "rebar.config", Content = [$"{{deps, [{{{name}, \"{version}\"}}]}}."] });
     }
 }
 
@@ -368,7 +380,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo)
+                                        @if (isPub || isNpm || isCargo || isGo || isHex)
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -452,7 +464,7 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm ? "tarball" : isCargo ? "crate" : isGo ? "zip" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo ? "zip" : "archive")</a>
             }
         </div>
 

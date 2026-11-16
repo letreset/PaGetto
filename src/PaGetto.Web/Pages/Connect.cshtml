@@ -75,6 +75,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Hex)
+{
+    <partial name="_ConnectHex" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }
