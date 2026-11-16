@@ -24,7 +24,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.15" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.18.0" />
     <PackageVersion Include="NuGet.Frameworks" Version="6.14.3" />
