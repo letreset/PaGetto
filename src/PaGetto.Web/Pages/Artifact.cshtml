@@ -72,6 +72,7 @@
     var isGo = feed.Type == FeedType.Go;
     var isRubyGems = feed.Type == FeedType.RubyGems;
     var isHex = feed.Type == FeedType.Hex;
+    var isComposer = feed.Type == FeedType.Composer;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
@@ -91,25 +92,30 @@
             : Model.CargoManifest?.RustVersion is { } rustVersion ? [KeyValuePair.Create("Rust", rustVersion)]
             : Model.GoMod?.GoVersion is { } goVersion ? [KeyValuePair.Create("Go", goVersion)]
             : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)]
-            : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)] : null);
+            : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)]
+            : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)] : null);
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
         ?? Model.RubyGemsManifest?.Dependencies
-        ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList();
+        ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList()
+        ?? Model.ComposerManifest?.Dependencies;
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
-        ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links;
+        ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
-        ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null);
-    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords;
+        ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
+        ?? Model.ComposerManifest?.License;
+    var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords
+        ?? Model.ComposerManifest?.Keywords;
 
     string DownloadUrl(string rowVersion) => isPub
         ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
         : isNpm ? Url.NpmTarball(name, rowVersion)
         : isCargo ? $"{Url.CargoDownloads()}/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(rowVersion)}/download"
         : isGo ? Url.GoZip(name, rowVersion)
-        : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar" : null;
+        : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar"
+        : isComposer ? Url.ComposerDist(name, rowVersion, null) : null;
 
     var downloadUrl = DownloadUrl(version);
 
@@ -168,6 +174,11 @@
         // The feed's slug is the repository name its Connect page configures.
         installTabs.Add(new InstallTab { Name = "Mix", Content = [$"{{:{name}, \"~> {version}\", repo: \"{feed.Slug}\"}}"] });
         installTabs.Add(new InstallTab { Name = "rebar.config", Content = [$"{{deps, [{{{name}, \"{version}\"}}]}}."] });
+    }
+    else if (isComposer)
+    {
+        installTabs.Add(new InstallTab { Name = "Composer", Content = [$"composer require {name}:{version}"] });
+        installTabs.Add(new InstallTab { Name = "composer.json", Content = ["\"require\": {", $"  \"{name}\": \"{version}\"", "}"] });
     }
 }
 
@@ -380,7 +391,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo || isHex)
+                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer)
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -444,6 +455,10 @@
                 {
                     <div><span>Packaging</span><span>@Model.MavenPom.Packaging</span></div>
                 }
+                @if (isComposer && !string.IsNullOrEmpty(Model.ComposerManifest.Type))
+                {
+                    <div><span>Package type</span><span>@Model.ComposerManifest.Type</span></div>
+                }
                 @if (!string.IsNullOrEmpty(license))
                 {
                     <div><span>License</span><span>@license</span></div>
@@ -464,14 +479,14 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo ? "zip" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer ? "zip" : "archive")</a>
             }
         </div>
 
         @if (topics?.Count > 0)
         {
             <div class="bgt-card bgt-side-card">
-                <div class="bgt-card-label">@(isNpm || isPyPI || isCargo ? "Keywords" : "Topics")</div>
+                <div class="bgt-card-label">@(isNpm || isPyPI || isCargo || isComposer ? "Keywords" : "Topics")</div>
                 <div class="bgt-chips">
                     @foreach (var topic in topics)
                     {

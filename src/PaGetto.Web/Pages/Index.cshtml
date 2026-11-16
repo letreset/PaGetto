@@ -443,10 +443,11 @@ else
         }
     }
 
-    // A version with a leading v, which a Go version has already.
+    // A version with a leading v, which a Go version has already. A Composer version is shown as
+    // written, since it may have one (v1.2.3) or be a branch (dev-main).
     private static string VersionLabel(FeedType feedType, string version)
     {
-        return feedType == FeedType.Go ? version : "v" + version;
+        return feedType is FeedType.Go or FeedType.Composer ? version : "v" + version;
     }
 
     // The command copied by the Install button of an artifact, matching the first tab of its page.
@@ -462,6 +463,7 @@ else
             FeedType.Go => $"go get {artifact.Name}@{artifact.Version}",
             FeedType.RubyGems => $"bundle add {artifact.Name} --version \"{artifact.Version}\" --source \"{feedUrl}/rubygems/\"",
             FeedType.Hex => $"{{:{artifact.Name}, \"~> {artifact.Version}\", repo: \"{feedSlug}\"}}",
+            FeedType.Composer => $"composer require {artifact.Name}:{artifact.Version}",
             _ => artifact.Name,
         };
     }

@@ -1,0 +1,160 @@
+@* The Connect page of a Composer feed: how to add it as a Composer repository and upload packages to it. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Authentication
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var repositoryUrl = Url.ComposerRepository();
+    var repositoryUri = new Uri(repositoryUrl);
+    // Composer matches credentials by host, with the port when it is not the scheme's default.
+    var host = repositoryUri.Authority;
+    var isHttp = repositoryUri.Scheme == Uri.UriSchemeHttp;
+
+    var feed = FeedContext.CurrentFeed;
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = feed.Mirrors?.Any(m => m.Enabled) == true;
+    var username = authMode == AuthenticationMode.Legacy ? "USERNAME" : FeedAuthenticationService.TokenUsername;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var composerJson = new List<string> { "{", "  \"repositories\": [", $"    {{\"type\": \"composer\", \"url\": \"{repositoryUrl}\"}}{(hasMirrors ? "," : "")}" };
+    if (hasMirrors)
+    {
+        // With a mirror of Packagist, public packages come through this feed too.
+        composerJson.Add("    {\"packagist.org\": false}");
+    }
+
+    composerJson.Add("  ]");
+    if (isHttp)
+    {
+        composerJson[^1] += ",";
+        composerJson.AddRange(["  \"config\": {", "    \"secure-http\": false", "  }"]);
+    }
+
+    composerJson.Add("}");
+
+    var configure = new List<string> { $"composer config repositories.{feed.Slug} composer {repositoryUrl}" };
+    if (hasMirrors)
+    {
+        configure.Add("composer config repo.packagist false");
+    }
+
+    if (isHttp)
+    {
+        configure.AddRange(["", "# The feed is served over HTTP, which Composer refuses by default", "composer config secure-http false"]);
+    }
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "composer.json",
+            content = composerJson.ToArray(),
+            documentation = "https://getcomposer.org/doc/05-repositories.md#composer",
+        },
+        new
+        {
+            name = "Composer",
+            content = configure.ToArray(),
+            documentation = "https://getcomposer.org/doc/03-cli.md#config",
+        },
+        new
+        {
+            name = "auth.json",
+            content = new[]
+            {
+                $"composer config --global http-basic.{host} {username} {password}",
+                "",
+                "# or, in auth.json next to composer.json (keep it out of version control)",
+                "{",
+                "  \"http-basic\": {",
+                $"    \"{host}\": {{\"username\": \"{username}\", \"password\": \"{password}\"}}",
+                "  }",
+                "}",
+            },
+            documentation = "https://getcomposer.org/doc/articles/authentication-for-private-packages.md#http-basic",
+        },
+        new
+        {
+            name = "Upload",
+            content = new[]
+            {
+                "# The package zip, with composer.json at its root (or in its only folder)",
+                "composer archive --format=zip --file=package",
+                "",
+                "# The version is part of the URL, since composer.json usually doesn't have it",
+                $"curl --fail-with-body -u {username}:{password} -T package.zip \\",
+                $"  {repositoryUrl}/packages/upload/vendor/package/1.0.0",
+            },
+            documentation = "https://getcomposer.org/doc/03-cli.md#archive",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a Composer repository.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Repository URL · @feed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-url">@repositoryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-repository-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>Composer reads the credentials of the feed's host from auth.json (http-basic): the username @FeedAuthenticationService.TokenUsername (or your username) and a personal access token (PAT) as the password. Use your token in place of YOUR_TOKEN below. Accounts without web sign-in get their token from an administrator.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages uploaded to it, so Composer still installs public packages from Packagist. An administrator can add a mirror such as https://repo.packagist.org to get public packages through this feed.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

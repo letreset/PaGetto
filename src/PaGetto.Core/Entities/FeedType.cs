@@ -56,4 +56,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables.
     /// </summary>
     Hex = 8,
+
+    /// <summary>
+    /// PHP packages (the Composer v2 repository format, with an upload endpoint of this server), stored
+    /// in the <see cref="Artifact"/> tables.
+    /// </summary>
+    Composer = 9,
 }

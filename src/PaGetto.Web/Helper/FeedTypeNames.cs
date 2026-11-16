@@ -8,7 +8,7 @@ namespace PaGetto.Web.Helper;
 public static class FeedTypeNames
 {
     /// <summary>
-    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python", "Rust", "Go", "Ruby" or "Hex".
+    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python", "Rust", "Go", "Ruby", "Hex" or "PHP".
     /// </summary>
     public static string GetDisplayName(FeedType type)
     {
@@ -22,6 +22,7 @@ public static class FeedTypeNames
             FeedType.Go => "Go",
             FeedType.RubyGems => "Ruby",
             FeedType.Hex => "Hex",
+            FeedType.Composer => "PHP",
             _ => "NuGet",
         };
     }
@@ -30,7 +31,8 @@ public static class FeedTypeNames
     /// The URL clients are configured with: the service index of a NuGet feed, the hosted URL of a
     /// Dart feed, the registry URL of an npm feed, the repository URL of a Maven feed, the index
     /// URL of a PyPI feed, the sparse index URL of a Cargo feed, the GOPROXY URL of a Go feed, the
-    /// gem source URL of a RubyGems feed, or the repository URL of a Hex feed.
+    /// gem source URL of a RubyGems feed, the repository URL of a Hex feed, or the repository URL of
+    /// a Composer feed.
     /// </summary>
     /// <param name="type">The feed's type.</param>
     /// <param name="feedUrl">The feed's root URL, e.g. <c>https://example.com/feeds/internal</c>.</param>
@@ -48,6 +50,7 @@ public static class FeedTypeNames
             FeedType.Go => feedUrl + "/go",
             FeedType.RubyGems => feedUrl + "/rubygems/",
             FeedType.Hex => feedUrl + "/hex",
+            FeedType.Composer => feedUrl + "/composer",
             _ => feedUrl + "/v3/index.json",
         };
     }

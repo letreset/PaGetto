@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Build pub package archives, npm tarballs, crates, Go module zips, gems and Hex tarballs; shared with the Core tests. -->
+    <!-- Build pub package archives, npm tarballs, crates, Go module zips, gems, Hex tarballs and Composer zips; shared with the Core tests. -->
     <Compile Include="..\PaGetto.Core.Tests\Support\PubArchiveBuilder.cs" Link="Support\PubArchiveBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\NpmTarballBuilder.cs" Link="Support\NpmTarballBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\CargoCrateBuilder.cs" Link="Support\CargoCrateBuilder.cs" />
@@ -27,6 +27,7 @@
     <Compile Include="..\PaGetto.Core.Tests\Support\RubyGemBuilder.cs" Link="Support\RubyGemBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\RubyMarshalReader.cs" Link="Support\RubyMarshalReader.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\HexTarballBuilder.cs" Link="Support\HexTarballBuilder.cs" />
+    <Compile Include="..\PaGetto.Core.Tests\Support\ComposerZipBuilder.cs" Link="Support\ComposerZipBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

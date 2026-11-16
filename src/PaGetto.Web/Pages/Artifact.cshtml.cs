@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.Composer;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
@@ -146,6 +147,11 @@ public class ArtifactModel : PageModel
     public HexManifest HexManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a Composer package version. Null on feeds of other types.
+    /// </summary>
+    public ComposerManifestSummary ComposerManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -256,6 +262,10 @@ public class ArtifactModel : PageModel
         else if (feed.Type == FeedType.Hex)
         {
             HexManifest = HexManifest.Parse(Version.MetadataJson);
+        }
+        else if (feed.Type == FeedType.Composer)
+        {
+            ComposerManifest = ComposerManifestSummary.Parse(Version.MetadataJson);
         }
 
         if (Version.HasReadme)

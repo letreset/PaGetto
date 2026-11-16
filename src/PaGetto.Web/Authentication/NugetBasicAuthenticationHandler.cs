@@ -52,13 +52,13 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     {
         // The pub client only reads a Bearer challenge, and shows its message to the user. sbt
         // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet, and
-        // PyPI, Go, RubyGems and Hex feeds use it too. Cargo shows the login URL of its challenge.
+        // PyPI, Go, RubyGems, Hex and Composer feeds use it too. Cargo shows the login URL of its challenge.
         var endpointType = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type;
 
         Response.Headers.WWWAuthenticate = endpointType switch
         {
             FeedType.Pub => PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}"),
-            FeedType.Maven or FeedType.PyPI or FeedType.Go or FeedType.RubyGems or FeedType.Hex => $"Basic realm=\"{MavenRealm}\"",
+            FeedType.Maven or FeedType.PyPI or FeedType.Go or FeedType.RubyGems or FeedType.Hex or FeedType.Composer => $"Basic realm=\"{MavenRealm}\"",
             FeedType.Cargo => $"Cargo login_url=\"{Request.Scheme}://{Request.Host}{Request.PathBase}/connect\"",
             _ => "Basic realm=\"NuGet Server\"",
         };
@@ -67,7 +67,7 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     }
 
     /// <summary>
-    /// The realm of the Basic challenge of Maven, PyPI, Go, RubyGems and Hex feeds, which sbt credentials name.
+    /// The realm of the Basic challenge of Maven, PyPI, Go, RubyGems, Hex and Composer feeds, which sbt credentials name.
     /// </summary>
     public const string MavenRealm = "PaGetto";
 
