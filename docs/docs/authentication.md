@@ -352,6 +352,10 @@ The go command sends the credentials of a server's host from `~/.netrc` (`%USERP
 
 Bundler and gem install send Basic credentials: store them with `bundle config set --global <host> __token__:<token>`, or put them in the gem source URL. gem push and gem yank send a personal access token as the whole `Authorization` header, from `GEM_HOST_API_KEY` or `~/.gem/credentials`. See [Ruby gems](rubygems.md#authentication).
 
+## Using PaGetto from Composer
+
+Composer sends the `http-basic` credentials of `auth.json` with Basic authentication: the username `__token__` (or the token owner's username) and a personal access token as the password. See [PHP packages](composer.md#authentication).
+
 ## Using PaGetto from Elixir and Erlang
 
 Mix and Rebar3 send a personal access token as the whole `Authorization` header, without a scheme: give it to `mix hex.repo add` with `--auth-key`, or as the `repo_key` of the repository in `rebar.config`. `mix hex.publish` and `mix hex.retire` send it from `HEX_API_KEY`. See [Hex packages](hex.md#authentication).

@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
     'go',
     'rubygems',
     'hex',
+    'composer',
     'web-ui',
     'authentication',
     'configuration',
