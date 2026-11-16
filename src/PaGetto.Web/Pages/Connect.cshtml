@@ -81,6 +81,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Composer)
+{
+    <partial name="_ConnectComposer" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

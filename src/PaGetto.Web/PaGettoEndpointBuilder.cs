@@ -27,6 +27,7 @@ public class PaGettoEndpointBuilder
         MapGoRoutes(endpoints);
         MapRubyGemsRoutes(endpoints);
         MapHexRoutes(endpoints);
+        MapComposerRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -518,6 +519,41 @@ public class PaGettoEndpointBuilder
             pattern: "hex/api/users/me",
             defaults: new { controller = "HexRepository", action = "Me" },
             constraints: get);
+    }
+
+    /// <summary>
+    /// The Composer repository of Composer feeds (the Composer v2 repository format) and its upload
+    /// of package zips. Package names have a slash, so it is at <c>composer/</c> under the feed,
+    /// clear of the pages of the web UI.
+    /// See: https://getcomposer.org/doc/05-repositories.md#composer
+    /// </summary>
+    public void MapComposerRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "composer/packages.json",
+            defaults: new { controller = "ComposerRepository", action = "Root" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "composer/p2/{vendor}/{file}",
+            defaults: new { controller = "ComposerRepository", action = "Metadata" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "composer/dists/{vendor}/{package}/{version}/{file}",
+            defaults: new { controller = "ComposerRepository", action = "Dist" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "composer/packages/upload/{vendor}/{package}/{version}",
+            defaults: new { controller = "ComposerRepository", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

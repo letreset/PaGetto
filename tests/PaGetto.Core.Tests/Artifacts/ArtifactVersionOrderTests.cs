@@ -124,6 +124,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsComposerVersionsAsComposerDoes()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Composer, [Version("1.0.0-RC1"), Version("dev-main"), Version("v1.10.0"), Version("1.0.0"), Version("1.9.0")]);
+
+            Assert.Equal(new[] { "v1.10.0", "1.9.0", "1.0.0", "1.0.0-RC1", "dev-main" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));

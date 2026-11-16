@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", FeedType.RubyGems => "https://rubygems.org", FeedType.Hex => "https://repo.hex.pm", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", FeedType.RubyGems => "https://rubygems.org", FeedType.Hex => "https://repo.hex.pm", FeedType.Composer => "https://repo.packagist.org", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -205,7 +205,7 @@
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="AllowPackageOverwrites">Package overwrite policy</label>
-                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.@(Model.Feed?.Type == FeedType.Maven ? " Files of SNAPSHOT versions are always replaced." : null)</div>
+                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.@(Model.Feed?.Type switch { FeedType.Maven => " Files of SNAPSHOT versions are always replaced.", FeedType.Composer => " Development versions such as dev-main are always replaced.", _ => null })</div>
                 </div>
                 <div class="bgt-setting-control">
                     <select asp-for="AllowPackageOverwrites" class="form-select" data-global-value="@global.AllowPackageOverwrites">
@@ -352,6 +352,14 @@
                             Upstream gem servers with a compact index such as https://rubygems.org, queried in order.
                             The first mirror that has a gem lists all of its versions, and a gem file is stored in this
                             feed on its first download. Versions pushed to this feed come first.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.Composer)
+                    {
+                        <p>
+                            Upstream Composer repositories such as https://repo.packagist.org, queried in order. The first
+                            mirror that has a package lists all of its versions, and a tagged version is stored in this feed
+                            when its zip is first downloaded. Branches are passed through. Versions uploaded to this feed come first.
                         </p>
                     }
                     else if (Model.Feed?.Type == FeedType.Hex)

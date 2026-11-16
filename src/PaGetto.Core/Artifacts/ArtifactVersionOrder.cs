@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.Composer;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Go;
 using PaGetto.Core.Hex;
@@ -39,6 +40,7 @@ public static class ArtifactVersionOrder
             FeedType.Go => GoVersion.StringComparer,
             FeedType.RubyGems => RubyGemsVersion.StringComparer,
             FeedType.Hex => HexVersion.StringComparer,
+            FeedType.Composer => ComposerVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }
