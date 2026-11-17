@@ -68,4 +68,10 @@ public enum FeedType
     /// of this server), stored in the <see cref="Artifact"/> tables.
     /// </summary>
     CocoaPods = 10,
+
+    /// <summary>
+    /// Swift packages (the Swift package registry API of Swift Package Manager), stored in the
+    /// <see cref="Artifact"/> tables.
+    /// </summary>
+    Swift = 11,
 }

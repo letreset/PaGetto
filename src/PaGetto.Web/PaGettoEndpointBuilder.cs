@@ -29,6 +29,7 @@ public class PaGettoEndpointBuilder
         MapHexRoutes(endpoints);
         MapComposerRoutes(endpoints);
         MapCocoaPodsRoutes(endpoints);
+        MapSwiftRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -590,6 +591,57 @@ public class PaGettoEndpointBuilder
             pattern: "cocoapods/api/v1/pods",
             defaults: new { controller = "CocoaPodsSpecs", action = "Publish" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+    }
+
+    /// <summary>
+    /// The Swift package registry API of Swift feeds. It is at <c>swift/</c> under the feed, clear of
+    /// the pages of the web UI, which <c>/{scope}/{name}</c> would collide with.
+    /// See: https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md
+    /// </summary>
+    public void MapSwiftRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "swift/identifiers",
+            defaults: new { controller = "SwiftRegistry", action = "Identifiers" },
+            constraints: get);
+
+        // swift package-registry login posts to the path of the URL it is given, so it works with
+        // the registry URL as well as with its login URL.
+        foreach (var pattern in new[] { "swift", "swift/login" })
+        {
+            endpoints.MapControllerRoute(
+                name: null,
+                pattern: pattern,
+                defaults: new { controller = "SwiftRegistry", action = "Login" },
+                constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+        }
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "swift/{scope}/{name}",
+            defaults: new { controller = "SwiftRegistry", action = "ListReleases" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "swift/{scope}/{name}/{version}",
+            defaults: new { controller = "SwiftRegistry", action = "Release" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "swift/{scope}/{name}/{version}",
+            defaults: new { controller = "SwiftRegistry", action = "Publish" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "swift/{scope}/{name}/{version}/Package.swift",
+            defaults: new { controller = "SwiftRegistry", action = "Manifest" },
+            constraints: get);
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

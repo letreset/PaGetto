@@ -465,6 +465,7 @@ else
             FeedType.Hex => $"{{:{artifact.Name}, \"~> {artifact.Version}\", repo: \"{feedSlug}\"}}",
             FeedType.Composer => $"composer require {artifact.Name}:{artifact.Version}",
             FeedType.CocoaPods => $"pod '{artifact.Name}', '{artifact.Version}'",
+            FeedType.Swift => $".package(id: \"{artifact.Name}\", from: \"{artifact.Version}\")",
             _ => artifact.Name,
         };
     }

@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json.Nodes;
 using System.Text;
 using System.Threading.Tasks;
 using System;
@@ -54,6 +55,19 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
         // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet, and
         // PyPI, Go, RubyGems, Hex, Composer and CocoaPods feeds use it too. Cargo shows the login URL of its challenge.
         var endpointType = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type;
+
+        if (endpointType == FeedType.Swift)
+        {
+            // Swift Package Manager sends its credentials without waiting for a challenge, and on
+            // Linux it hangs on a 401 with a WWW-Authenticate header, so the 401 has none. It shows
+            // the detail of the problem.
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            Response.Headers["Content-Version"] = "1";
+            Response.ContentType = "application/problem+json";
+            var detail = $"Authentication is required. Sign in with: swift package-registry login {Request.Scheme}://{Request.Host}{Request.PathBase}/swift/login --token YOUR_TOKEN";
+            await Response.WriteAsync(new JsonObject { ["detail"] = detail }.ToJsonString());
+            return;
+        }
 
         Response.Headers.WWWAuthenticate = endpointType switch
         {
