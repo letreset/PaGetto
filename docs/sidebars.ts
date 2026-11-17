@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
     'rubygems',
     'hex',
     'composer',
+    'cocoapods',
     'web-ui',
     'authentication',
     'configuration',
