@@ -4,6 +4,7 @@ using System.Linq;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
+using PaGetto.Core.Cran;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Go;
 using PaGetto.Core.Hex;
@@ -45,6 +46,7 @@ public static class ArtifactVersionOrder
             FeedType.Composer => ComposerVersion.StringComparer,
             FeedType.CocoaPods => CocoaPodsVersion.StringComparer,
             FeedType.Swift => SwiftVersion.StringComparer,
+            FeedType.Cran => CranVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }

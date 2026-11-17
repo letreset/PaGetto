@@ -466,6 +466,7 @@ else
             FeedType.Composer => $"composer require {artifact.Name}:{artifact.Version}",
             FeedType.CocoaPods => $"pod '{artifact.Name}', '{artifact.Version}'",
             FeedType.Swift => $".package(id: \"{artifact.Name}\", from: \"{artifact.Version}\")",
+            FeedType.Cran => $"install.packages(\"{artifact.Name}\", repos = \"{feedUrl}/cran\")",
             _ => artifact.Name,
         };
     }

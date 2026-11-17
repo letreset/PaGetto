@@ -148,6 +148,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsRVersionsNumberByNumber()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Cran, [Version("1.0"), Version("1.10-1"), Version("1.0.0"), Version("1.9-2"), Version("0.99")]);
+
+            Assert.Equal(new[] { "1.10-1", "1.9-2", "1.0.0", "1.0", "0.99" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));

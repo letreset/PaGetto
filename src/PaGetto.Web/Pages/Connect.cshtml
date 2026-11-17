@@ -99,6 +99,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Cran)
+{
+    <partial name="_ConnectCran" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

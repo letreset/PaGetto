@@ -74,4 +74,10 @@ public enum FeedType
     /// <see cref="Artifact"/> tables.
     /// </summary>
     Swift = 11,
+
+    /// <summary>
+    /// R packages (a CRAN-like repository of source packages, with an upload endpoint of this server),
+    /// stored in the <see cref="Artifact"/> tables.
+    /// </summary>
+    Cran = 12,
 }

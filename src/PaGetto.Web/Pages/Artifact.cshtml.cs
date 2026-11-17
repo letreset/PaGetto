@@ -16,6 +16,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
+using PaGetto.Core.Cran;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
@@ -164,6 +165,11 @@ public class ArtifactModel : PageModel
     public SwiftManifestSummary SwiftManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of an R package version. Null on feeds of other types.
+    /// </summary>
+    public CranManifestSummary CranManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -292,6 +298,13 @@ public class ArtifactModel : PageModel
 
             // The identifier as published; the stored name is lowercased.
             Name = SwiftManifest.Id ?? Name;
+        }
+        else if (feed.Type == FeedType.Cran)
+        {
+            CranManifest = CranManifestSummary.Parse(Version.MetadataJson);
+
+            // The name as published; the stored name is lowercased.
+            Name = CranManifest.Name ?? Name;
         }
 
         if (Version.HasReadme)

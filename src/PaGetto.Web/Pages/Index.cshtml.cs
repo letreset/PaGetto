@@ -9,6 +9,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Configuration;
+using PaGetto.Core.Cran;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
@@ -208,7 +209,7 @@ public class IndexModel : PageModel
 
         return new ArtifactListItem
         {
-            // Maven coordinates, Python project, crate and gem names and Swift package identifiers as published,
+            // Maven coordinates, Python project, crate, gem and R package names and Swift package identifiers as published,
             // and Go module paths and pod names; the stored name is normalized or escaped.
             Name = feedType switch
             {
@@ -219,6 +220,7 @@ public class IndexModel : PageModel
                 FeedType.RubyGems => RubyGemsManifest.Parse(latest.MetadataJson).Name,
                 FeedType.CocoaPods => CocoaPodsPodName.TryUnescape(artifact.Name, out var podName) ? podName : null,
                 FeedType.Swift => SwiftManifest.Parse(latest.MetadataJson).Id,
+                FeedType.Cran => CranManifest.GetName(latest.MetadataJson),
                 _ => null,
             } ?? artifact.Name,
             Id = artifact.Name,

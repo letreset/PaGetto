@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.Options
 @using PaGetto.Core.CocoaPods
 @using PaGetto.Core.Configuration
+@using PaGetto.Core.Cran
 @using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
 @using PaGetto.Core.Go
@@ -77,6 +78,7 @@
     var isComposer = feed.Type == FeedType.Composer;
     var isCocoaPods = feed.Type == FeedType.CocoaPods;
     var isSwift = feed.Type == FeedType.Swift;
+    var isCran = feed.Type == FeedType.Cran;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
@@ -103,22 +105,25 @@
             : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)]
             : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)]
             : Model.CocoaPodsManifest?.Platforms
-            ?? (Model.SwiftManifest?.ToolsVersion is { } toolsVersion ? [KeyValuePair.Create("Swift tools", toolsVersion)] : null));
+            ?? (Model.SwiftManifest?.ToolsVersion is { } toolsVersion ? [KeyValuePair.Create("Swift tools", toolsVersion)]
+            : Model.CranManifest?.RVersion is { } rVersion ? [KeyValuePair.Create("R", rVersion)] : null));
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
         ?? Model.RubyGemsManifest?.Dependencies
         ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList()
         ?? Model.ComposerManifest?.Dependencies
-        ?? Model.CocoaPodsManifest?.Dependencies;
+        ?? Model.CocoaPodsManifest?.Dependencies
+        ?? Model.CranManifest?.Dependencies;
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
         ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links
-        ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links;
+        ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links ?? Model.CranManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
         ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
         ?? Model.ComposerManifest?.License
-        ?? Model.CocoaPodsManifest?.License;
+        ?? Model.CocoaPodsManifest?.License
+        ?? Model.CranManifest?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords
         ?? Model.ComposerManifest?.Keywords;
 
@@ -130,7 +135,8 @@
         : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar"
         : isComposer ? Url.ComposerDist(name, rowVersion, null)
         : isCocoaPods ? PodSourceUrl(Model.Versions.First(v => v.Version == rowVersion))
-        : isSwift ? Url.SwiftArchive(swiftScope, swiftName, rowVersion) : null;
+        : isSwift ? Url.SwiftArchive(swiftScope, swiftName, rowVersion)
+        : isCran ? Url.CranPackage(name, rowVersion) : null;
 
     // A version's source archive, when it was published with one.
     string PodSourceUrl(ArtifactVersion row) => row.ContentHash != null && CocoaPodsPodspec.GetStoredArchiveType(row.MetadataJson) is { } archiveType
@@ -208,6 +214,13 @@
     {
         installTabs.Add(new InstallTab { Name = "Package.swift", Content = ["dependencies: [", $"    .package(id: \"{name}\", from: \"{version}\"),", "]"] });
         installTabs.Add(new InstallTab { Name = "Registry", Content = [$"swift package-registry set {Url.SwiftRegistry()}"] });
+    }
+    else if (isCran)
+    {
+        // install.packages installs the current version; renv installs a given one.
+        var repository = Url.CranRepository();
+        installTabs.Add(new InstallTab { Name = "R", Content = [$"install.packages(\"{name}\", repos = \"{repository}\")"] });
+        installTabs.Add(new InstallTab { Name = "renv", Content = [$"renv::install(\"{name}@{version}\", repos = \"{repository}\")"] });
     }
 }
 
@@ -323,7 +336,7 @@
                             @foreach (var dependency in dependencies)
                             {
                                 <div class="bgt-dep">
-                                    <a asp-page="Artifact" asp-route-id="@(isGo ? GoModulePath.Escape(dependency.Key) : isCocoaPods ? CocoaPodsPodName.Escape(dependency.Key.Split('/')[0]) : dependency.Key)" asp-route-version="@null">@dependency.Key</a>
+                                    <a asp-page="Artifact" asp-route-id="@(isGo ? GoModulePath.Escape(dependency.Key) : isCocoaPods ? CocoaPodsPodName.Escape(dependency.Key.Split('/')[0]) : isCran ? CranPackageName.Normalize(dependency.Key) : dependency.Key)" asp-route-version="@null">@dependency.Key</a>
                                     <span class="bgt-dep-range">@dependency.Value</span>
                                 </div>
                             }
@@ -420,7 +433,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || isSwift || (isCocoaPods && PodSourceUrl(row) != null))
+                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || isSwift || isCran || (isCocoaPods && PodSourceUrl(row) != null))
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -496,6 +509,14 @@
                 {
                     <div><span>Signed</span><span>Yes</span></div>
                 }
+                @if (isCran && !string.IsNullOrEmpty(Model.CranManifest.Maintainer))
+                {
+                    <div><span>Maintainer</span><span>@Model.CranManifest.Maintainer</span></div>
+                }
+                @if (isCran && Model.CranManifest.NeedsCompilation)
+                {
+                    <div><span>Compiled code</span><span>Yes</span></div>
+                }
                 @if (!string.IsNullOrEmpty(license))
                 {
                     <div><span>License</span><span>@license</span></div>
@@ -516,7 +537,7 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex || isCran ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : "archive")</a>
             }
         </div>
 
