@@ -10,6 +10,7 @@ using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
+using PaGetto.Core.Cran;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Content;
 using PaGetto.Core.Email;
@@ -172,6 +173,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<CocoaPodsUpstreamClient>();
         services.TryAddTransient<ISwiftPackageService, SwiftPackageService>();
         services.TryAddTransient<SwiftUpstreamClient>();
+        services.TryAddTransient<ICranPackageService, CranPackageService>();
+        services.TryAddTransient<CranUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

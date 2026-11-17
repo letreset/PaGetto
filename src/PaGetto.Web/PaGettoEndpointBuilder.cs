@@ -30,6 +30,7 @@ public class PaGettoEndpointBuilder
         MapComposerRoutes(endpoints);
         MapCocoaPodsRoutes(endpoints);
         MapSwiftRoutes(endpoints);
+        MapCranRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -670,5 +671,46 @@ public class PaGettoEndpointBuilder
             name: Routes.PackageDownloadIconRouteName,
             pattern: "v3/package/{id}/{version}/icon",
             defaults: new { controller = "PackageContent", action = "DownloadIcon" });
+    }
+
+    /// <summary>
+    /// The CRAN repository of CRAN feeds (the repository layout of R source packages) and its upload
+    /// of source packages. It is at <c>cran/</c> under the feed, clear of the pages of the web UI;
+    /// clients pass <c>https://server/feeds/{slug}/cran</c> to <c>install.packages</c> as <c>repos</c>.
+    /// See: https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Setting-up-a-package-repository
+    /// </summary>
+    public void MapCranRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cran/src/contrib/{file}",
+            defaults: new { controller = "CranRepository", action = "SourceFile" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cran/src/contrib/Archive/{name}",
+            defaults: new { controller = "CranRepository", action = "ArchiveListing" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cran/src/contrib/Archive/{name}/{file}",
+            defaults: new { controller = "CranRepository", action = "ArchiveFile" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cran/bin/{**path}",
+            defaults: new { controller = "CranRepository", action = "BinaryFile" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cran/src/contrib/{file}",
+            defaults: new { controller = "CranRepository", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 }

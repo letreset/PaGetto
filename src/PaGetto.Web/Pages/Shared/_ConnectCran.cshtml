@@ -1,0 +1,158 @@
+@* The Connect page of a CRAN feed: how to install R packages from it and upload packages to it. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Authentication
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var repositoryUrl = Url.CranRepository();
+    var repositoryUri = new Uri(repositoryUrl);
+
+    var feed = FeedContext.CurrentFeed;
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = feed.Mirrors?.Any(m => m.Enabled) == true;
+    var username = authMode == AuthenticationMode.Legacy ? "USERNAME" : FeedAuthenticationService.TokenUsername;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    // R sends the credentials of the repository URL; the token is read from an environment
+    // variable, so it stays out of scripts and .Rprofile.
+    var repos = authMode == AuthenticationMode.Legacy
+        ? $"\"{repositoryUrl}\""
+        : $"sprintf(\"{repositoryUri.Scheme}://{username}:%s@{repositoryUri.Authority}{repositoryUri.AbsolutePath}\", Sys.getenv(\"PAGETTO_TOKEN\"))";
+
+    var options = new List<string> { "options(repos = c(" };
+    if (hasMirrors)
+    {
+        // With a mirror of CRAN, public packages come through this feed too.
+        options.Add($"  {feed.Slug} = {repos}");
+    }
+    else
+    {
+        options.Add($"  {feed.Slug} = {repos},");
+        options.Add("  CRAN = \"https://cloud.r-project.org\"");
+    }
+
+    options.Add("))");
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = ".Rprofile",
+            content = options.ToArray(),
+            documentation = "https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Setting-up-a-package-repository",
+        },
+        new
+        {
+            name = "R",
+            content = new[] { $"install.packages(\"mypackage\", repos = {repos})" },
+            documentation = "https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html",
+        },
+        new
+        {
+            name = "renv",
+            content = new[]
+            {
+                "# renv installs from the repositories of options(repos), e.g. from .Rprofile",
+                "renv::install(\"mypackage\")",
+                "",
+                "# or a given version",
+                "renv::install(\"mypackage@1.0.0\")",
+                "",
+                "# renv.lock keeps the repository URLs without credentials; in .Rprofile,",
+                "# after options(repos), let renv::restore() use the ones with credentials",
+                "options(renv.config.repos.override = getOption(\"repos\"))",
+            },
+            documentation = "https://rstudio.github.io/renv/articles/package-sources.html",
+        },
+        new
+        {
+            name = "Upload",
+            content = new[]
+            {
+                "# The source package, as R CMD build writes it: mypackage_1.0.0.tar.gz",
+                "R CMD build mypackage",
+                "",
+                $"curl --fail-with-body -u {username}:{password} -T mypackage_1.0.0.tar.gz \\",
+                $"  {repositoryUrl}/src/contrib/",
+            },
+            documentation = "https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Building-package-tarballs",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a CRAN-like repository of R packages.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Repository URL · @feed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-url">@repositoryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-repository-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>R sends the credentials in the repository URL: the username @FeedAuthenticationService.TokenUsername (or your username) and a personal access token (PAT) as the password. The examples below read the token from the PAGETTO_TOKEN environment variable, e.g. from .Renviron. Accounts without web sign-in get their token from an administrator.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-callout">
+        <icon name="info" size="18" />
+        <div>
+            <div class="bgt-callout-title">Source packages only</div>
+            <div class="bgt-callout-body"><p>This feed serves source packages. R on Windows and macOS installs them from source too, which needs the build tools (Rtools, Xcode) for packages with compiled code.</p></div>
+        </div>
+    </div>
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves packages uploaded to it, so R still installs public packages from CRAN. An administrator can add a mirror such as https://cloud.r-project.org to get public packages through this feed.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>
