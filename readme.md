@@ -18,6 +18,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **Ruby gems**: a feed can be a gem server with the compact index for Bundler and `gem install`, with `gem push`, `gem yank`, platform gems and a mirror of rubygems.org.
 * **Hex packages**: a feed can be a Hex repository for Elixir and Erlang, with a signed registry for Mix and Rebar3, `mix hex.publish`, `mix hex.retire` and a mirror of hex.pm.
 * **PHP packages**: a feed can be a Composer repository, with uploads of package zips and a mirror of Packagist.
+* **CocoaPods pods**: a feed can be a CocoaPods spec repository in the CDN format for `pod install`, with a publish endpoint for podspecs and their source archives and a mirror of cdn.cocoapods.org.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.
