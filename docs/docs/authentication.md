@@ -360,6 +360,10 @@ Composer sends the `http-basic` credentials of `auth.json` with Basic authentica
 
 CocoaPods sends the credentials of a server's host from `~/.netrc` with Basic authentication: the login `__token__` (or the token owner's username) and a personal access token as the password. See [CocoaPods pods](cocoapods.md#authentication).
 
+## Using PaGetto from R
+
+R sends the credentials of the repository URL with Basic authentication: `https://__token__:<token>@your-server/feeds/{slug}/cran`, with the username `__token__` (or the token owner's username) and a personal access token as the password. See [R packages](cran.md#authentication).
+
 ## Using PaGetto from Swift Package Manager
 
 Swift Package Manager sends a personal access token as a Bearer token, after `swift package-registry login https://your-server/feeds/{slug}/swift/login --token <token>` has checked and stored it. `login` also takes a username and password, sent with Basic authentication. See [Swift packages](swift.md#authentication).
