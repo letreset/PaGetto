@@ -87,6 +87,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.CocoaPods)
+{
+    <partial name="_ConnectCocoaPods" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

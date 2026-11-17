@@ -1,0 +1,147 @@
+@* The Connect page of a CocoaPods feed: how to add it as a spec repository and publish pods to it. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Authentication
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var repositoryUrl = Url.CocoaPodsRepository();
+    // CocoaPods and curl look up .netrc credentials by host name, without the port.
+    var host = new Uri(repositoryUrl).Host;
+
+    var feed = FeedContext.CurrentFeed;
+    var authMode = AuthOptions.Value.Mode;
+    var hasMirrors = feed.Mirrors?.Any(m => m.Enabled) == true;
+    var username = authMode == AuthenticationMode.Legacy ? "USERNAME" : FeedAuthenticationService.TokenUsername;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var podfile = new List<string> { $"source '{repositoryUrl}'" };
+    if (!hasMirrors)
+    {
+        // Without a mirror, public pods still come from the trunk.
+        podfile.Add("source 'https://cdn.cocoapods.org/'");
+    }
+
+    podfile.AddRange(["", "target 'MyApp' do", "  pod 'MyLib', '~> 1.0'", "end"]);
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "Podfile",
+            content = podfile.ToArray(),
+            documentation = "https://guides.cocoapods.org/syntax/podfile.html#source",
+        },
+        new
+        {
+            name = ".netrc",
+            content = new[]
+            {
+                "# ~/.netrc, which CocoaPods and curl read the credentials of the feed's host from",
+                $"machine {host}",
+                $"  login {username}",
+                $"  password {password}",
+                "",
+                "# CocoaPods refuses a .netrc that others can read",
+                "chmod 600 ~/.netrc",
+            },
+            documentation = "https://everything.curl.dev/usingcurl/netrc.html",
+        },
+        new
+        {
+            name = "pod repo",
+            content = new[]
+            {
+                "# Optional: pod install adds the source itself; this names it",
+                $"pod repo add-cdn {feed.Slug} {repositoryUrl}",
+            },
+            documentation = "https://guides.cocoapods.org/terminal/commands.html#pod_repo_add_cdn",
+        },
+        new
+        {
+            name = "Publish",
+            content = new[]
+            {
+                "# The podspec in its JSON form",
+                "pod ipc spec MyLib.podspec > MyLib.podspec.json",
+                "",
+                "# A podspec whose source is a git tag or a URL",
+                $"curl --fail-with-body --netrc -F podspec=@MyLib.podspec.json {repositoryUrl}api/v1/pods",
+                "",
+                "# Or with its source archive, which the feed stores and the podspec then points at",
+                "git archive --format=zip -o MyLib-1.0.0.zip 1.0.0",
+                "curl --fail-with-body --netrc -F podspec=@MyLib.podspec.json -F source=@MyLib-1.0.0.zip \\",
+                $"  {repositoryUrl}api/v1/pods",
+            },
+            documentation = "https://guides.cocoapods.org/syntax/podspec.html",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as a CocoaPods spec repository.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Spec repository URL · @feed.Name</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-repository-url">@repositoryUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-repository-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>CocoaPods reads the credentials of the feed's host from ~/.netrc: the login @FeedAuthenticationService.TokenUsername (or your username) and a personal access token (PAT) as the password. Without them, CocoaPods can't tell that the URL is a spec repository and tries to clone it with git. Use your token in place of YOUR_TOKEN below. Accounts without web sign-in get their token from an administrator.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (!hasMirrors)
+    {
+        <div class="bgt-callout">
+            <icon name="info" size="18" />
+            <div>
+                <div class="bgt-callout-title">This feed has no mirror</div>
+                <div class="bgt-callout-body"><p>It only serves pods published to it, so the Podfile also names the trunk for public pods. An administrator can add a mirror such as https://cdn.cocoapods.org to get public podspecs through this feed.</p></div>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>

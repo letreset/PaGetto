@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
@@ -152,6 +153,11 @@ public class ArtifactModel : PageModel
     public ComposerManifestSummary ComposerManifest { get; private set; }
 
     /// <summary>
+    /// The podspec of a pod version. Null on feeds of other types.
+    /// </summary>
+    public CocoaPodsManifestSummary CocoaPodsManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -267,6 +273,13 @@ public class ArtifactModel : PageModel
         {
             ComposerManifest = ComposerManifestSummary.Parse(Version.MetadataJson);
         }
+        else if (feed.Type == FeedType.CocoaPods)
+        {
+            CocoaPodsManifest = CocoaPodsManifestSummary.Parse(Version.MetadataJson);
+
+            // The name as published; the stored name is escaped.
+            Name = CocoaPodsPodName.TryUnescape(Name, out var podName) ? podName : Name;
+        }
 
         if (Version.HasReadme)
         {
@@ -373,7 +386,8 @@ public class ArtifactModel : PageModel
     /// The name a package is stored under: lowercased, and for Python projects normalized as well,
     /// so <c>My_Package</c> is <c>my-package</c>. A Go module path is case-sensitive, so it is
     /// escaped instead: <c>example.com/My</c> is <c>example.com/!my</c>, and an escaped path, which
-    /// the links of the web UI use, is taken as it is.
+    /// the links of the web UI use, is taken as it is. Pod names are case-sensitive too, and escaped
+    /// the same way.
     /// </summary>
     private static string GetStoredName(FeedType feedType, string id)
     {
@@ -381,6 +395,7 @@ public class ArtifactModel : PageModel
         {
             FeedType.PyPI => PyPIPackageName.Normalize(id),
             FeedType.Go => GoModulePath.TryUnescape(id, out _) ? id : GoModulePath.Escape(id),
+            FeedType.CocoaPods => CocoaPodsPodName.TryUnescape(id, out _) ? id : CocoaPodsPodName.Escape(id),
             _ => id.ToLowerInvariant(),
         };
     }

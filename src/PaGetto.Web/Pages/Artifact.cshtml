@@ -2,6 +2,7 @@
 @using System.Globalization
 @using Humanizer
 @using Microsoft.Extensions.Options
+@using PaGetto.Core.CocoaPods
 @using PaGetto.Core.Configuration
 @using PaGetto.Core.Entities
 @using PaGetto.Core.Feeds
@@ -73,6 +74,7 @@
     var isRubyGems = feed.Type == FeedType.RubyGems;
     var isHex = feed.Type == FeedType.Hex;
     var isComposer = feed.Type == FeedType.Composer;
+    var isCocoaPods = feed.Type == FeedType.CocoaPods;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
@@ -93,19 +95,23 @@
             : Model.GoMod?.GoVersion is { } goVersion ? [KeyValuePair.Create("Go", goVersion)]
             : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)]
             : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)]
-            : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)] : null);
+            : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)]
+            : Model.CocoaPodsManifest?.Platforms);
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
         ?? Model.RubyGemsManifest?.Dependencies
         ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList()
-        ?? Model.ComposerManifest?.Dependencies;
+        ?? Model.ComposerManifest?.Dependencies
+        ?? Model.CocoaPodsManifest?.Dependencies;
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
-        ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links;
+        ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links
+        ?? Model.CocoaPodsManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
         ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
-        ?? Model.ComposerManifest?.License;
+        ?? Model.ComposerManifest?.License
+        ?? Model.CocoaPodsManifest?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords
         ?? Model.ComposerManifest?.Keywords;
 
@@ -115,7 +121,13 @@
         : isCargo ? $"{Url.CargoDownloads()}/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(rowVersion)}/download"
         : isGo ? Url.GoZip(name, rowVersion)
         : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar"
-        : isComposer ? Url.ComposerDist(name, rowVersion, null) : null;
+        : isComposer ? Url.ComposerDist(name, rowVersion, null)
+        : isCocoaPods ? PodSourceUrl(Model.Versions.First(v => v.Version == rowVersion)) : null;
+
+    // A version's source archive, when it was published with one.
+    string PodSourceUrl(ArtifactVersion row) => row.ContentHash != null && CocoaPodsPodspec.GetStoredArchiveType(row.MetadataJson) is { } archiveType
+        ? Url.CocoaPodsSource(name, row.Version, archiveType)
+        : null;
 
     var downloadUrl = DownloadUrl(version);
 
@@ -179,6 +191,10 @@
     {
         installTabs.Add(new InstallTab { Name = "Composer", Content = [$"composer require {name}:{version}"] });
         installTabs.Add(new InstallTab { Name = "composer.json", Content = ["\"require\": {", $"  \"{name}\": \"{version}\"", "}"] });
+    }
+    else if (isCocoaPods)
+    {
+        installTabs.Add(new InstallTab { Name = "Podfile", Content = [$"source '{Url.CocoaPodsRepository()}'", "", $"pod '{name}', '{version}'"] });
     }
 }
 
@@ -294,7 +310,7 @@
                             @foreach (var dependency in dependencies)
                             {
                                 <div class="bgt-dep">
-                                    <a asp-page="Artifact" asp-route-id="@(isGo ? GoModulePath.Escape(dependency.Key) : dependency.Key)" asp-route-version="@null">@dependency.Key</a>
+                                    <a asp-page="Artifact" asp-route-id="@(isGo ? GoModulePath.Escape(dependency.Key) : isCocoaPods ? CocoaPodsPodName.Escape(dependency.Key.Split('/')[0]) : dependency.Key)" asp-route-version="@null">@dependency.Key</a>
                                     <span class="bgt-dep-range">@dependency.Value</span>
                                 </div>
                             }
@@ -391,7 +407,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer)
+                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || (isCocoaPods && PodSourceUrl(row) != null))
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -479,7 +495,7 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer ? "zip" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer ? "zip" : isCocoaPods ? "source" : "archive")</a>
             }
         </div>
 

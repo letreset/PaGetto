@@ -132,6 +132,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsPodVersionsAsCocoaPodsDoes()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.CocoaPods, [Version("1.0.0-beta.2"), Version("1.10.0"), Version("1.0.0"), Version("1.9.0"), Version("1.0.0-beta.11")]);
+
+            Assert.Equal(new[] { "1.10.0", "1.9.0", "1.0.0", "1.0.0-beta.11", "1.0.0-beta.2" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));
