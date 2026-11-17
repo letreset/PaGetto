@@ -8,7 +8,7 @@ namespace PaGetto.Web.Helper;
 public static class FeedTypeNames
 {
     /// <summary>
-    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python", "Rust", "Go", "Ruby", "Hex", "PHP" or "CocoaPods".
+    /// The name of the ecosystem, e.g. "NuGet", "Dart", "npm", "Maven", "Python", "Rust", "Go", "Ruby", "Hex", "PHP", "CocoaPods" or "Swift".
     /// </summary>
     public static string GetDisplayName(FeedType type)
     {
@@ -24,6 +24,7 @@ public static class FeedTypeNames
             FeedType.Hex => "Hex",
             FeedType.Composer => "PHP",
             FeedType.CocoaPods => "CocoaPods",
+            FeedType.Swift => "Swift",
             _ => "NuGet",
         };
     }
@@ -33,7 +34,7 @@ public static class FeedTypeNames
     /// Dart feed, the registry URL of an npm feed, the repository URL of a Maven feed, the index
     /// URL of a PyPI feed, the sparse index URL of a Cargo feed, the GOPROXY URL of a Go feed, the
     /// gem source URL of a RubyGems feed, the repository URL of a Hex feed, the repository URL of a
-    /// Composer feed, or the spec repository URL of a CocoaPods feed.
+    /// Composer feed, the spec repository URL of a CocoaPods feed, or the registry URL of a Swift feed.
     /// </summary>
     /// <param name="type">The feed's type.</param>
     /// <param name="feedUrl">The feed's root URL, e.g. <c>https://example.com/feeds/internal</c>.</param>
@@ -53,6 +54,7 @@ public static class FeedTypeNames
             FeedType.Hex => feedUrl + "/hex",
             FeedType.Composer => feedUrl + "/composer",
             FeedType.CocoaPods => feedUrl + "/cocoapods/",
+            FeedType.Swift => feedUrl + "/swift",
             _ => feedUrl + "/v3/index.json",
         };
     }

@@ -29,6 +29,7 @@ using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
 using PaGetto.Core.Storage;
+using PaGetto.Core.Swift;
 using PaGetto.Core.Upstream;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
@@ -169,6 +170,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<ComposerUpstreamClient>();
         services.TryAddTransient<ICocoaPodsPackageService, CocoaPodsPackageService>();
         services.TryAddTransient<CocoaPodsUpstreamClient>();
+        services.TryAddTransient<ISwiftPackageService, SwiftPackageService>();
+        services.TryAddTransient<SwiftUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

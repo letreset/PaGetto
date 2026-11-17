@@ -11,6 +11,7 @@
 @using PaGetto.Core.Maven
 @using PaGetto.Core.PyPI
 @using PaGetto.Core.RubyGems
+@using PaGetto.Core.Swift
 @using PaGetto.Web.Extensions
 @using PaGetto.Web.Helper
 @model ArtifactModel
@@ -75,6 +76,7 @@
     var isHex = feed.Type == FeedType.Hex;
     var isComposer = feed.Type == FeedType.Composer;
     var isCocoaPods = feed.Type == FeedType.CocoaPods;
+    var isSwift = feed.Type == FeedType.Swift;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
@@ -88,6 +90,10 @@
     // A Python project's files are at its normalized name.
     var pypiName = isPyPI ? PyPIPackageName.Normalize(name) : null;
 
+    // A Swift package identifier is scope.name.
+    var swiftScope = isSwift ? name[..name.IndexOf('.')] : null;
+    var swiftName = isSwift ? name[(name.IndexOf('.') + 1)..] : null;
+
     // The parts of the manifest the page shows, from the ecosystem's own summary.
     var environment = Model.Pubspec?.Environment ?? Model.NpmManifest?.Engines
         ?? (Model.PyPIManifest?.RequiresPython is { } requiresPython ? [KeyValuePair.Create("Python", requiresPython)]
@@ -96,7 +102,8 @@
             : Model.RubyGemsManifest?.RequiredRubyVersion is { } rubyVersion ? [KeyValuePair.Create("Ruby", rubyVersion)]
             : Model.HexManifest?.Elixir is { } elixirVersion ? [KeyValuePair.Create("Elixir", elixirVersion)]
             : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)]
-            : Model.CocoaPodsManifest?.Platforms);
+            : Model.CocoaPodsManifest?.Platforms
+            ?? (Model.SwiftManifest?.ToolsVersion is { } toolsVersion ? [KeyValuePair.Create("Swift tools", toolsVersion)] : null));
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
@@ -106,7 +113,7 @@
         ?? Model.CocoaPodsManifest?.Dependencies;
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
         ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links
-        ?? Model.CocoaPodsManifest?.Links;
+        ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
         ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
@@ -122,7 +129,8 @@
         : isGo ? Url.GoZip(name, rowVersion)
         : isHex ? $"{Url.HexRepository()}/tarballs/{name}-{Uri.EscapeDataString(rowVersion)}.tar"
         : isComposer ? Url.ComposerDist(name, rowVersion, null)
-        : isCocoaPods ? PodSourceUrl(Model.Versions.First(v => v.Version == rowVersion)) : null;
+        : isCocoaPods ? PodSourceUrl(Model.Versions.First(v => v.Version == rowVersion))
+        : isSwift ? Url.SwiftArchive(swiftScope, swiftName, rowVersion) : null;
 
     // A version's source archive, when it was published with one.
     string PodSourceUrl(ArtifactVersion row) => row.ContentHash != null && CocoaPodsPodspec.GetStoredArchiveType(row.MetadataJson) is { } archiveType
@@ -195,6 +203,11 @@
     else if (isCocoaPods)
     {
         installTabs.Add(new InstallTab { Name = "Podfile", Content = [$"source '{Url.CocoaPodsRepository()}'", "", $"pod '{name}', '{version}'"] });
+    }
+    else if (isSwift)
+    {
+        installTabs.Add(new InstallTab { Name = "Package.swift", Content = ["dependencies: [", $"    .package(id: \"{name}\", from: \"{version}\"),", "]"] });
+        installTabs.Add(new InstallTab { Name = "Registry", Content = [$"swift package-registry set {Url.SwiftRegistry()}"] });
     }
 }
 
@@ -407,7 +420,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || (isCocoaPods && PodSourceUrl(row) != null))
+                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || isSwift || (isCocoaPods && PodSourceUrl(row) != null))
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -475,6 +488,14 @@
                 {
                     <div><span>Package type</span><span>@Model.ComposerManifest.Type</span></div>
                 }
+                @if (isSwift && !string.IsNullOrEmpty(Model.SwiftManifest.Author))
+                {
+                    <div><span>Author</span><span>@Model.SwiftManifest.Author</span></div>
+                }
+                @if (isSwift && Model.SwiftManifest.IsSigned)
+                {
+                    <div><span>Signed</span><span>Yes</span></div>
+                }
                 @if (!string.IsNullOrEmpty(license))
                 {
                     <div><span>License</span><span>@license</span></div>
@@ -495,7 +516,7 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer ? "zip" : isCocoaPods ? "source" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : "archive")</a>
             }
         </div>
 
@@ -594,6 +615,7 @@
             "repository" => "Source repository",
             "issue_tracker" or "bugs" => "Issue tracker",
             "documentation" => "Documentation",
+            "license" => "License",
             _ => pubspecField,
         };
     }

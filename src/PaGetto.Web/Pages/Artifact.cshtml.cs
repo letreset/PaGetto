@@ -26,6 +26,7 @@ using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
+using PaGetto.Core.Swift;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 
@@ -158,6 +159,11 @@ public class ArtifactModel : PageModel
     public CocoaPodsManifestSummary CocoaPodsManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a Swift package release. Null on feeds of other types.
+    /// </summary>
+    public SwiftManifestSummary SwiftManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -279,6 +285,13 @@ public class ArtifactModel : PageModel
 
             // The name as published; the stored name is escaped.
             Name = CocoaPodsPodName.TryUnescape(Name, out var podName) ? podName : Name;
+        }
+        else if (feed.Type == FeedType.Swift)
+        {
+            SwiftManifest = SwiftManifestSummary.Parse(Version.MetadataJson);
+
+            // The identifier as published; the stored name is lowercased.
+            Name = SwiftManifest.Id ?? Name;
         }
 
         if (Version.HasReadme)

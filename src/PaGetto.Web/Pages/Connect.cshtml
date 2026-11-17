@@ -93,6 +93,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Swift)
+{
+    <partial name="_ConnectSwift" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }
