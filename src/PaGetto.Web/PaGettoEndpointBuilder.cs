@@ -28,6 +28,7 @@ public class PaGettoEndpointBuilder
         MapRubyGemsRoutes(endpoints);
         MapHexRoutes(endpoints);
         MapComposerRoutes(endpoints);
+        MapCocoaPodsRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -554,6 +555,41 @@ public class PaGettoEndpointBuilder
             pattern: "composer/packages/upload/{vendor}/{package}/{version}",
             defaults: new { controller = "ComposerRepository", action = "Upload" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The spec repository of CocoaPods feeds (a CocoaPods spec repository in the CDN format), the
+    /// source archives published with podspecs, and the publish endpoint. It is at <c>cocoapods/</c>
+    /// under the feed, clear of the pages of the web UI.
+    /// See: https://github.com/CocoaPods/Core/blob/master/lib/cocoapods-core/cdn_source.rb
+    /// </summary>
+    public void MapCocoaPodsRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cocoapods/{file}",
+            defaults: new { controller = "CocoaPodsSpecs", action = "RepositoryFile" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cocoapods/Specs/{a}/{b}/{c}/{name}/{version}/{file}",
+            defaults: new { controller = "CocoaPodsSpecs", action = "Podspec" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cocoapods/sources/{name}/{version}/{file}",
+            defaults: new { controller = "CocoaPodsSpecs", action = "Source" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "cocoapods/api/v1/pods",
+            defaults: new { controller = "CocoaPodsSpecs", action = "Publish" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
     }
 
     public void MapPackageContentRoutes(IEndpointRouteBuilder endpoints)

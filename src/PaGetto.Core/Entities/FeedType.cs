@@ -62,4 +62,10 @@ public enum FeedType
     /// in the <see cref="Artifact"/> tables.
     /// </summary>
     Composer = 9,
+
+    /// <summary>
+    /// Swift and Objective-C pods (a CocoaPods spec repository in the CDN format, with a publish endpoint
+    /// of this server), stored in the <see cref="Artifact"/> tables.
+    /// </summary>
+    CocoaPods = 10,
 }

@@ -464,6 +464,7 @@ else
             FeedType.RubyGems => $"bundle add {artifact.Name} --version \"{artifact.Version}\" --source \"{feedUrl}/rubygems/\"",
             FeedType.Hex => $"{{:{artifact.Name}, \"~> {artifact.Version}\", repo: \"{feedSlug}\"}}",
             FeedType.Composer => $"composer require {artifact.Name}:{artifact.Version}",
+            FeedType.CocoaPods => $"pod '{artifact.Name}', '{artifact.Version}'",
             _ => artifact.Name,
         };
     }

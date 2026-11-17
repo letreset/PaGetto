@@ -8,6 +8,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Content;
@@ -166,6 +167,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<HexUpstreamClient>();
         services.TryAddTransient<IComposerPackageService, ComposerPackageService>();
         services.TryAddTransient<ComposerUpstreamClient>();
+        services.TryAddTransient<ICocoaPodsPackageService, CocoaPodsPackageService>();
+        services.TryAddTransient<CocoaPodsUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

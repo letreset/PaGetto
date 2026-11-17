@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
@@ -206,8 +207,8 @@ public class IndexModel : PageModel
 
         return new ArtifactListItem
         {
-            // Maven coordinates, Python project, crate and gem names as published, and Go module paths;
-            // the stored name is normalized.
+            // Maven coordinates, Python project, crate and gem names as published, and Go module paths
+            // and pod names; the stored name is normalized or escaped.
             Name = feedType switch
             {
                 FeedType.Maven => MavenPomSummary.Parse(latest.MetadataJson).Coordinates,
@@ -215,6 +216,7 @@ public class IndexModel : PageModel
                 FeedType.Cargo => CargoManifestSummary.Parse(latest.MetadataJson).Name,
                 FeedType.Go => GoModuleManifest.Parse(latest.MetadataJson).Module,
                 FeedType.RubyGems => RubyGemsManifest.Parse(latest.MetadataJson).Name,
+                FeedType.CocoaPods => CocoaPodsPodName.TryUnescape(artifact.Name, out var podName) ? podName : null,
                 _ => null,
             } ?? artifact.Name,
             Id = artifact.Name,

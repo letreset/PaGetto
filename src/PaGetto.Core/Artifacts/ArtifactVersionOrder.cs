@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using PaGetto.Core.Cargo;
+using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Go;
@@ -41,6 +42,7 @@ public static class ArtifactVersionOrder
             FeedType.RubyGems => RubyGemsVersion.StringComparer,
             FeedType.Hex => HexVersion.StringComparer,
             FeedType.Composer => ComposerVersion.StringComparer,
+            FeedType.CocoaPods => CocoaPodsVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }
