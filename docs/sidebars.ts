@@ -31,6 +31,7 @@ const sidebars: SidebarsConfig = {
     'hex',
     'composer',
     'cocoapods',
+    'swift',
     'web-ui',
     'authentication',
     'configuration',
