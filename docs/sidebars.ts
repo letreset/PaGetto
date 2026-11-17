@@ -32,6 +32,7 @@ const sidebars: SidebarsConfig = {
     'composer',
     'cocoapods',
     'swift',
+    'cran',
     'web-ui',
     'authentication',
     'configuration',
