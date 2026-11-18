@@ -127,7 +127,7 @@ public class ComposerRepositoryController : Controller
         }
 
         // The server-wide request limit applies before the feed is known; a feed can only lower it.
-        var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+        var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
         if (Request.ContentLength > maxBytes)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_too_large", name, version);

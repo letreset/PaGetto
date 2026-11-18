@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -26,7 +25,6 @@ public partial class MavenRepositoryService : IMavenRepositoryService
     private const long MaxChecksumBytes = 1024;
     private const long MaxMetadataBytes = 16 * 1024 * 1024;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -281,7 +279,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
 
         try
         {
-            using var downloaded = await _upstream.DownloadFileOrNullAsync(feed, path.FilePath, GetMaxBytes(feed), cancellationToken);
+            using var downloaded = await _upstream.DownloadFileOrNullAsync(feed, path.FilePath, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (downloaded == null)
             {
                 return null;
@@ -456,18 +454,9 @@ public partial class MavenRepositoryService : IMavenRepositoryService
             return true;
         }
 
-        return _feedSettings.GetAllowPackageOverwrites(feed) switch
-        {
-            PackageOverwriteAllowed.True => true,
-            PackageOverwriteAllowed.PrereleaseOnly => MavenVersion.Parse(version).IsPrerelease,
-            _ => false,
-        };
+        return _feedSettings.CanOverwrite(feed, MavenVersion.Parse(version).IsPrerelease);
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     /// <summary>
     /// Whether downloading a file counts as a download of its version: the main file of the

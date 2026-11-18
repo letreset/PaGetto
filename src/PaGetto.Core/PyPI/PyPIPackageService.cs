@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -22,7 +21,6 @@ public partial class PyPIPackageService : IPyPIPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -289,7 +287,7 @@ public partial class PyPIPackageService : IPyPIPackageService
 
         try
         {
-            using var content = await _upstream.DownloadFileOrNullAsync(feed, upstreamFile, GetMaxBytes(feed), cancellationToken);
+            using var content = await _upstream.DownloadFileOrNullAsync(feed, upstreamFile, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (content == null)
             {
                 return null;
@@ -426,18 +424,9 @@ public partial class PyPIPackageService : IPyPIPackageService
 
     private bool CanOverwrite(Feed feed, string version)
     {
-        return _feedSettings.GetAllowPackageOverwrites(feed) switch
-        {
-            PackageOverwriteAllowed.True => true,
-            PackageOverwriteAllowed.PrereleaseOnly => PyPIVersion.Parse(version).IsPrerelease,
-            _ => false,
-        };
+        return _feedSettings.CanOverwrite(feed, PyPIVersion.Parse(version).IsPrerelease);
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     /// <summary>
     /// Whether a stored file is the core metadata of a wheel rather than a distribution.

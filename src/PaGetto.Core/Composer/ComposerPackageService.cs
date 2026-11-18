@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -193,10 +192,7 @@ public partial class ComposerPackageService : IComposerPackageService
             if (existing != null)
             {
                 // Development versions follow a branch, so they can always be replaced, like Maven snapshots.
-                var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-                if (!parsed.IsDev
-                    && (allowOverwrites == PackageOverwriteAllowed.False
-                        || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !parsed.IsPrerelease)))
+                if (!parsed.IsDev && !_feedSettings.CanOverwrite(feed, parsed.IsPrerelease))
                 {
                     return AlreadyExists(name, existing.Version);
                 }
@@ -263,7 +259,7 @@ public partial class ComposerPackageService : IComposerPackageService
                 return null;
             }
 
-            var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+            var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
             using var zip = await _upstream.DownloadDistOrNullAsync(feed, upstream, maxBytes, cancellationToken);
             if (zip == null)
             {

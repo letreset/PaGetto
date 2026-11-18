@@ -123,7 +123,7 @@ public class NpmPackageController : Controller
     {
         name = GetPackageName(scope, name);
         var feed = _feedContext.CurrentFeed;
-        var maxTarballBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+        var maxTarballBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
 
         var (canPush, canDelete) = await GetWritePermissionsAsync(cancellationToken);
         if (!canPush && !canDelete)

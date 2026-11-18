@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -211,9 +210,7 @@ public partial class SwiftPackageService : ISwiftPackageService
 
             if (existing != null)
             {
-                var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-                if (allowOverwrites == PackageOverwriteAllowed.False
-                    || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !parsed.IsPrerelease))
+                if (!_feedSettings.CanOverwrite(feed, parsed.IsPrerelease))
                 {
                     return AlreadyExists(id, existing.Version);
                 }
@@ -270,7 +267,7 @@ public partial class SwiftPackageService : ISwiftPackageService
                 return null;
             }
 
-            var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+            var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
             using var archive = await _upstream.DownloadArchiveOrNullAsync(feed, release, scope, name, maxBytes, cancellationToken);
             if (archive == null)
             {

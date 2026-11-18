@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -20,7 +19,6 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -346,7 +344,7 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
 
         try
         {
-            using var content = await _upstream.DownloadGemOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
+            using var content = await _upstream.DownloadGemOrNullAsync(feed, upstream, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (content == null)
             {
                 return null;
@@ -544,18 +542,9 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
 
     private bool CanOverwrite(Feed feed, RubyGemsVersion version)
     {
-        return _feedSettings.GetAllowPackageOverwrites(feed) switch
-        {
-            PackageOverwriteAllowed.True => true,
-            PackageOverwriteAllowed.PrereleaseOnly => version.IsPrerelease,
-            _ => false,
-        };
+        return _feedSettings.CanOverwrite(feed, version.IsPrerelease);
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     private static string Truncate(string text)
     {

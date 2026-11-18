@@ -107,9 +107,7 @@ public partial class PackageIndexingService : IPackageIndexingService
         var feed = await _feedService.GetFeedByIdAsync(feedId, cancellationToken);
         if (await _packages.ExistsAsync(feedId, package.Id, package.Version, cancellationToken))
         {
-            var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-            if (allowOverwrites == PackageOverwriteAllowed.False ||
-                (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !package.IsPrerelease))
+            if (!_feedSettings.CanOverwrite(feed, package.IsPrerelease))
             {
                 return PackageIndexingResult.PackageAlreadyExists;
             }
