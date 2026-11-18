@@ -469,6 +469,24 @@ The path and the name of the "Status" property are configurable. `Path` is requi
 }
 ```
 
+## Metrics
+
+PaGetto exports metrics with OpenTelemetry over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as an environment variable or a configuration key. Without it no metrics are collected. The exporter reads the other standard settings too, such as `OTEL_EXPORTER_OTLP_PROTOCOL` (`grpc` by default, or `http/protobuf`), `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_METRIC_EXPORT_INTERVAL`, and `OTEL_SERVICE_NAME` names the service (`pagetto` by default). To scrape them with Prometheus, send them to an OpenTelemetry Collector with a Prometheus exporter.
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+```
+
+The metrics of ASP.NET Core and Kestrel (requests, durations, connections), HttpClient (`http.client.*`, the requests to mirrors, by host), the .NET runtime and EF Core are exported, and PaGetto's own:
+
+| Metric | Tags | What it counts |
+|---|---|---|
+| `pagetto.upstream.listing.lookups` | `pagetto.cache.result` (`hit`, `miss`) | Lookups of mirrors' package listings, and whether the [upstream listing cache](#upstream-listing-cache) had them |
+| `pagetto.upstream.failures` | | Mirror requests that failed or answered with an error other than 404 |
+| `pagetto.index.lookups` | `pagetto.cache.result` | Lookups of indexes built from a whole feed (RubyGems `/versions`, CRAN `PACKAGES`, the VSIX gallery, …) |
+| `pagetto.packages.stored` | `pagetto.feed.type`, `pagetto.package.source` (`published`, `mirrored`) | Package versions stored |
+| `pagetto.packages.removed` | `pagetto.removal.reason` (`retention`, `unused_mirror`) | Package versions removed by the [retention cleanup](#package-auto-deletion) |
+
 ## Maximum package size
 
 The max package size defaults to 8192 MiB (8 GiB) and can be configured in MiB with the `MaxPackageSizeMiB` setting. The NuGet gallery currently has a 250 MB limit, which is enough for most packages. The older `MaxPackageSizeGiB` setting is still read when `MaxPackageSizeMiB` isn't set, with a warning at startup.

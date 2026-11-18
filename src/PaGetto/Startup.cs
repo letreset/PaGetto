@@ -6,6 +6,7 @@ using PaGetto.DataProtection;
 using PaGetto.Core;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Configuration;
+using PaGetto.Core.Diagnostics;
 using PaGetto.Core.Email;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
@@ -32,6 +33,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using HealthCheckOptions = Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions;
 
 namespace PaGetto;
@@ -78,6 +81,8 @@ public class Startup
         services.AddHostedService<RetentionCleanupService>();
 
         services.AddHealthChecks();
+
+        AddMetrics(services);
 
         services.AddCors();
 
@@ -131,6 +136,37 @@ public class Startup
 
         services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(
             sp => new ConfigureStorageXmlRepository(sp));
+    }
+
+    /// <summary>
+    /// Exports metrics over OTLP when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set: PaGetto's own, and
+    /// those of ASP.NET Core, Kestrel, HttpClient (the upstream requests), the runtime and EF Core.
+    /// The exporter reads the other standard <c>OTEL_*</c> settings, e.g. the protocol and headers.
+    /// </summary>
+    private void AddMetrics(IServiceCollection services)
+    {
+        if (string.IsNullOrEmpty(Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+        {
+            return;
+        }
+
+        var serviceName = Configuration["OTEL_SERVICE_NAME"];
+        services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService(
+                string.IsNullOrEmpty(serviceName) ? "pagetto" : serviceName,
+                serviceVersion: typeof(Startup).Assembly.GetName().Version?.ToString()))
+            .WithMetrics(metrics => metrics
+                .AddMeter(
+                    PaGettoMetrics.MeterName,
+                    "Microsoft.AspNetCore.Hosting",
+                    "Microsoft.AspNetCore.Server.Kestrel",
+                    "Microsoft.AspNetCore.Routing",
+                    "Microsoft.AspNetCore.Diagnostics",
+                    "Microsoft.AspNetCore.RateLimiting",
+                    "System.Net.Http",
+                    "System.Runtime",
+                    "Microsoft.EntityFrameworkCore")
+                .AddOtlpExporter());
     }
 
     private void ConfigurePaGettoApplication(PaGettoApplication app)

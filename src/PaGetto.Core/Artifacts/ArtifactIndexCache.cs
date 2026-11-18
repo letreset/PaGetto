@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.Diagnostics;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -81,8 +82,11 @@ public sealed class ArtifactIndexCache : IDisposable
         var key = (feed.Id, index, feed.ArtifactRevision, feed.UpdatedAtUtc);
         if (_cache.TryGetValue(key, out T cached))
         {
+            PaGettoMetrics.RecordIndexLookup(hit: true);
             return cached;
         }
+
+        PaGettoMetrics.RecordIndexLookup(hit: false);
 
         // Concurrent misses each build the index: the build reads the database through the
         // request's own context, which can't be shared with requests that outlive it.

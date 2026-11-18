@@ -11,6 +11,7 @@ using PaGetto.Core.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NuGet.Packaging;
+using PaGetto.Core.Diagnostics;
 
 namespace PaGetto.Core.Indexing;
 
@@ -171,6 +172,7 @@ public partial class PackageIndexingService : IPackageIndexingService
         }
 
         LogMetadataPersisted(package.Id, package.NormalizedVersionString);
+        PaGettoMetrics.RecordPackageStored(FeedType.NuGet, mirrored: cacheFeedUrl != null);
 
         await _search.IndexAsync(package, cancellationToken);
 
