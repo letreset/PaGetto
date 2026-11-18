@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -594,13 +593,10 @@ public partial class NpmPackageService : INpmPackageService
         manifest.Remove("readme");
         manifest["dist"] = CreateDist(manifest["dist"] as JsonObject, hashes.Integrity, hashes.Shasum, tarballUrl: null);
 
-        tarball.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, storedName, version.ToString(), tarball, readmeStream, cancellationToken);
-
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             storedName,
             new ArtifactVersion
             {
@@ -611,10 +607,11 @@ public partial class NpmPackageService : INpmPackageService
                 MetadataJson = manifest.ToJsonString(),
                 ContentHash = hashes.Sha256,
                 Size = tarball.Length,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = published,
             },
+            tarball,
+            readme,
             cancellationToken);
     }
 

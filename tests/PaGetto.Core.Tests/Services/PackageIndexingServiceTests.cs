@@ -311,6 +311,57 @@ public class PackageIndexingServiceTests
             _search.Verify(s => s.IndexAsync(It.Is<Package>(p => !p.HasEmbeddedIcon), It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        [Fact]
+        public async Task WhenAddingThePackageFails_RemovesItsContent()
+        {
+            var stream = CreatePackage();
+            _packages.Setup(p => p.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("The database is unavailable."));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _target.IndexAsync(Guid.Empty, Feed.DefaultSlug, stream, cacheFeedUrl: null, published: null, default));
+
+            // Otherwise the storage would refuse every later push of this version with other content.
+            _storage.Verify(s => s.DeleteAsync(Feed.DefaultSlug, "pagetto-test", NuGetVersion.Parse("1.0.0"), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task WhenAddingFailsAfterAnotherPushAddedThePackage_KeepsItsContent()
+        {
+            var stream = CreatePackage();
+            _packages.SetupSequence(p => p.ExistsAsync(It.IsAny<Guid>(), "pagetto-test", It.IsAny<NuGetVersion>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false)
+                .ReturnsAsync(true);
+            _packages.Setup(p => p.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("The database is unavailable."));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _target.IndexAsync(Guid.Empty, Feed.DefaultSlug, stream, cacheFeedUrl: null, published: null, default));
+
+            _storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<NuGetVersion>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        private MemoryStream CreatePackage()
+        {
+            var builder = new PackageBuilder
+            {
+                Id = "pagetto-test",
+                Version = NuGetVersion.Parse("1.0.0"),
+                Description = "Test Description",
+            };
+            builder.Authors.Add("Test Author");
+            builder.Files.Add(new PhysicalPackageFile
+            {
+                SourcePath = GetType().Assembly.Location,
+                TargetPath = "lib/Test.dll"
+            });
+
+            var stream = new MemoryStream();
+            builder.Save(stream);
+            stream.Position = 0;
+            return stream;
+        }
+
         private MemoryStream CreatePackageWithMissingIcon()
         {
             var builder = new PackageBuilder

@@ -344,16 +344,13 @@ public partial class CranPackageService : ICranPackageService
         string cachedFrom,
         CancellationToken cancellationToken)
     {
-        archive.Stream.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, key, version.Text, archive.Stream, readmeStream, cancellationToken);
-
         // The title is the one-line description of a package; the description is a paragraph.
         var summary = (CranDcf.GetValue(description, "Title") ?? CranDcf.GetValue(description, "Description"))?.Trim();
 
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             key,
             new ArtifactVersion
             {
@@ -364,10 +361,11 @@ public partial class CranPackageService : ICranPackageService
                 MetadataJson = CranManifest.Create(description, archive.Md5),
                 ContentHash = archive.Sha256,
                 Size = archive.Size,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            archive.Stream,
+            readme,
             cancellationToken);
     }
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -248,13 +247,10 @@ public partial class PubPackageService : IPubPackageService
                 $"The archive of {name} {version} has the SHA-256 {hash}, but the upstream lists {expectedHash}.");
         }
 
-        archive.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, name, version.ToString(), archive, readmeStream, cancellationToken);
-
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             name,
             new ArtifactVersion
             {
@@ -265,10 +261,11 @@ public partial class PubPackageService : IPubPackageService
                 MetadataJson = pubspecJson,
                 ContentHash = hash,
                 Size = archive.Length,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = published,
             },
+            archive,
+            readme,
             cancellationToken);
     }
 

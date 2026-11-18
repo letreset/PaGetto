@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -286,13 +285,10 @@ public partial class CargoPackageService : ICargoPackageService
                 $"The crate {name} {version} has the SHA-256 {hash}, but the upstream lists {expectedHash}.");
         }
 
-        crate.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, name, version.ToString(), crate, readmeStream, cancellationToken);
-
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             name,
             new ArtifactVersion
             {
@@ -303,10 +299,11 @@ public partial class CargoPackageService : ICargoPackageService
                 MetadataJson = manifestJson,
                 ContentHash = hash,
                 Size = crate.Length,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            crate,
+            readme,
             cancellationToken);
     }
 

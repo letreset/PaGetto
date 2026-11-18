@@ -324,13 +324,12 @@ public partial class VsixPackageService : IVsixPackageService
         string cachedFrom,
         CancellationToken cancellationToken)
     {
-        vsix.Stream.Position = 0;
-        await _storage.SaveAsync(feed.Slug, key, manifest.Version, vsix.Stream, readme: null, cancellationToken);
-
         var description = manifest.Description?.Trim();
 
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             key,
             new ArtifactVersion
             {
@@ -341,10 +340,11 @@ public partial class VsixPackageService : IVsixPackageService
                 MetadataJson = manifest.ToJson(),
                 ContentHash = vsix.Sha256,
                 Size = vsix.Size,
-                HasReadme = false,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            vsix.Stream,
+            readme: null,
             cancellationToken);
     }
 

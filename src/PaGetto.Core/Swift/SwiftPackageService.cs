@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -388,15 +387,12 @@ public partial class SwiftPackageService : ISwiftPackageService
         string cachedFrom,
         CancellationToken cancellationToken)
     {
-        archive.Stream.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, storedName, version.ToString(), archive.Stream, readmeStream, cancellationToken);
-
         var description = GetString(manifest.Metadata, "description")?.Trim();
 
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             storedName,
             new ArtifactVersion
             {
@@ -407,10 +403,11 @@ public partial class SwiftPackageService : ISwiftPackageService
                 MetadataJson = manifest.ToJson(),
                 ContentHash = archive.Sha256,
                 Size = archive.Size,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            archive.Stream,
+            readme,
             cancellationToken);
     }
 

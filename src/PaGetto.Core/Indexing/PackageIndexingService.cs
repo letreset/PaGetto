@@ -145,7 +145,17 @@ public partial class PackageIndexingService : IPackageIndexingService
 
         LogContentPersisted(package.Id, package.NormalizedVersionString);
 
-        var result = await _packages.AddAsync(package, cancellationToken);
+        PackageAddResult result;
+        try
+        {
+            result = await _packages.AddAsync(package, cancellationToken);
+        }
+        catch (Exception)
+        {
+            await RemoveUnusedContentAsync(feedId, feedSlug, package);
+            throw;
+        }
+
         if (result == PackageAddResult.PackageAlreadyExists)
         {
             LogMetadataAlreadyExists(package.Id, package.NormalizedVersionString);
@@ -201,6 +211,28 @@ public partial class PackageIndexingService : IPackageIndexingService
         return PackageIndexingResult.Success;
     }
 
+    /// <summary>
+    /// Removes the content of a package that could not be added. The storage refuses to replace
+    /// content, so leftover content would make every later push of that version with other
+    /// content fail.
+    /// </summary>
+    private async Task RemoveUnusedContentAsync(Guid feedId, string feedSlug, Package package)
+    {
+        // Not cancelled, so a client that leaves doesn't leave the content behind. Another push of
+        // the same content may have added the package meanwhile; then the content is its own.
+        try
+        {
+            if (!await _packages.ExistsAsync(feedId, package.Id, package.Version, CancellationToken.None))
+            {
+                await _storage.DeleteAsync(feedSlug, package.Id, package.Version, CancellationToken.None);
+            }
+        }
+        catch (Exception e)
+        {
+            LogRemoveUnusedContentFailed(e, package.Id, package.NormalizedVersionString);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Uploaded package is invalid")]
     private partial void LogInvalidPackage(Exception exception);
 
@@ -236,4 +268,7 @@ public partial class PackageIndexingService : IPackageIndexingService
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Package {PackageId} {PackageVersion} declares an embedded icon that is missing, ignoring the icon")]
     private partial void LogEmbeddedIconMissing(Exception exception, string packageId, string packageVersion);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to remove the content of package {PackageId} {PackageVersion}, which could not be added")]
+    private partial void LogRemoveUnusedContentFailed(Exception exception, string packageId, string packageVersion);
 }
