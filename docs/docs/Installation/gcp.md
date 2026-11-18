@@ -131,12 +131,14 @@ Keep the database password and the API key out of `app.yaml` if it is checked in
 
 With the database on Cloud SQL and packages on Cloud Storage, you can run more than one PaGetto instance. [Data Protection keys](../upgrading.md#data-protection-keys) are stored in the bucket as well, so sign-in cookies work on every instance.
 
-## Publish and restore packages
+## Connect clients
 
 Replace `your-server` with the address of your PaGetto server, for example `PROJECT.REGION_ID.r.appspot.com`.
 
+The default feed is a NuGet feed at `https://your-server/v3/index.json`. Push to it with a [personal access token](../authentication.md#personal-access-tokens-pats), or with an API key in the `Legacy` mode:
+
 ```shell
-dotnet nuget push -s https://your-server/v3/index.json -k <api-key> package.1.0.0.nupkg
+dotnet nuget push -s https://your-server/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
 
-Restore from `https://your-server/v3/index.json`. Other [feeds](../feeds.md) are at `https://your-server/feeds/{slug}/v3/index.json`, and symbols are at `https://your-server/api/download/symbols`.
+For the other ecosystems, [create a feed](../feeds.md#managing-feeds) of their type and follow its page; the [table of feed types](../feeds.md#feed-types) lists the URL each client uses. [NuGet packages](../nuget.md) covers `nuget.config`, Visual Studio and the symbol server.

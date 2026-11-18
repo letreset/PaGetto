@@ -60,11 +60,13 @@ You can require that users provide a password, called an API key, to publish pac
 
 Any of the keys is accepted. The top-level `ApiKey` setting of older versions and of BaGetter was removed: PaGetto refuses to start while it is set, so move the key into `ApiKeys` (as the environment variable `Authentication__ApiKeys__0__Key`).
 
-Users will now have to provide the API key to push packages:
+Users will now have to provide the API key to publish, unlist or delete packages. A NuGet client sends it as its API key:
 
 ```shell
 dotnet nuget push -s http://localhost:5000/v3/index.json -k NUGET-SERVER-API-KEY package.1.0.0.nupkg
 ```
+
+Other clients send it as their token or password; the page of each [package format](Index.md#package-formats) says where.
 
 ## Hosting on a different path
 
@@ -95,21 +97,20 @@ Once either list is set, only those addresses are trusted. Startup fails if an e
 
 ## Enable read-through caching
 
-Read-through caching lets you index packages from an upstream source. You can use read-through
-caching to:
+Read-through caching lets a feed serve packages from an upstream registry, such as nuget.org, registry.npmjs.org or Maven Central, and keep a copy of each package it serves. You can use read-through caching to:
 
-1. Speed up your builds if restores from [nuget.org](https://nuget.org) are slow
-2. Enable package restores in offline scenarios
+1. Speed up your builds if downloads from the public registries are slow
+2. Keep builds working when the upstream is unreachable
 
-Mirrors are configured per [feed](feeds.md) on **Admin > Feeds > Settings**, not in configuration: a feed can mirror one or more upstream sources (nuget.org, another v3 or v2 feed), with optional upstream authentication and a download timeout. See [Mirror (read-through cache)](feeds.md#mirror-read-through-cache).
+Mirrors are configured per [feed](feeds.md) on **Admin > Feeds > Settings**, not in configuration: a feed can mirror one or more upstream registries of its type, with optional upstream authentication and a download timeout. See [Mirror (read-through cache)](feeds.md#mirror-read-through-cache).
 
 The global `Mirror` section of older versions and of BaGetter is no longer read. PaGetto logs a warning at startup while it is present; add the mirror to the feed instead and remove the section.
 
 ## Enable package hard deletions
 
 To prevent the ["left pad" problem](https://blog.npmjs.org/post/141577284765/kik-left-pad-and-npm),
-PaGetto's default configuration doesn't allow package deletions. Whenever PaGetto receives a package deletion
-request, it will instead "unlist" the package. An unlisted package is undiscoverable but can still be
+PaGetto's default configuration doesn't let NuGet clients delete packages. Whenever a NuGet feed receives a package deletion
+request (`dotnet nuget delete`), it will instead "unlist" the package. An unlisted package is undiscoverable but can still be
 downloaded if you know the package's id and version. You can override this behavior by setting the
 `PackageDeletionBehavior`:
 
@@ -123,9 +124,11 @@ downloaded if you know the package's id and version. You can override this behav
 }
 ```
 
+The other feed types have no such setting: their clients' own delete, unpublish or yank commands decide, and the page of each [package format](Index.md#package-formats) describes what they do. Deleting a version on the web UI's package page always removes it.
+
 ## Package auto-deletion
 
-If your build server generates many nuget packages, your PaGetto server can quickly run out of space. PaGetto leverages [SemVer 2](https://semver.org/) and has logic to keep a history of packages based on the version numbering such as `<major>.<minor>.<patch>-<prerelease tag>.<prerelease build number>`.
+If your build server publishes many package versions, your PaGetto server can quickly run out of space. PaGetto leverages [SemVer 2](https://semver.org/) and has logic to keep a history of packages based on the version numbering such as `<major>.<minor>.<patch>-<prerelease tag>.<prerelease build number>`.
 
 There is an optional config section for `Retention` and the following parameters can be enabled to limit history for each level of the version. If none of these are set, there are no cleaning rules enforced. Each parameter is optional, e.g. if you specify only a `MaxPatchVersions`, the package limit will only enforced within each major and minor version combination.
 Packages deleted are always the oldest based on version numbers. The version that is currently being pushed or mirrored is never deleted by its own retention run, even if it falls outside the limits (for example, mirroring `1.0.0` when `3.0.0` is cached and `MaxMajorVersions` is `1`). It will be cleaned up the next time a version of that package is indexed.
@@ -172,7 +175,7 @@ Normally, PaGetto will reject a package upload if the id and version are already
 
 :::warning
 
-NuGet clients cache packages on multiple levels, so overwriting a package can lead to unexpected behavior.
+Package clients cache packages on multiple levels, and many lock files record a package's hash, so overwriting a package can lead to unexpected behavior.
 A client may have a cached version of the package that is different from the one on the server.
 Make sure that everyone involved is aware of the implications of overwriting packages.
 
@@ -194,9 +197,11 @@ To allow pre-release versions to be overwritten but not stable releases, set `Al
 
 Pushing a package with a pre-release version like "3.1.0-SNAPSHOT" will overwrite the existing "3.1.0-SNAPSHOT" package, but pushing a "3.1.0" package will fail if a "3.1.0" package already exists.
 
+What counts as a prerelease follows each ecosystem's version rules. Some formats add their own exceptions, such as Maven and Ivy snapshots and Composer development versions, which can always be replaced; their pages say so.
+
 ## Read-only mode
 
-Set `IsReadOnlyMode` to `true` to reject pushes, deletes, unlists and relists. Restores keep working. The default is `false`.
+Set `IsReadOnlyMode` to `true` to reject publishing, deleting, unlisting and relisting packages, in every client and in the web UI. Downloads and installs keep working. The default is `false`.
 
 ```json
 {
@@ -216,7 +221,7 @@ A private feed requires users to authenticate before accessing packages.
 
 The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
 
-You can require that users provide a username and password to access the nuget feed.
+You can require that users provide a username and password to access the feeds.
 To do so, you can insert the credentials in the `Authentication` section.
 
 ```json
@@ -234,36 +239,7 @@ To do so, you can insert the credentials in the `Authentication` section.
 }
 ```
 
-Users will now have to provide the username and password to fetch and download packages.
-
-How to add private nuget feed:
-
-1. Download the latest NuGet executable.
-2. Open a Command Prompt and change the path to the nuget.exe location.
-3. The command from the example below stores a token in the %AppData%\NuGet\NuGet.config file. Your original credentials cannot be obtained from this token.
-
-
-```shell
-NuGet Sources Add -Name "localhost" -Source "http://localhost:5000/v3/index.json" -UserName "username" -Password "password"
-```
-
-If you are unable to connect to the feed by using encrypted credentials, store your credentials in clear text:
-
-```shell
-NuGet Sources Add -Name "localhost" -Source "http://localhost:5000/v3/index.json" -UserName "username" -Password "password" -StorePasswordInClearText
-```
-
-If you have already stored a token instead of storing the credentials as clear text, update the definition in the %AppData%\NuGet\NuGet.config file by using the following command:
-
-```shell
-NuGet Sources Update -Name "localhost" -Source "http://localhost:5000/v3/index.json" -UserName "username" -Password "password" -StorePasswordInClearText
-```
-
-With the dotnet CLI:
-
-```shell
-dotnet nuget add source "http://localhost:5000/v3/index.json" --name "pagetto" --username "username" --password "password"
-```
+Users will now have to provide the username and password to fetch and download packages, in every feed. Clients send them with Basic authentication. A few clients can only send a token, so they can't use every combination of credentials and API keys; the page of each [package format](Index.md#package-formats) says what works in the `Legacy` mode. For the NuGet commands, see [NuGet packages](nuget.md#configure-the-client).
 
 ## Database configuration
 
@@ -506,7 +482,7 @@ A [feed](feeds.md#feed-settings) can set its own, lower limit. The server-wide v
 
 ## Registration page size
 
-Packages with many versions are served as a paged [registration index](https://learn.microsoft.com/nuget/api/registration-base-url-resource).
+On NuGet feeds, packages with many versions are served as a paged [registration index](https://learn.microsoft.com/nuget/api/registration-base-url-resource).
 If a package has more versions than `RegistrationPageSize` (default `64`), the registration index only links to its pages, and the NuGet client fetches each page separately.
 Packages with fewer versions are returned in a single response, as before. The value must be at least `1`.
 
@@ -616,20 +592,21 @@ Make sure PaGetto is only reachable through your proxy and that the proxy overwr
 
 PaGetto sets caching headers on a few endpoints. There is nothing to configure.
 
-- Registration responses (`/v3/registration/...`) and package version lists (`/v3/package/{id}/index.json`) are sent with `Cache-Control: private, no-cache` and an `ETag` derived from the response content. A client that repeats the request with a matching `If-None-Match` header gets `304 Not Modified` without the body.
+- On NuGet feeds, registration responses (`/v3/registration/...`) and package version lists (`/v3/package/{id}/index.json`) are sent with `Cache-Control: private, no-cache` and an `ETag` derived from the response content. A client that repeats the request with a matching `If-None-Match` header gets `304 Not Modified` without the body.
 - Package icons are sent with `Cache-Control: private, max-age=3600`, so browsers reuse them for an hour.
+- Index files that clients poll, such as the RubyGems compact index, the Hex registry and the CocoaPods index files, have an `ETag` too; see the page of each [package format](Index.md#package-formats).
 
 Responses are never marked `public` or `immutable`: feeds can require authentication, and a feed that allows package overwrites can change the content of an existing version. Make sure your reverse proxy doesn't cache these responses in a shared cache.
 
 ## Response compression
 
-PaGetto compresses JSON, CSS, JavaScript and SVG responses with Brotli or gzip, whichever the client accepts, over HTTP and HTTPS. There is nothing to configure. This makes the NuGet API responses (search, registrations, version lists) much smaller.
+PaGetto compresses JSON, CSS, JavaScript and SVG responses with Brotli or gzip, whichever the client accepts, over HTTP and HTTPS. There is nothing to configure. This makes the JSON API responses (such as NuGet search and registrations, or npm package documents) much smaller.
 
-HTML pages aren't compressed on purpose: compressing pages that carry anti-forgery tokens over HTTPS enables [BREACH](https://en.wikipedia.org/wiki/BREACH)-style attacks. Package downloads (`.nupkg`, `.snupkg`) are already compressed and are sent as they are.
+HTML pages aren't compressed on purpose: compressing pages that carry anti-forgery tokens over HTTPS enables [BREACH](https://en.wikipedia.org/wiki/BREACH)-style attacks. Package downloads (`.nupkg`, `.tgz`, `.jar`, wheels and the other archives) are already compressed and are sent as they are.
 
 ## Audit log
 
-PaGetto writes one log line for every package upload, unlist, delete and relist, from NuGet clients and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.
+PaGetto writes one log line for every package upload, unlist, delete and relist, from the clients of every package format and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.
 
 The successful events (the `Information` lines) are also stored in the database and listed on **Admin > Audit log** (see [Web UI](web-ui.md#audit-log)). Denied and failed attempts are only logged, so a misbehaving client can't fill the table.
 
@@ -657,7 +634,7 @@ AUDIT package_upload_succeeded feed=default package_id=Contoso.Utils package_ver
 
 | Field | Value |
 |---|---|
-| Event | NuGet API: `package_upload_{succeeded,unauthorized,read_only}` and `package_{delete,relist}_{succeeded,unauthorized,read_only,not_found}`, plus `package_upload_already_exists`, `package_upload_invalid_package` and `package_upload_too_large`. A symbol package over the feed's size limit logs `symbol_upload_too_large` (with `feed`, `actor` and `ip` only). Web UI (the package page's **Manage** section and **Relist** links): `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}`, where `package_delete_*` is a hard delete. Browser uploads on the **Upload** page log the same `package_upload_*` events as the API, and `symbol_upload_{succeeded,unauthorized,read_only,invalid_package,package_not_found,too_large}` for symbol packages, with the package id and version |
+| Event | Client APIs: `package_upload_{succeeded,unauthorized,read_only}`, plus `package_upload_already_exists`, `package_upload_invalid_package` and `package_upload_too_large`, for a publish of any package format. The commands that unlist, yank, retract, retire, unpublish or delete a version log `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}` (on NuGet feeds `dotnet nuget delete` logs `package_delete_*`, following the deletion behavior). npm also logs `package_update_*` for a changed package document, such as a deprecation, and `package_tag_*` and `package_untag_*` for dist-tags. A symbol package over the feed's size limit logs `symbol_upload_too_large` (with `feed`, `actor` and `ip` only). Web UI (the package page's **Manage** section and **Relist** links): `package_{unlist,relist,delete}_{succeeded,unauthorized,read_only,not_found}`, where `package_delete_*` is a hard delete. Browser uploads on the **Upload** page log the same `package_upload_*` events as the API, and `symbol_upload_{succeeded,unauthorized,read_only,invalid_package,package_not_found,too_large}` for symbol packages, with the package id and version |
 | `feed` | The feed slug |
 | `package_id`, `package_version` | Empty for uploads that are denied before the package is read |
 | `actor` | The user name (the token owner for personal access tokens), `api-key` for the shared API key in `Legacy` mode, or `anonymous` |
@@ -695,7 +672,7 @@ AUDIT account_disabled target=bob detail= actor=admin ip=10.0.0.12
 
 ### Log categories
 
-Successful operations are logged at `Information`, denials and failures at `Warning`. All lines, from the NuGet API and the web UI, use the `PaGetto.Web.Audit.WebAuditLog` log category (NuGet API lines used `PaGetto.Web.Controllers.PackagePublishController` before the audit page was added). The default `appsettings.json` logs it at `Information`. If you override the `Logging` section, keep it at `Information` or the successful operations won't be logged. The audit page doesn't depend on the log level:
+Successful operations are logged at `Information`, denials and failures at `Warning`. All lines, from the client APIs and the web UI, use the `PaGetto.Web.Audit.WebAuditLog` log category (NuGet API lines used `PaGetto.Web.Controllers.PackagePublishController` before the audit page was added). The default `appsettings.json` logs it at `Information`. If you override the `Logging` section, keep it at `Information` or the successful operations won't be logged. The audit page doesn't depend on the log level:
 
 ```json
 {
@@ -755,7 +732,7 @@ Email is **disabled by default**. Enable it by adding an `Email` section and set
 
     "Email": {
         "Type": "Smtp",
-        "FromAddress": "nuget@example.com",
+        "FromAddress": "packages@example.com",
         "FromName": "PaGetto",
         "Host": "smtp.example.com",
         "Port": 587,
@@ -794,7 +771,7 @@ Requires the Azure provider (`app.AddGraphEmail()`, wired up by default in the P
 
     "Email": {
         "Type": "Graph",
-        "SenderUserId": "nuget@example.com",
+        "SenderUserId": "packages@example.com",
         // Optional client-secret auth (e.g. local dev). Omit all three to use the
         // deployed managed identity (DefaultAzureCredential).
         "TenantId": "",

@@ -1,21 +1,34 @@
 # Feeds
 
-A **feed** is a separate package source inside one PaGetto server. Each feed has its own packages, its own settings (overwrites, deletion, retention, size limit, read-only mode), its own read-through mirror and its own permissions. Use feeds to keep, for example, `internal` packages apart from `experimental` ones, or to give each team a mirror of nuget.org with different rules.
+A **feed** is a separate package source inside one PaGetto server. Each feed has its own packages, its own settings (overwrites, deletion, retention, size limit, read-only mode), its own read-through mirrors and its own permissions. Use feeds to keep, for example, `internal` packages apart from `experimental` ones, to give each team a mirror of a public registry with different rules, or to host the packages of several ecosystems on one server.
 
-Every feed has a **type**, the kind of packages it serves: **NuGet**, **Dart**, **npm**, **Maven**, **Python**, **Rust**, **Go**, **Ruby**, **Hex**, **PHP**, **CocoaPods**, **Swift**, **R**, **Ivy** or **VSIX**. This page describes NuGet feeds and what all feeds share; [Dart and Flutter packages](dart.md) covers Dart feeds, [npm packages](npm.md) npm feeds, [Maven packages](maven.md) Maven feeds, [Python packages](pypi.md) Python feeds, [Rust crates](cargo.md) Rust feeds, [Go modules](go.md) Go feeds, [Ruby gems](rubygems.md) Ruby feeds, [Hex packages](hex.md) Hex feeds, [PHP packages](composer.md) PHP feeds, [CocoaPods pods](cocoapods.md) CocoaPods feeds, [Swift packages](swift.md) Swift feeds, [R packages](cran.md) R feeds, [Ivy repositories for sbt](ivy.md) Ivy feeds and [Visual Studio extensions](vsix.md) VSIX feeds.
+## Feed types
+
+Every feed has a **type**, the kind of packages it serves, and speaks that ecosystem's protocol. This page describes what all feeds share; the page of each type covers its clients, publishing and mirrors:
+
+| Type | Page | Client URL of a feed with the slug `{slug}` |
+|---|---|---|
+| NuGet | [NuGet packages](nuget.md) | `https://your-server/feeds/{slug}/v3/index.json` |
+| Dart | [Dart and Flutter packages](dart.md) | `https://your-server/feeds/{slug}` |
+| npm | [npm packages](npm.md) | `https://your-server/feeds/{slug}/npm/` |
+| Maven | [Maven packages](maven.md) | `https://your-server/feeds/{slug}/maven2/` |
+| Python | [Python packages](pypi.md) | `https://your-server/feeds/{slug}/pypi/simple/` |
+| Rust | [Rust crates](cargo.md) | `sparse+https://your-server/feeds/{slug}/cargo/index/` |
+| Go | [Go modules](go.md) | `https://your-server/feeds/{slug}/go` |
+| Ruby | [Ruby gems](rubygems.md) | `https://your-server/feeds/{slug}/rubygems/` |
+| Hex | [Hex packages](hex.md) | `https://your-server/feeds/{slug}/hex` |
+| PHP | [PHP packages](composer.md) | `https://your-server/feeds/{slug}/composer` |
+| CocoaPods | [CocoaPods pods](cocoapods.md) | `https://your-server/feeds/{slug}/cocoapods/` |
+| Swift | [Swift packages](swift.md) | `https://your-server/feeds/{slug}/swift` |
+| R | [R packages](cran.md) | `https://your-server/feeds/{slug}/cran` |
+| Ivy | [Ivy repositories for sbt](ivy.md) | `https://your-server/feeds/{slug}/ivy` |
+| VSIX | [Visual Studio extensions](vsix.md) | `https://your-server/feeds/{slug}/vsix/atom.xml` |
 
 ## Feed URLs
 
-Every feed has a **slug**, and its NuGet v3 endpoints live under `/feeds/{slug}/`:
+Every feed has a **slug**, and everything of the feed lives under `/feeds/{slug}/`: the client API in the table above and the web UI, e.g. `https://your-server/feeds/internal/` lists that feed's packages.
 
-| Feed | Service index |
-|---|---|
-| Default feed (slug `default`) | `https://your-server/v3/index.json` |
-| Any other feed, e.g. `internal` | `https://your-server/feeds/internal/v3/index.json` |
-
-All endpoints (search, registrations, package content, push, delete, symbols) work under the feed prefix, so a client only needs the service index URL. The web UI works the same way: `https://your-server/feeds/internal/` lists that feed's packages.
-
-The **default feed** is created on first start and can't be deleted. Its URLs are the ones PaGetto has always used, so clients configured before multi-feed support keep working.
+The **default feed** (slug `default`) is created on first start, is always a NuGet feed and can't be deleted. Its URLs also work without the prefix (`https://your-server/v3/index.json`), the ones PaGetto has always used, so NuGet clients configured before multi-feed support keep working. Feeds of the other types are always reached through `/feeds/{slug}/`.
 
 ## Managing feeds
 
@@ -45,7 +58,7 @@ Open **Admin > Feeds > Settings** for a feed (`/Admin/Feeds/{slug}/Settings`). E
 
 | Setting | Global setting | Description |
 |---|---|---|
-| Read-only mode | `IsReadOnlyMode` | Reject pushes, unlists, deletes and relists on this feed, from NuGet clients and from the web UI |
+| Read-only mode | `IsReadOnlyMode` | Reject publishing, unlisting, deleting and relisting on this feed, from clients and from the web UI |
 | Package overwrite policy | `AllowPackageOverwrites` | Disallow (recommended), prerelease only, or allow all. See [package overwrites](configuration.md#enable-package-overwrites). |
 | Deletion behavior (NuGet feeds) | `PackageDeletionBehavior` | Unlist (recommended) or hard delete. See [hard deletions](configuration.md#enable-package-hard-deletions). |
 | Max package size (MiB) | `MaxPackageSizeMiB` | Largest package or symbol package this feed accepts, at least 1 MiB. It can only lower the global value, which caps every request; larger pushes get `413 Payload Too Large` |
@@ -61,15 +74,33 @@ Set the values you want for most feeds in configuration, and override only where
 
 ## Mirror (read-through cache)
 
-A NuGet feed can mirror an upstream NuGet feed, for example nuget.org (a Dart feed mirrors pub servers such as pub.dev, see [Mirror pub.dev](dart.md#mirror-pubdev), an npm feed npm registries, see [Mirror registry.npmjs.org](npm.md#mirror-registrynpmjsorg), a Maven feed Maven repositories, see [Mirror Maven Central](maven.md#mirror-maven-central), a Python feed package indexes, see [Mirror PyPI](pypi.md#mirror-pypi), a Rust feed sparse registries, see [Mirror crates.io](cargo.md#mirror-cratesio), a Go feed module proxies, see [Mirror proxy.golang.org](go.md#mirror-proxygolangorg), a Ruby feed gem servers, see [Mirror rubygems.org](rubygems.md#mirror-rubygemsorg), a Hex feed Hex repositories, see [Mirror hex.pm](hex.md#mirror-hexpm), a PHP feed Composer repositories, see [Mirror Packagist](composer.md#mirror-packagist), a CocoaPods feed spec repositories, see [Mirror cdn.cocoapods.org](cocoapods.md#mirror-cdncocoapodsorg), a Swift feed Swift package registries, see [Mirror another registry](swift.md#mirror-another-registry), an R feed CRAN-like repositories, see [Mirror CRAN](cran.md#mirror-cran), an Ivy feed Ivy repositories, see [Mirror the sbt plugin repository](ivy.md#mirror-the-sbt-plugin-repository), and a VSIX feed the galleries of Visual Studio extensions, see [Mirror another gallery](vsix.md#mirror-another-gallery)). When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream source, stores it in the feed and serves it. Later restores are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
+Every feed can mirror upstream registries of its type, such as nuget.org for a NuGet feed or registry.npmjs.org for an npm feed. When a client asks the feed for a package it doesn't have, PaGetto fetches it from the upstream, stores it in the feed and serves it. Later downloads are served locally, which speeds up builds and keeps them working when the upstream is unreachable.
+
+| Feed type | Upstreams it can mirror | Example source URL |
+|---|---|---|
+| NuGet | NuGet v3 feeds, or v2 feeds with the legacy option ([details](nuget.md#mirror-nugetorg)) | `https://api.nuget.org/v3/index.json` |
+| Dart | Pub servers ([details](dart.md#mirror-pubdev)) | `https://pub.dev` |
+| npm | npm registries ([details](npm.md#mirror-registrynpmjsorg)) | `https://registry.npmjs.org` |
+| Maven | Maven repositories ([details](maven.md#mirror-maven-central)) | `https://repo.maven.apache.org/maven2` |
+| Python | Package indexes with the simple API ([details](pypi.md#mirror-pypi)) | `https://pypi.org/simple` |
+| Rust | Sparse registries ([details](cargo.md#mirror-cratesio)) | `https://index.crates.io` |
+| Go | Module proxies ([details](go.md#mirror-proxygolangorg)) | `https://proxy.golang.org` |
+| Ruby | Gem servers with a compact index ([details](rubygems.md#mirror-rubygemsorg)) | `https://rubygems.org` |
+| Hex | Hex repositories ([details](hex.md#mirror-hexpm)) | `https://repo.hex.pm` |
+| PHP | Composer repositories ([details](composer.md#mirror-packagist)) | `https://repo.packagist.org` |
+| CocoaPods | CDN spec repositories ([details](cocoapods.md#mirror-cdncocoapodsorg)) | `https://cdn.cocoapods.org` |
+| Swift | Swift package registries ([details](swift.md#mirror-another-registry)) | `https://registry.example.com` |
+| R | CRAN-like repositories ([details](cran.md#mirror-cran)) | `https://cloud.r-project.org` |
+| Ivy | Ivy repositories ([details](ivy.md#mirror-the-sbt-plugin-repository)) | `https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases` |
+| VSIX | Atom feeds of other extension galleries ([details](vsix.md#mirror-another-gallery)) | `https://www.vsixgallery.com/feed/` |
 
 Mirrors are listed on each feed's settings page, under **Mirrors**. Use **Add mirror** to add one; each mirror has these settings:
 
 | Setting | Description |
 |---|---|
 | Enabled | Use this mirror. Clear it to pause a mirror without losing its settings |
-| Package source URL | The upstream service index, e.g. `https://api.nuget.org/v3/index.json`. Must be an absolute `http` or `https` URL |
-| Use NuGet V2 (legacy) protocol | For upstream servers that only speak the V2 protocol |
+| Package source URL | The upstream's URL, as in the table above (for NuGet, the service index). Must be an absolute `http` or `https` URL |
+| Use NuGet V2 (legacy) protocol | NuGet feeds only: for upstream servers that only speak the V2 protocol |
 | Download timeout (seconds) | How long to wait for an upstream download, at least 1. Leave it empty for the default of 600 seconds |
 | Authentication | None, Basic (username and password), Bearer token or Custom headers (JSON, e.g. `{"X-Api-Key":"value"}`) |
 
@@ -87,22 +118,22 @@ Upstream credentials are stored in the PaGetto database. Restrict access to the 
 
 ### Multiple mirrors
 
-A feed can mirror several upstreams, in order. This is useful when packages live in different places, for example open source packages on nuget.org and licensed packages on a vendor's private feed:
+A feed can mirror several upstreams, in order. This is useful when packages live in different places, for example open source packages on a public registry and licensed packages on a vendor's private registry. For a NuGet feed:
 
 1. `https://api.nuget.org/v3/index.json`
 2. `https://nuget.vendor.example/v3/index.json` (Basic authentication)
 
-Developers then add only the PaGetto feed to `nuget.config`, and the vendor credentials stay on the server.
+Developers then add only the PaGetto feed to their client configuration (`nuget.config`, `.npmrc`, `settings.xml`, …), and the vendor credentials stay on the server.
 
 With more than one enabled mirror, PaGetto:
 
-- **Merges version lists and metadata** from every mirror, so a package that exists on both upstreams shows the versions of both. When the same version exists on several mirrors, the earlier mirror's metadata wins.
+- **Lists the package's versions**: a NuGet feed merges the version lists and metadata of every mirror, so a package that exists on both upstreams shows the versions of both, and when the same version exists on several mirrors the earlier mirror's metadata wins. Most other feed types use the first mirror, in order, that has the package; the page of each type says how its listings are built.
 - **Downloads from the first mirror that has the package**, and caches it in the feed. The package records which upstream it came from.
 - **Skips a failing mirror**: an upstream that is unreachable or returns an error is logged and skipped, and the next mirror is tried.
 
 Use the arrow buttons to change the order and **Remove** to delete a mirror, then **Save settings**. With a single enabled mirror, the feed behaves exactly as it did before multiple mirrors existed.
 
-Put the upstream that has most of your packages first: version lists query every mirror, but a download stops at the first mirror that has the package.
+Put the upstream that has most of your packages first: a download stops at the first mirror that has the package.
 
 ### Upstream listing cache
 
@@ -167,34 +198,4 @@ With the `Legacy` mode there are no per-feed permissions: the configured API key
 
 ## Connecting a client
 
-Each feed has a **Connect** page (`/feeds/{slug}/Connect`, or the **Connect** link while browsing the feed) that shows its service index URL and how to authenticate.
-
-With the dotnet CLI:
-
-```shell
-dotnet nuget add source "https://your-server/feeds/internal/v3/index.json" --name internal
-dotnet nuget push -s internal -k <api-key-or-token> MyPackage.1.0.0.nupkg
-```
-
-Or in a `nuget.config` next to your solution:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <clear />
-    <add key="internal" value="https://your-server/feeds/internal/v3/index.json" />
-    <add key="mirror" value="https://your-server/v3/index.json" />
-  </packageSources>
-  <packageSourceCredentials>
-    <internal>
-      <add key="Username" value="build-agent" />
-      <add key="ClearTextPassword" value="%PAGETTO_TOKEN%" />
-    </internal>
-  </packageSourceCredentials>
-</configuration>
-```
-
-Which username and password to use depends on the [authentication mode](authentication.md#using-pagetto-from-nuget-clients). Keep secrets out of source control: reference an environment variable as above, or add the credentials with `dotnet nuget update source … --username … --password …` on each machine.
-
-The service index advertises a readme resource (`ReadmeUriTemplate`), so Visual Studio (with NuGet 6.13 or later) shows package readmes in the package manager.
+Each feed has a **Connect** page (`/feeds/{slug}/Connect`, or the **Connect** link while browsing the feed) that shows the feed's URL, the client configuration for its type and how to authenticate in the server's [authentication mode](authentication.md#authentication-modes). The page of each feed type in the [table of feed types](#feed-types) has the same instructions, and [Using PaGetto from package clients](authentication.md#using-pagetto-from-package-clients) summarizes how each client sends its token.

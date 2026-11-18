@@ -44,33 +44,12 @@ When you upgrade, keep your `appsettings.json`, the database and the package fol
 
 To run PaGetto as a Windows service behind IIS, see [Windows IIS proxy](iis-proxy.md).
 
-## Publish packages
+## Connect clients
+
+The default feed is a NuGet feed at `http://localhost:5000/v3/index.json`. Push to it with a [personal access token](../authentication.md#personal-access-tokens-pats), or with an API key in the `Legacy` mode:
 
 ```shell
-dotnet nuget push -s http://localhost:5000/v3/index.json -k <api-key> package.1.0.0.nupkg
+dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
 
-Publish a [symbol package](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) the same way:
-
-```shell
-dotnet nuget push -s http://localhost:5000/v3/index.json -k <api-key> symbol.package.1.0.0.snupkg
-```
-
-## Restore packages
-
-Use this package source:
-
-`http://localhost:5000/v3/index.json`
-
-Other [feeds](../feeds.md) are at `http://localhost:5000/feeds/{slug}/v3/index.json`. Some helpful guides:
-
-- [Visual Studio](https://docs.microsoft.com/en-us/nuget/consume-packages/install-use-packages-visual-studio#package-sources)
-- [NuGet.config](https://docs.microsoft.com/en-us/nuget/reference/nuget-config-file#package-source-sections)
-
-## Symbol server
-
-Load symbols from this symbol location:
-
-`http://localhost:5000/api/download/symbols`
-
-For Visual Studio, see [Configure symbol locations](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger#configure-symbol-locations-and-loading-options).
+For the other ecosystems, [create a feed](../feeds.md#managing-feeds) of their type and follow its page; the [table of feed types](../feeds.md#feed-types) lists the URL each client uses. [NuGet packages](../nuget.md) covers `nuget.config`, Visual Studio and the symbol server.

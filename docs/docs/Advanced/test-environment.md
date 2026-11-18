@@ -38,7 +38,7 @@ These credentials exist only in the test data. Never use them for a real server.
 | `alice` | `User-Test-Password-1` | Developers, Package owners | |
 | `bob` | `User-Test-Password-1` | Developers | |
 | `carol` | `User-Test-Password-1` | Developers | |
-| `build-agent` | `User-Test-Password-1` | Build agents | Can't sign in to the web UI, only NuGet clients |
+| `build-agent` | `User-Test-Password-1` | Build agents | Can't sign in to the web UI, only package clients |
 
 ## What's in it
 
@@ -64,7 +64,7 @@ The packages are in `testenv/packages`, so you can push them again to try upload
 curl -u carol:User-Test-Password-1 -X PUT -F package=@testenv/packages/Contoso.Mail.1.0.0.nupkg http://localhost:5000/feeds/experimental/api/v2/package
 ```
 
-With the dotnet CLI, add the feed as a source with `--username` and `--password` first (see [Connecting a client](../feeds.md#connecting-a-client)).
+With the dotnet CLI, add the feed as a source with `--username` and `--password` first (see [Configure the client](../nuget.md#configure-the-client)).
 
 The Dart test packages are in `testenv/packages/dart`, as the archives `dart pub publish` uploads.
 

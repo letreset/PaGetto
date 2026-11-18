@@ -9,7 +9,7 @@ docker run -d --name pagetto -p 5000:8080 -v pagetto-data:/data \
   letreset/pagetto:latest
 ```
 
-The image runs with local accounts (`Authentication:Mode` is `Local`). Open [`http://localhost:5000/`](http://localhost:5000/) and sign in as `admin` with the password `admin`: PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it:
+The image runs with local accounts (`Authentication:Mode` is `Local`). Open [`http://localhost:5000/`](http://localhost:5000/) and sign in as `admin` with the password `admin`: PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it, here a NuGet package to the default feed:
 
 ```shell
 dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
@@ -45,7 +45,7 @@ docker build -t pagetto:local .
 The build restores NuGet packages from `https://api.nuget.org/v3/index.json`. If the build machine can't reach nuget.org, point the restore at another feed (for example a mirror, or a PaGetto feed that mirrors nuget.org) with the `NuGetSource` build argument:
 
 ```shell
-docker build -t pagetto:local --build-arg NuGetSource=https://nuget.example.com/v3/index.json .
+docker build -t pagetto:local --build-arg NuGetSource=https://packages.example.com/v3/index.json .
 ```
 
 That feed must serve every package the build needs. `NuGetSource` replaces the sources from `nuget.config` instead of adding to them.
@@ -121,30 +121,15 @@ Put `POSTGRES_PASSWORD=…` in a `.env` file next to `compose.yaml`, and the API
 | `/livez` | Only that the process is up. Use it for liveness probes. |
 | `/health` | The database (not the package storage). Use it for readiness probes and monitoring. The path is set by `HealthCheck:Path`. |
 
-## Restore packages
+## Connect clients
 
-Use this package source:
-
-`http://localhost:5000/v3/index.json`
-
-Other [feeds](../feeds.md) are at `http://localhost:5000/feeds/{slug}/v3/index.json`. Some helpful guides:
-
-- [Visual Studio](https://docs.microsoft.com/en-us/nuget/consume-packages/install-use-packages-visual-studio#package-sources)
-- [NuGet.config](https://docs.microsoft.com/en-us/nuget/reference/nuget-config-file#package-source-sections)
-
-## Symbol server
-
-Publish a [symbol package](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) the same way as a package:
+The default feed is a NuGet feed at `http://localhost:5000/v3/index.json`. Push to it with a [personal access token](../authentication.md#personal-access-tokens-pats), or with an API key in the `Legacy` mode:
 
 ```shell
-dotnet nuget push -s http://localhost:5000/v3/index.json -k change-me MyPackage.1.0.0.snupkg
+dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
 
-Load symbols from this symbol location:
-
-`http://localhost:5000/api/download/symbols`
-
-For Visual Studio, see [Configure symbol locations](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger#configure-symbol-locations-and-loading-options).
+For the other ecosystems, [create a feed](../feeds.md#managing-feeds) of their type and follow its page; the [table of feed types](../feeds.md#feed-types) lists the URL each client uses. [NuGet packages](../nuget.md) covers `nuget.config`, Visual Studio and the symbol server.
 
 ## Running PaGetto behind a reverse proxy
 
@@ -158,7 +143,7 @@ Consider binding the port to localhost only (`-p 127.0.0.1:5000:8080`), so unenc
 <IfModule mod_ssl.c>
 	<VirtualHost *:443>
 
-		ServerName nuget.example.com
+		ServerName packages.example.com
 
 		ProxyRequests Off
 		ProxyPreserveHost On
@@ -166,8 +151,8 @@ Consider binding the port to localhost only (`-p 127.0.0.1:5000:8080`), so unenc
 		ProxyPassReverse / http://localhost:5000/
 		RequestHeader set X-Forwarded-Proto https
 
-		SSLCertificateFile /etc/letsencrypt/live/nuget.example.com/fullchain.pem #managed by certbot
-		SSLCertificateKeyFile /etc/letsencrypt/live/nuget.example.com/privkey.pem #managed by certbot
+		SSLCertificateFile /etc/letsencrypt/live/packages.example.com/fullchain.pem #managed by certbot
+		SSLCertificateKeyFile /etc/letsencrypt/live/packages.example.com/privkey.pem #managed by certbot
 		Include /etc/letsencrypt/options-ssl-apache.conf
 		Header always set Content-Security-Policy upgrade-insecure-requests
 	</VirtualHost>

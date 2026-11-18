@@ -34,7 +34,7 @@ In every other mode those settings are ignored: there is no anonymous access, ev
 Administrators manage feeds, accounts, groups and permissions, and can pull, push and delete on every feed. How you get the first one depends on the mode:
 
 - **`Entra` and `Hybrid`**: assign the `Admin` app role to yourself in Entra ID (see [Step 3](#step-3-define-app-roles-recommended)) and sign in. Admin status always follows the token.
-- **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters, or `Authentication:MinPasswordLength`). Until then the default password is also rejected by NuGet clients.
+- **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters, or `Authentication:MinPasswordLength`). Until then the default password is also rejected by package clients.
 
 The default administrator is only ever created, never changed:
 
@@ -59,7 +59,7 @@ In `Legacy` and `Entra` mode no default administrator is created.
 ### Step 1: Create an App Registration
 
 1. Go to the [Azure Portal](https://portal.azure.com) > **Microsoft Entra ID** > **App registrations** > **New registration**
-2. Set the **Name** (e.g., "PaGetto NuGet Feed")
+2. Set the **Name** (e.g., "PaGetto")
 3. Set **Supported account types** to "Accounts in this organizational directory only" (single tenant)
 4. Set the **Redirect URI** to `https://your-pagetto-url/signin-oidc` (type: Web)
 5. Click **Register**
@@ -161,10 +161,10 @@ When `Mode` is `Local` or `Hybrid`, administrators manage local accounts on **Ad
 
 - **Create** an account with a username (case-insensitive: `alice` and `ALICE` are the same account, on every database), an optional display name, an optional email address (used for [token expiry notifications](#expiry-notifications)) and a password of at least `Authentication:MinPasswordLength` characters (default 12, between 8 and 72). Passwords are stored as bcrypt hashes.
 - **Enable account** or **Disable account**. Disabled accounts can't sign in or use their tokens.
-- **Allow web sign-in** or **Disable web sign-in** (**Can sign in to web UI** when creating the account). Turn it off for build agents that should only use NuGet clients; the row then shows **API only** instead of **Web + API**.
+- **Allow web sign-in** or **Disable web sign-in** (**Can sign in to web UI** when creating the account). Turn it off for build agents that should only use package clients; the row then shows **API only** instead of **Web + API**.
 - **Make admin** or **Remove admin role** for a local account. Entra accounts are administrators through the `Admin` app role instead. An **Admin** label marks administrators.
 - **Unlock** an account that is [locked](#account-lockout) after too many failed sign-ins; a **Locked until** label shows when the lock ends.
-- **Edit account**: change the username, display name and email in a dialog. After a rename the user signs in with the new username. Personal access tokens stay valid, but a `nuget.config` that sends the old username together with a token has to be updated.
+- **Edit account**: change the username, display name and email in a dialog. After a rename the user signs in with the new username. Personal access tokens stay valid, but a client configuration (such as `nuget.config` or `~/.netrc`) that sends the old username together with a token has to be updated.
 - **Reset password**: set a new password (at least `MinPasswordLength` characters) in a dialog. This also ends a [lockout](#account-lockout).
 - **New token**: create a [personal access token](#personal-access-tokens-pats) for the account in a dialog.
 - **Delete account**. The action only appears after the account has been disabled.
@@ -196,7 +196,7 @@ Local accounts are protected by an automatic lockout mechanism:
 
 After `MaxFailedAttempts` consecutive failed logins, the account is locked for `LockoutMinutes`. The counter resets on successful login.
 
-- Wrong passwords count both on the sign-in page and from NuGet clients over Basic auth.
+- Wrong passwords count both on the sign-in page and from clients over Basic auth.
 - While the account is locked, its password is refused everywhere, even when it is correct.
 - A password that starts with `bg_` is only checked as a [personal access token](#personal-access-tokens-pats), so it never counts as a failed login. Tokens keep working while the account is locked.
 
@@ -216,20 +216,20 @@ In the `Local`, `Entra` and `Hybrid` modes every [feed](feeds.md) has its own pe
 | Permission | Allows |
 |------------|--------|
 | Pull | Browsing the feed in the web UI, search, and restoring or downloading packages and symbols |
-| Push | Publishing packages and symbol packages, and relisting through the NuGet API |
-| Delete | Unlisting or deleting from NuGet clients (following the feed's [deletion behavior](feeds.md#feed-settings)), and unlisting, relisting and permanently deleting on the package page |
+| Push | Publishing packages (and NuGet symbol packages), and on NuGet feeds relisting through the NuGet API |
+| Delete | Unlisting (yanking, retracting, retiring) or deleting from clients (on NuGet feeds following the feed's [deletion behavior](feeds.md#feed-settings)), and unlisting, relisting and permanently deleting on the package page |
 
 Administrators have all three on every feed. Feeds a user can't pull from are hidden from them in the UI.
 
-- NuGet requests get `401 Unauthorized` when not signed in. A signed-in user without pull permission gets `404 Not Found` on reads, the same as for a feed that doesn't exist. On push, delete and relist, a signed-in user without the permission gets `403 Forbidden` when they have some other permission on the feed, and `404 Not Found` when they have none.
+- Client requests get `401 Unauthorized` when not signed in. A signed-in user without pull permission gets `404 Not Found` on reads, the same as for a feed that doesn't exist. On push, delete and relist, a signed-in user without the permission gets `403 Forbidden` when they have some other permission on the feed, and `404 Not Found` when they have none.
 - The feed's package list, package, Connect and Statistics pages and the Atom feed return `404 Not Found` to a signed-in user without pull permission, so they don't reveal that the feed exists or what it contains.
-- On a feed in [read-only mode](feeds.md#feed-settings), NuGet push, delete and relist requests with valid credentials get `403 Forbidden` (or `404 Not Found` for a user with no permission on the feed), as the web UI does. Requests without valid credentials still get `401 Unauthorized`.
+- On a feed in [read-only mode](feeds.md#feed-settings), publish, unlist, delete and relist requests from clients with valid credentials get `403 Forbidden` (or `404 Not Found` for a user with no permission on the feed), as the web UI does. Requests without valid credentials still get `401 Unauthorized`.
 
-An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not the feed exists: the service index, a `401` challenge on the other NuGet endpoints, and the "Sign in required" prompt in the web UI. Once signed in, a feed the user has no permission on and a missing feed both return `404`.
+An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not the feed exists: the service index, a `401` challenge on the other client endpoints, and the "Sign in required" prompt in the web UI. Once signed in, a feed the user has no permission on and a missing feed both return `404`.
 
 ## Personal access tokens (PATs)
 
-Personal access tokens let users authenticate from NuGet clients and CI without their interactive credentials. They are available to Entra and local users.
+Personal access tokens let users authenticate from package clients and CI without their interactive credentials. They are available to Entra and local users.
 
 - Users create tokens on **My Tokens** (in the user menu), with a name, an expiry of 30, 60, 90 (the default), 180 or 365 days, an **Access** (**Read only**, **Read and publish**, or **Read, publish and delete**, the default) and the **Feeds** it works with (**All feeds**, the default, or one feed the user can read).
 - Local accounts that can't sign in to the web UI (for example build agents) get their tokens from an administrator: **New token** on **Admin > Accounts**.
@@ -290,95 +290,35 @@ The scanner runs outside an HTTP request and cannot infer the site URL, so `Publ
 
 :::
 
-## Using PaGetto from NuGet clients
+## Using PaGetto from package clients
 
-NuGet clients send a username and password (HTTP Basic) for restores, and an API key for pushes. What PaGetto accepts depends on the mode:
+Every client authenticates with a [personal access token](#personal-access-tokens-pats), or in the `Legacy` mode with the [API keys](configuration.md#require-an-api-key) and [credentials](configuration.md#private-feeds) from configuration. Prefer a token over the account password on build agents and developer machines: it can expire, be revoked on its own, be limited to reading or to one feed, and failed token attempts never lock the account.
 
-| Mode | Restore (username / password) | Push (`-k` API key) |
+How the token reaches PaGetto depends on the client. The **Connect** page of each feed shows the right instructions for the feed's type and the current mode, and so does the page of each type:
+
+| Clients | How they send the token | Setup |
 |---|---|---|
-| `Legacy` | A `Credentials` entry, if any are configured | An `ApiKeys` value |
-| `Local` | Your username and a PAT (recommended), or your account password | A PAT |
-| `Entra` | Your username and a PAT as the password | A PAT |
-| `Hybrid` | Your username and a PAT, or a local account's password | A PAT |
-
-The **Connect** page of each feed shows the right instructions for the current mode.
-
-Prefer a PAT over the account password on build agents and developer machines: it can expire, be revoked on its own, and failed PAT attempts never lock the account.
-
-```shell
-# Add the source (dotnet CLI)
-dotnet nuget add source "https://your-pagetto-url/v3/index.json" \
-    --name "PaGetto" \
-    --username "<your-username>" \
-    --password "<your-personal-access-token>"
-
-# Push a package with a PAT
-dotnet nuget push -s https://your-pagetto-url/v3/index.json \
-    -k <your-personal-access-token> \
-    package.1.0.0.nupkg
-```
+| dotnet CLI, NuGet CLI, Visual Studio, Rider, Paket | Username and token with Basic authentication for restores, the token as the API key (`-k`) for pushes | [NuGet packages](nuget.md#authentication) |
+| `dart pub`, `flutter pub` | Bearer token, stored with `dart pub token add <feed URL>` | [Dart and Flutter packages](dart.md#sign-in) |
+| npm, Yarn, pnpm | Bearer token, the `_authToken` of the feed's registry URL in `.npmrc` (`.yarnrc.yml` for Yarn 2 and later); `npm login` is not supported | [npm packages](npm.md#configure-the-client) |
+| Maven, Gradle, sbt | Username and token with Basic authentication: the `server` of the repository's id in `settings.xml`, the repository's `credentials` in Gradle | [Maven packages](maven.md#configure-the-client) |
+| pip, uv, Poetry, twine | `__token__` (or the owner's username) and token with Basic authentication: `~/.netrc` for pip, environment variables for uv, `poetry config http-basic`, `~/.pypirc` for twine | [Python packages](pypi.md#configure-the-client) |
+| Cargo | The token as the whole `Authorization` header, from `cargo login --registry <name>` or `CARGO_REGISTRIES_<NAME>_TOKEN`; a Rust feed asks Cargo to send it with every request | [Rust crates](cargo.md#configure-cargo) |
+| go command | `__token__` (or the owner's username) and token from `~/.netrc` (`%USERPROFILE%\_netrc` on Windows), with Basic authentication and only over HTTPS | [Go modules](go.md#authentication) |
+| Bundler, `gem` | Basic credentials from `bundle config set --global <host> __token__:<token>` or the source URL for installs; the token as the whole `Authorization` header (`GEM_HOST_API_KEY` or `~/.gem/credentials`) for `gem push` and `gem yank` | [Ruby gems](rubygems.md#authentication) |
+| Mix, Rebar3 | The token as the whole `Authorization` header: `--auth-key` of `mix hex.repo add`, `repo_key` in `rebar.config`, `HEX_API_KEY` for `mix hex.publish` and `mix hex.retire` | [Hex packages](hex.md#authentication) |
+| Composer | `__token__` (or the owner's username) and token as the `http-basic` credentials of `auth.json` | [PHP packages](composer.md#authentication) |
+| CocoaPods | `__token__` (or the owner's username) and token from `~/.netrc`, with Basic authentication | [CocoaPods pods](cocoapods.md#authentication) |
+| Swift Package Manager, Xcode | Bearer token, checked and stored by `swift package-registry login <feed URL>/login --token <token>`; `login` also takes a username and password for Basic authentication | [Swift packages](swift.md#authentication) |
+| R (`install.packages`, renv) | `__token__` (or the owner's username) and token in the repository URL: `https://__token__:<token>@your-server/feeds/{slug}/cran` | [R packages](cran.md#authentication) |
+| sbt with the Ivy layout | The credentials of the realm `PaGetto` and the server's host, with the token as the password | [Ivy repositories for sbt](ivy.md#authentication) |
+| Visual Studio extension gallery | Visual Studio only sends Windows credentials, so it reads `https://your-server/feeds/{slug}/vsix/auth/<token>/atom.xml`, a URL with the token in its path that can only read; uploads use Basic authentication with the token as the password | [Visual Studio extensions](vsix.md#authentication) |
 
 :::note
 
-When a PAT is used as a password, the username must be the token owner's username; it is not case-sensitive. The username `__token__` also goes with any PAT, as Python clients send PyPI's API tokens. For an Entra user that is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. Administrators see it on **Admin > Accounts**. Use the service index of the [feed](feeds.md#feed-urls) you want, e.g. `https://your-pagetto-url/feeds/internal/v3/index.json`.
+When a token is used as a password, the username must be the token owner's username; it is not case-sensitive. The username `__token__` also goes with any token, as Python clients send PyPI's API tokens. For an Entra user the username is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. Administrators see it on **Admin > Accounts**.
 
 :::
-
-## Using PaGetto from Dart clients
-
-`dart pub` and `flutter pub` send a personal access token as a bearer token. Add it once with `dart pub token add <feed URL>`; see [Dart and Flutter packages](dart.md#sign-in).
-
-## Using PaGetto from npm, Yarn and pnpm
-
-npm, Yarn and pnpm send a personal access token as a bearer token. Put it in `.npmrc` as the `_authToken` of the feed's registry URL (`.yarnrc.yml` for Yarn 2 and later); see [npm packages](npm.md#configure-the-client). `npm login` is not supported.
-
-## Using PaGetto from Maven, Gradle and sbt
-
-Maven, Gradle and sbt send a username and a personal access token with Basic authentication: in Maven's `settings.xml` as the `server` of the repository's id, in Gradle as the repository's `credentials`. See [Maven packages](maven.md#configure-the-client).
-
-## Using PaGetto from pip, uv, Poetry and twine
-
-Python clients send a personal access token with Basic authentication, with the username `__token__` as for PyPI's API tokens (the token owner's username works too): in `~/.netrc` for pip, in environment variables for uv, with `poetry config http-basic` for Poetry, and in `~/.pypirc` for twine. See [Python packages](pypi.md#configure-the-client).
-
-## Using PaGetto from Cargo
-
-Cargo sends a personal access token as the whole `Authorization` header, without a scheme, and a Rust feed asks it to send the token with every request. Store it with `cargo login --registry <name>` or in the environment variable `CARGO_REGISTRIES_<NAME>_TOKEN`. See [Rust crates](cargo.md#configure-cargo).
-
-## Using PaGetto from Go
-
-The go command sends the credentials of a server's host from `~/.netrc` (`%USERPROFILE%\_netrc` on Windows) with Basic authentication, and only over HTTPS. Use the login `__token__` (or your username) and a personal access token as the password. See [Go modules](go.md#authentication).
-
-## Using PaGetto from Ruby
-
-Bundler and gem install send Basic credentials: store them with `bundle config set --global <host> __token__:<token>`, or put them in the gem source URL. gem push and gem yank send a personal access token as the whole `Authorization` header, from `GEM_HOST_API_KEY` or `~/.gem/credentials`. See [Ruby gems](rubygems.md#authentication).
-
-## Using PaGetto from Composer
-
-Composer sends the `http-basic` credentials of `auth.json` with Basic authentication: the username `__token__` (or the token owner's username) and a personal access token as the password. See [PHP packages](composer.md#authentication).
-
-## Using PaGetto from CocoaPods
-
-CocoaPods sends the credentials of a server's host from `~/.netrc` with Basic authentication: the login `__token__` (or the token owner's username) and a personal access token as the password. See [CocoaPods pods](cocoapods.md#authentication).
-
-## Using PaGetto from R
-
-R sends the credentials of the repository URL with Basic authentication: `https://__token__:<token>@your-server/feeds/{slug}/cran`, with the username `__token__` (or the token owner's username) and a personal access token as the password. See [R packages](cran.md#authentication).
-
-## Using PaGetto from sbt with the Ivy layout
-
-sbt sends the credentials whose realm (`PaGetto`) and host match the server's challenge with Basic authentication, with a personal access token as the password. See [Ivy repositories for sbt](ivy.md#authentication).
-
-## Using PaGetto from Visual Studio
-
-Visual Studio can't sign in to an extension gallery: it only sends the user's Windows credentials. With user accounts, it reads the gallery of a VSIX feed through a URL with a personal access token in its path, `https://your-server/feeds/{slug}/vsix/auth/<token>/atom.xml`, which can only read. Uploads use Basic authentication with a token as the password. See [Visual Studio extensions](vsix.md#authentication).
-
-## Using PaGetto from Swift Package Manager
-
-Swift Package Manager sends a personal access token as a Bearer token, after `swift package-registry login https://your-server/feeds/{slug}/swift/login --token <token>` has checked and stored it. `login` also takes a username and password, sent with Basic authentication. See [Swift packages](swift.md#authentication).
-
-## Using PaGetto from Elixir and Erlang
-
-Mix and Rebar3 send a personal access token as the whole `Authorization` header, without a scheme: give it to `mix hex.repo add` with `--auth-key`, or as the `repo_key` of the repository in `rebar.config`. `mix hex.publish` and `mix hex.retire` send it from `HEX_API_KEY`. See [Hex packages](hex.md#authentication).
 
 ## Full configuration reference
 
@@ -516,9 +456,9 @@ The admin role value is hardcoded as `Admin` (not case-sensitive, so `admin` wor
 
 If a local account is locked after too many failed attempts, wait for the lockout period to expire (`LockoutMinutes`, default 15 minutes), or have an administrator reset the password on **Admin > Accounts**, which ends the lockout. Personal access tokens keep working while the account is locked.
 
-### NuGet client returns 401 Unauthorized
+### A client returns 401 Unauthorized
 
-1. Verify the NuGet source is configured with valid credentials for your mode (see [Using PaGetto from NuGet clients](#using-pagetto-from-nuget-clients))
+1. Verify the client is configured with valid credentials for your mode (see [Using PaGetto from package clients](#using-pagetto-from-package-clients))
 2. Check that the user is in a group with `Pull` permission on the feed
-3. If using a PAT, verify it has not expired or been revoked, and that the username matches the token owner
+3. If using a PAT, verify it has not expired or been revoked, that the username matches the token owner (or is `__token__`), and that the token's access and feeds cover the request
 4. Ensure the `Mode` setting matches your authentication method (e.g., do not use `Credentials` when `Mode` is `Entra`)
