@@ -1,3 +1,7 @@
+---
+sidebar_position: 8
+---
+
 # TeamCity
 
 [JetBrains TeamCity](https://www.jetbrains.com/teamcity/) is a CI/CD server. It includes a built-in [NuGet feed](https://www.jetbrains.com/help/teamcity/using-teamcity-as-nuget-feed.html) that serves the `.nupkg` files your builds publish as artifacts.
@@ -6,7 +10,7 @@
 
 | | PaGetto | TeamCity NuGet feed |
 |---|---|---|
-| Purpose | A dedicated NuGet and symbol server | A feature of a CI server |
+| Purpose | A dedicated package server: NuGet with symbols, and 14 other package formats in [feeds](../feeds.md) of their own | A feature of a CI server |
 | License | Open source (MIT), free | Part of TeamCity (free and commercial editions) |
 | How packages get in | `dotnet nuget push` from any CI system or developer machine | Indexed from build artifacts of TeamCity builds |
 | Package lifetime | Kept until you delete them or [retention](../configuration.md#package-auto-deletion) removes them | Tied to build artifacts, so build cleanup rules can remove packages |
