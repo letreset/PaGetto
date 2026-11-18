@@ -326,14 +326,24 @@ public class PackageIndexingServiceTests
                 SourcePath = GetType().Assembly.Location,
                 TargetPath = "lib/Test.dll"
             });
+            // A small icon: the test assembly can be larger than the 1 MB icon limit of NuGet.
+            var icon = Path.GetTempFileName();
+            File.WriteAllBytes(icon, [0x89, 0x50, 0x4E, 0x47]);
             builder.Files.Add(new PhysicalPackageFile
             {
-                SourcePath = GetType().Assembly.Location,
+                SourcePath = icon,
                 TargetPath = "icon.png"
             });
 
             var stream = new MemoryStream();
-            builder.Save(stream);
+            try
+            {
+                builder.Save(stream);
+            }
+            finally
+            {
+                File.Delete(icon);
+            }
 
             // The nuspec still declares the icon, but the file is removed from the archive.
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true))
