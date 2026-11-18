@@ -1,5 +1,4 @@
 using System;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,6 +58,7 @@ public class VsixGalleryController : Controller
     }
 
     // GET vsix/atom.xml: the gallery.
+    [ContentETag]
     public async Task<IActionResult> AtomFeed(CancellationToken cancellationToken)
     {
         // The gallery includes the mirrors' extensions, and its links are built from the gallery's

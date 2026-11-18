@@ -83,6 +83,7 @@ public class NpmPackageController : Controller
 
     // GET npm/{name}, npm/@{scope}/{name}
     // npm deprecate and npm unpublish add ?write=true: they get the feed's own versions to change.
+    [ContentETag]
     public async Task<IActionResult> GetPackage(string scope, string name, bool write, CancellationToken cancellationToken)
     {
         name = GetPackageName(scope, name);

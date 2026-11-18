@@ -81,11 +81,19 @@ public class Startup
         services.AddRateLimiter(_ => { });
 
         // text/html is left out on purpose: compressing pages that carry antiforgery tokens
-        // over HTTPS enables BREACH-style attacks. The NuGet API is JSON.
+        // over HTTPS enables BREACH-style attacks. The NuGet API is JSON; the other package APIs
+        // serve their indexes as text, XML and their own JSON and HTML types. A range response is
+        // never compressed, so Bundler's partial /versions updates still match their digests.
         services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
-            options.MimeTypes = ["application/json", "text/css", "text/javascript", "application/javascript", "image/svg+xml"];
+            options.MimeTypes =
+            [
+                "application/json", "text/css", "text/javascript", "application/javascript", "image/svg+xml",
+                "text/plain", "application/xml", "text/xml", "application/atom+xml",
+                "application/vnd.pypi.simple.v1+json", "application/vnd.pypi.simple.v1+html",
+                "application/vnd.pub.v2+json", "application/vnd.swift.registry.v1+json",
+            ];
             options.Providers.Add<BrotliCompressionProvider>();
             options.Providers.Add<GzipCompressionProvider>();
         });
