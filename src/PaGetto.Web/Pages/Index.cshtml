@@ -467,6 +467,7 @@ else
             FeedType.CocoaPods => $"pod '{artifact.Name}', '{artifact.Version}'",
             FeedType.Swift => $".package(id: \"{artifact.Name}\", from: \"{artifact.Version}\")",
             FeedType.Cran => $"install.packages(\"{artifact.Name}\", repos = \"{feedUrl}/cran\")",
+            FeedType.Ivy => SbtDependency(artifact.Name, artifact.Version),
             _ => artifact.Name,
         };
     }
@@ -482,6 +483,18 @@ else
             $"  <artifactId>{name[(separator + 1)..]}</artifactId>",
             $"  <version>{version}</version>",
             "</dependency>");
+    }
+
+    // The sbt line of an Ivy module named organisation:module, followed by the cross versions of an
+    // sbt plugin, which is added with addSbtPlugin.
+    private static string SbtDependency(string name, string version)
+    {
+        var parts = name.Split(':');
+        var dependency = $"\"{parts[0]}\" % \"{parts[1]}\" % \"{version}\"";
+
+        return parts.Any(p => p.StartsWith("sbt_", StringComparison.OrdinalIgnoreCase))
+            ? $"addSbtPlugin({dependency})"
+            : $"libraryDependencies += {dependency}";
     }
 
     // The page links under a list of packages.

@@ -80,4 +80,10 @@ public enum FeedType
     /// stored in the <see cref="Artifact"/> tables.
     /// </summary>
     Cran = 12,
+
+    /// <summary>
+    /// Java and Scala libraries and sbt plugins in the Ivy repository layout that sbt publishes with
+    /// <c>Resolver.ivyStylePatterns</c>, stored in the <see cref="Artifact"/> tables.
+    /// </summary>
+    Ivy = 13,
 }

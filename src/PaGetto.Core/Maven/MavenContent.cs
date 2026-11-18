@@ -4,7 +4,7 @@ using PaGetto.Core.Entities;
 namespace PaGetto.Core.Maven;
 
 /// <summary>
-/// What <see cref="IMavenRepositoryService.GetAsync"/> serves for a path.
+/// What <see cref="IMavenRepositoryService.GetAsync"/> and <see cref="Ivy.IIvyRepositoryService.GetAsync"/> serve for a path.
 /// </summary>
 public sealed class MavenContent
 {

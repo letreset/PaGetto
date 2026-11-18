@@ -9,6 +9,7 @@
 @using PaGetto.Core.Feeds
 @using PaGetto.Core.Go
 @using PaGetto.Core.Hex
+@using PaGetto.Core.Ivy
 @using PaGetto.Core.Maven
 @using PaGetto.Core.PyPI
 @using PaGetto.Core.RubyGems
@@ -70,6 +71,7 @@
     var isPub = feed.Type == FeedType.Pub;
     var isNpm = feed.Type == FeedType.Npm;
     var isMaven = feed.Type == FeedType.Maven;
+    var isIvy = feed.Type == FeedType.Ivy;
     var isPyPI = feed.Type == FeedType.PyPI;
     var isCargo = feed.Type == FeedType.Cargo;
     var isGo = feed.Type == FeedType.Go;
@@ -106,7 +108,7 @@
             : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)]
             : Model.CocoaPodsManifest?.Platforms
             ?? (Model.SwiftManifest?.ToolsVersion is { } toolsVersion ? [KeyValuePair.Create("Swift tools", toolsVersion)]
-            : Model.CranManifest?.RVersion is { } rVersion ? [KeyValuePair.Create("R", rVersion)] : null));
+            : Model.CranManifest?.RVersion is { } rVersion ? [KeyValuePair.Create("R", rVersion)] : IvyEnvironment(Model.IvyManifest)));
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
@@ -114,16 +116,19 @@
         ?? Model.HexManifest?.Requirements.Select(r => KeyValuePair.Create(r.Name, r.Requirement)).ToList()
         ?? Model.ComposerManifest?.Dependencies
         ?? Model.CocoaPodsManifest?.Dependencies
-        ?? Model.CranManifest?.Dependencies;
+        ?? Model.CranManifest?.Dependencies
+        ?? Model.IvyManifest?.Dependencies;
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
         ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links
-        ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links ?? Model.CranManifest?.Links;
+        ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links ?? Model.CranManifest?.Links
+        ?? Model.IvyManifest?.Links;
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
         ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
         ?? Model.ComposerManifest?.License
         ?? Model.CocoaPodsManifest?.License
-        ?? Model.CranManifest?.License;
+        ?? Model.CranManifest?.License
+        ?? Model.IvyManifest?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords
         ?? Model.ComposerManifest?.Keywords;
 
@@ -169,6 +174,16 @@
         installTabs.Add(new InstallTab { Name = "Gradle (Kotlin)", Content = [$"implementation(\"{groupId}:{artifactId}:{version}\")"] });
         installTabs.Add(new InstallTab { Name = "Gradle (Groovy)", Content = [$"implementation '{groupId}:{artifactId}:{version}'"] });
         installTabs.Add(new InstallTab { Name = "sbt", Content = [$"libraryDependencies += \"{groupId}\" % \"{artifactId}\" % \"{version}\""] });
+    }
+    else if (isIvy)
+    {
+        // An sbt plugin is added in project/plugins.sbt, a library in build.sbt; both need the resolver.
+        var ivy = Model.IvyManifest;
+        var resolver = $"resolvers += Resolver.url(\"{feed.Slug}\", url(\"{feedUrl}/ivy\"))(Resolver.ivyStylePatterns)";
+        var dependency = $"\"{ivy.Organisation}\" % \"{ivy.Module}\" % \"{version}\"";
+        installTabs.Add(ivy.IsSbtPlugin
+            ? new InstallTab { Name = "sbt plugin", Content = ["// project/plugins.sbt", resolver, $"addSbtPlugin({dependency})"] }
+            : new InstallTab { Name = "sbt", Content = ["// build.sbt", resolver, $"libraryDependencies += {dependency}"] });
     }
     else if (isPyPI)
     {
@@ -305,7 +320,7 @@
                 {
                     await TabButton("dependencies", "Dependencies", dependencies.Count);
                 }
-                @if (isMaven || isPyPI || isRubyGems)
+                @if (isMaven || isIvy || isPyPI || isRubyGems)
                 {
                     await TabButton("files", "Files", Model.Files.Count);
                 }
@@ -345,7 +360,7 @@
                 </div>
             }
 
-            @if (isMaven || isPyPI || isRubyGems)
+            @if (isMaven || isIvy || isPyPI || isRubyGems)
             {
                 <div class="bgt-tab-body" x-show="tab === 'files'" x-cloak role="tabpanel">
                     <div class="bgt-table-wrap">
@@ -354,17 +369,18 @@
                                 <tr>
                                     <th>File</th>
                                     <th>Size</th>
-                                    <th>@(isMaven ? "SHA-1" : "SHA-256")</th>
+                                    <th>@(isMaven || isIvy ? "SHA-1" : "SHA-256")</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var file in Model.Files)
                                 {
-                                    // Python and Ruby installers check files by SHA-256, Maven clients by SHA-1.
+                                    // Python and Ruby installers check files by SHA-256, Maven and Ivy clients by SHA-1.
                                     var fileUrl = isPyPI ? Url.PyPIFile(pypiName, version, file.FileName)
                                         : isRubyGems ? Url.RubyGemsGem(file.FileName)
+                                        : isIvy ? $"{feedUrl}/ivy/{IvyPath.GetFilePath(Model.IvyManifest.Organisation, Model.IvyManifest.Module, Model.IvyManifest.ScalaVersion, Model.IvyManifest.SbtVersion, version, file.FileName)}"
                                         : $"{feedUrl}/maven2/{MavenFileUrlPath(groupId, artifactId, version, file.FileName)}";
-                                    var hash = isMaven ? file.Sha1 : file.Sha256;
+                                    var hash = isMaven || isIvy ? file.Sha1 : file.Sha256;
                                     <tr>
                                         <td class="mono"><a href="@fileUrl">@file.FileName</a></td>
                                         <td>@file.Size.ToFileSize()</td>
@@ -497,6 +513,10 @@
                 {
                     <div><span>Packaging</span><span>@Model.MavenPom.Packaging</span></div>
                 }
+                @if (isIvy && !string.IsNullOrEmpty(Model.IvyManifest.Status))
+                {
+                    <div><span>Status</span><span>@Model.IvyManifest.Status</span></div>
+                }
                 @if (isComposer && !string.IsNullOrEmpty(Model.ComposerManifest.Type))
                 {
                     <div><span>Package type</span><span>@Model.ComposerManifest.Type</span></div>
@@ -620,6 +640,19 @@
             $"  <version>{version}</version>",
             "</dependency>",
         ];
+    }
+
+    // The Scala and sbt versions an sbt plugin is built for, or null for other modules.
+    private static IReadOnlyList<KeyValuePair<string, string>> IvyEnvironment(IvyManifestSummary manifest)
+    {
+        if (manifest?.SbtVersion == null)
+        {
+            return null;
+        }
+
+        return manifest.ScalaVersion == null
+            ? [KeyValuePair.Create("sbt", manifest.SbtVersion)]
+            : [KeyValuePair.Create("sbt", manifest.SbtVersion), KeyValuePair.Create("Scala", manifest.ScalaVersion)];
     }
 
     // The path of a file below the repository URL; the group id's dots are folders.

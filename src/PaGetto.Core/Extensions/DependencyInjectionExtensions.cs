@@ -19,6 +19,7 @@ using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
 using PaGetto.Core.Hex;
 using PaGetto.Core.Indexing;
+using PaGetto.Core.Ivy;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Metadata;
 using PaGetto.Core.Notifications;
@@ -157,6 +158,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<NpmUpstreamClient>();
         services.TryAddTransient<IMavenRepositoryService, MavenRepositoryService>();
         services.TryAddTransient<MavenUpstreamClient>();
+        services.TryAddTransient<IIvyRepositoryService, IvyRepositoryService>();
+        services.TryAddTransient<IvyUpstreamClient>();
         services.TryAddTransient<IPyPIPackageService, PyPIPackageService>();
         services.TryAddTransient<PyPIUpstreamClient>();
         services.TryAddTransient<ICargoPackageService, CargoPackageService>();

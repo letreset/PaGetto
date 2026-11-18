@@ -22,6 +22,7 @@ using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Go;
 using PaGetto.Core.Hex;
+using PaGetto.Core.Ivy;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
@@ -125,6 +126,11 @@ public class ArtifactModel : PageModel
     public MavenPomSummary MavenPom { get; private set; }
 
     /// <summary>
+    /// The manifest of an Ivy revision, read from its ivy.xml. Null on feeds of other types.
+    /// </summary>
+    public IvyManifestSummary IvyManifest { get; private set; }
+
+    /// <summary>
     /// The manifest of a Python version, read from its core metadata. Null on feeds of other types.
     /// </summary>
     public PyPIManifestSummary PyPIManifest { get; private set; }
@@ -170,7 +176,7 @@ public class ArtifactModel : PageModel
     public CranManifestSummary CranManifest { get; private set; }
 
     /// <summary>
-    /// The files of the version, for ecosystems whose versions have several (Maven, PyPI, RubyGems). Empty
+    /// The files of the version, for ecosystems whose versions have several (Maven, Ivy, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
     public IReadOnlyList<ArtifactFile> Files { get; private set; } = [];
@@ -243,6 +249,14 @@ public class ArtifactModel : PageModel
 
             // The coordinates as published; the stored name is lowercased.
             Name = MavenPom.Coordinates ?? Name;
+        }
+        else if (feed.Type == FeedType.Ivy)
+        {
+            IvyManifest = IvyManifestSummary.Parse(Version.MetadataJson);
+            Files = await _artifacts.FindFilesAsync(feed.Id, Name, Version.Version, cancellationToken);
+
+            // The module as published; the stored name is lowercased.
+            Name = IvyManifest.Name ?? Name;
         }
         else if (feed.Type == FeedType.PyPI)
         {
