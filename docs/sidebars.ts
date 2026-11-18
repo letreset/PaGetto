@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
     'cocoapods',
     'swift',
     'cran',
+    'ivy',
     'web-ui',
     'authentication',
     'configuration',

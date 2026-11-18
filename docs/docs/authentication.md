@@ -364,6 +364,10 @@ CocoaPods sends the credentials of a server's host from `~/.netrc` with Basic au
 
 R sends the credentials of the repository URL with Basic authentication: `https://__token__:<token>@your-server/feeds/{slug}/cran`, with the username `__token__` (or the token owner's username) and a personal access token as the password. See [R packages](cran.md#authentication).
 
+## Using PaGetto from sbt with the Ivy layout
+
+sbt sends the credentials whose realm (`PaGetto`) and host match the server's challenge with Basic authentication, with a personal access token as the password. See [Ivy repositories for sbt](ivy.md#authentication).
+
 ## Using PaGetto from Swift Package Manager
 
 Swift Package Manager sends a personal access token as a Bearer token, after `swift package-registry login https://your-server/feeds/{slug}/swift/login --token <token>` has checked and stored it. `login` also takes a username and password, sent with Basic authentication. See [Swift packages](swift.md#authentication).
