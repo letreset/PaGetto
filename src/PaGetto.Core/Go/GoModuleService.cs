@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -246,9 +245,7 @@ public partial class GoModuleService : IGoModuleService
             var existing = await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken);
             if (existing != null)
             {
-                var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-                if (allowOverwrites == PackageOverwriteAllowed.False
-                    || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !parsedVersion.IsPrerelease))
+                if (!_feedSettings.CanOverwrite(feed, parsedVersion.IsPrerelease))
                 {
                     return AlreadyExists(modulePath, existing.Version);
                 }

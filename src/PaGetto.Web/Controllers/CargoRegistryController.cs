@@ -140,7 +140,7 @@ public class CargoRegistryController : Controller
         }
 
         // The server-wide request limit applies before the feed is known; a feed can only lower it.
-        var maxCrateBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+        var maxCrateBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
         var maxRequestBytes = maxCrateBytes + CargoPublishRequest.MaxMetadataBytes + PublishRequestOverheadBytes;
         if (Request.ContentLength > maxRequestBytes)
         {

@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -25,7 +24,6 @@ public partial class IvyRepositoryService : IIvyRepositoryService
     // What an uploaded checksum file may have.
     private const long MaxChecksumBytes = 1024;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     // The types whose files are not the module's artifact: the descriptor, POM, sources and docs.
     private static readonly string[] NonArtifactTypeFolders = ["ivys", "poms", "srcs", "docs"];
@@ -211,7 +209,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
 
         try
         {
-            var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+            var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
             using var downloaded = await _upstream.DownloadFileOrNullAsync(feed, path.FilePath, maxBytes, cancellationToken);
             if (downloaded == null)
             {
@@ -367,12 +365,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
             return true;
         }
 
-        return _feedSettings.GetAllowPackageOverwrites(feed) switch
-        {
-            PackageOverwriteAllowed.True => true,
-            PackageOverwriteAllowed.PrereleaseOnly => MavenVersion.Parse(revision).IsPrerelease,
-            _ => false,
-        };
+        return _feedSettings.CanOverwrite(feed, MavenVersion.Parse(revision).IsPrerelease);
     }
 
     /// <summary>

@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -23,7 +22,6 @@ public partial class PubPackageService : IPubPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -131,9 +129,7 @@ public partial class PubPackageService : IPubPackageService
 
         if (await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken) != null)
         {
-            var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-            if (allowOverwrites == PackageOverwriteAllowed.False
-                || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !content.Version.IsPrerelease))
+            if (!_feedSettings.CanOverwrite(feed, content.Version.IsPrerelease))
             {
                 return AlreadyExists(name, version);
             }
@@ -187,7 +183,7 @@ public partial class PubPackageService : IPubPackageService
 
         try
         {
-            using var archive = await _upstream.DownloadArchiveOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
+            using var archive = await _upstream.DownloadArchiveOrNullAsync(feed, upstream, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (archive == null)
             {
                 return false;
@@ -305,10 +301,6 @@ public partial class PubPackageService : IPubPackageService
         };
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A pub package uploaded to feed {FeedSlug} is invalid")]
     private partial void LogInvalidArchive(Exception exception, string feedSlug);

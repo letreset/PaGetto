@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -204,9 +203,7 @@ public partial class CocoaPodsPackageService : ICocoaPodsPackageService
             var existing = await _artifacts.FindVersionOrNullAsync(feed.Id, escaped, text, cancellationToken);
             if (existing != null)
             {
-                var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-                if (allowOverwrites == PackageOverwriteAllowed.False
-                    || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !version.IsPrerelease))
+                if (!_feedSettings.CanOverwrite(feed, version.IsPrerelease))
                 {
                     return AlreadyExists(name, existing.Version);
                 }
@@ -274,7 +271,7 @@ public partial class CocoaPodsPackageService : ICocoaPodsPackageService
 
         try
         {
-            var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+            var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
             var podspec = await _upstream.GetPodspecOrNullAsync(feed, pod, listed, maxBytes, cancellationToken);
             if (podspec == null)
             {

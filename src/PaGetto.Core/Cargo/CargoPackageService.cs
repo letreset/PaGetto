@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -22,7 +21,6 @@ public partial class CargoPackageService : ICargoPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -159,9 +157,7 @@ public partial class CargoPackageService : ICargoPackageService
 
         if (existing != null)
         {
-            var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-            if (allowOverwrites == PackageOverwriteAllowed.False
-                || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !version.IsPrerelease))
+            if (!_feedSettings.CanOverwrite(feed, version.IsPrerelease))
             {
                 return AlreadyExists(publishedName, existing.Version);
             }
@@ -225,7 +221,7 @@ public partial class CargoPackageService : ICargoPackageService
 
         try
         {
-            using var crate = await _upstream.DownloadCrateOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
+            using var crate = await _upstream.DownloadCrateOrNullAsync(feed, upstream, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (crate == null)
             {
                 return false;
@@ -342,10 +338,6 @@ public partial class CargoPackageService : ICargoPackageService
         };
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A crate published to feed {FeedSlug} is invalid")]
     private partial void LogInvalidCrate(Exception exception, string feedSlug);

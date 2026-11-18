@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -21,7 +20,6 @@ public partial class HexPackageService : IHexPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
@@ -171,9 +169,7 @@ public partial class HexPackageService : IHexPackageService
 
         if (existing != null)
         {
-            var allowOverwrites = _feedSettings.GetAllowPackageOverwrites(feed);
-            if (allowOverwrites == PackageOverwriteAllowed.False
-                || (allowOverwrites == PackageOverwriteAllowed.PrereleaseOnly && !version.IsPrerelease))
+            if (!_feedSettings.CanOverwrite(feed, version.IsPrerelease))
             {
                 return AlreadyExists(name, existing.Version, $"Version {existing.Version} of package {name} already exists.");
             }
@@ -270,7 +266,7 @@ public partial class HexPackageService : IHexPackageService
 
         try
         {
-            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, name, upstream, GetMaxBytes(feed), cancellationToken);
+            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, name, upstream, _feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (tarball == null)
             {
                 return false;
@@ -408,10 +404,6 @@ public partial class HexPackageService : IHexPackageService
         return new HexPublishResult { Status = HexPublishStatus.AlreadyExists, Name = name, Version = version, Message = message };
     }
 
-    private long GetMaxBytes(Feed feed)
-    {
-        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
-    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A Hex package published to feed {FeedSlug} is invalid")]
     private partial void LogInvalidPackage(Exception exception, string feedSlug);

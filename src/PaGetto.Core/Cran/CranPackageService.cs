@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PaGetto.Core.Artifacts;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
@@ -196,7 +195,7 @@ public partial class CranPackageService : ICranPackageService
             if (existing != null)
             {
                 // R has no prereleases, so only a feed that allows every overwrite replaces a version.
-                if (_feedSettings.GetAllowPackageOverwrites(feed) != PackageOverwriteAllowed.True)
+                if (!_feedSettings.CanOverwrite(feed, isPrerelease: false))
                 {
                     return AlreadyExists(name, existing.Version);
                 }
@@ -288,7 +287,7 @@ public partial class CranPackageService : ICranPackageService
                 return null;
             }
 
-            var maxBytes = _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+            var maxBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
             using var content = await _upstream.DownloadOrNullAsync(feed, upstream, maxBytes, cancellationToken);
             if (content == null)
             {
