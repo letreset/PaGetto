@@ -90,6 +90,10 @@ An npm feed can mirror other npm registries. On the feed's settings page, add a 
 
 A mirror's credentials are only sent to the mirror itself, not to another host its tarballs are served from.
 
+### npm audit
+
+`npm audit` (and the audit that `npm install` runs) asks the feed's mirrors for the security advisories of the packages in use: the request goes to the first mirror that answers, such as registry.npmjs.org. The names of packages published to the feed are left out of it, so they never reach a mirror; the audit knows nothing about them. A feed without mirrors answers that there are no advisories, and when no mirror answers, `npm audit` reports an error (`npm install` carries on).
+
 :::tip
 
 With a mirror, set the feed as the `registry` for everything. Without one, use a scoped registry, so that public packages still come from npmjs.org.
@@ -111,7 +115,8 @@ Package names are stored in lowercase, so an older npmjs.org package with capita
 | Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: `npm unpublish` always removes the version |
 | Upload from the browser | Not available. Publish with `npm publish` |
-| `npm login`, `npm audit`, signatures | Not served. `npm install` carries on without the audit |
+| `npm login`, signatures | Not served |
+| `npm audit` | Answered by the feed's mirrors, without the feed's own packages. See [npm audit](#npm-audit) |
 | Search | `npm search` finds the packages stored in the feed, not those only a mirror has |
 
 The NuGet and pub APIs answer `404 Not Found` on an npm feed, and the npm API answers `404 Not Found` on other feeds.

@@ -94,6 +94,12 @@ public interface IArtifactDatabase
     Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Finds the names of the packages that have a version published to the feed rather than
+    /// stored from a mirror: the feed's own packages, whose names are not sent to mirrors.
+    /// </summary>
+    Task<IReadOnlyList<string>> FindPublishedNamesAsync(Guid feedId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Finds the packages whose name or description contains <paramref name="query"/>, ordered with
     /// name matches first. A null or empty query matches every package of the feed.
     /// </summary>

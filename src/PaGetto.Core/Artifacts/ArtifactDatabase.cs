@@ -237,6 +237,15 @@ public class ArtifactDatabase : IArtifactDatabase
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<string>> FindPublishedNamesAsync(Guid feedId, CancellationToken cancellationToken)
+    {
+        return await _context.ArtifactVersions
+            .Where(v => v.Artifact.FeedId == feedId && v.CachedFrom == null)
+            .Select(v => v.Artifact.Name)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken)
     {
         return await _context.Artifacts

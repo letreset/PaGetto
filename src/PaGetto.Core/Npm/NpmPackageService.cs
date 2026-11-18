@@ -138,6 +138,28 @@ public partial class NpmPackageService : INpmPackageService
         return await _storage.GetArchiveStreamAsync(feed.Slug, storedName, version, cancellationToken);
     }
 
+    public async Task<byte[]> GetAdvisoriesOrNullAsync(Feed feed, JsonObject request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(feed);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var published = (await _artifacts.FindPublishedNamesAsync(feed.Id, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        foreach (var name in request.Select(p => p.Key).ToList())
+        {
+            if (published.Contains(NpmPackageName.Normalize(name)))
+            {
+                request.Remove(name);
+            }
+        }
+
+        if (request.Count == 0 || _feedSettings.GetMirrorOptions(feed).Count == 0)
+        {
+            return "{}"u8.ToArray();
+        }
+
+        return await _upstream.GetAdvisoriesOrNullAsync(feed, JsonSerializer.SerializeToUtf8Bytes(request), cancellationToken);
+    }
+
     public async Task<NpmResult> PublishAsync(Feed feed, string name, JsonElement body, long maxTarballBytes, CancellationToken cancellationToken)
     {
         if (!NpmPackageName.IsValidForPublish(name))

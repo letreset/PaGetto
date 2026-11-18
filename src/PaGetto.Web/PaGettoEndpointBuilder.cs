@@ -196,6 +196,12 @@ public class PaGettoEndpointBuilder
             defaults: new { controller = "NpmPackage", action = "Search" },
             constraints: get);
 
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "npm/-/npm/v1/security/advisories/bulk",
+            defaults: new { controller = "NpmPackage", action = "Audit" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+
         // A scoped name is sent as one segment here: @scope%2fname.
         endpoints.MapControllerRoute(
             name: null,
