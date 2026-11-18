@@ -247,7 +247,7 @@ public class UploadModelFacts
             var result = await target.OnPostPackageAsync(Ct);
 
             AssertOutcome(result, 413, "too_large");
-            VerifyAudit(LogLevel.Warning, "package_upload_too_large", "Foo", "1.0.0", "alice");
+            VerifyAudit(LogLevel.Warning, "package_upload_too_large", null, null, "alice");
             Indexer.VerifyNoOtherCalls();
         }
 

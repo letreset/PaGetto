@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
@@ -27,7 +28,6 @@ namespace PaGetto.Web.Controllers;
 public partial class PubPackageController : Controller
 {
     private const string PubMediaType = "application/vnd.pub.v2+json";
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IPubPackageService _packages;
     private readonly IFeedContext _feedContext;
@@ -149,19 +149,11 @@ public partial class PubPackageController : Controller
 
         try
         {
-            using var archive = await Request.GetUploadStreamOrNullAsync(cancellationToken);
+            using var archive = await Request.GetUploadStreamOrNullAsync(_feedSettings.GetMaxPackageSizeBytes(feed), cancellationToken);
             if (archive == null || archive.Length == 0)
             {
                 await AuditAsync(LogLevel.Warning, "package_upload_invalid_package", null, null);
                 return FinishUploadRedirect(error: "The upload did not contain a package archive.");
-            }
-
-            // The server-wide request limit applies before the feed is known; a feed can only lower it.
-            var maxMiB = _feedSettings.GetMaxPackageSizeMiB(feed);
-            if (archive.Length > maxMiB * BytesPerMiB)
-            {
-                await AuditAsync(LogLevel.Warning, "package_upload_too_large", null, null);
-                return FinishUploadRedirect(error: $"The package is larger than the feed's limit of {maxMiB} MiB.");
             }
 
             var result = await _packages.PublishAsync(feed, archive, cancellationToken);
@@ -180,6 +172,11 @@ public partial class PubPackageController : Controller
                     await AuditAsync(LogLevel.Warning, "package_upload_invalid_package", result.Name, result.Version);
                     return FinishUploadRedirect(error: result.Message);
             }
+        }
+        catch (ArtifactFileTooLargeException e)
+        {
+            await AuditAsync(LogLevel.Warning, "package_upload_too_large", null, null);
+            return FinishUploadRedirect(error: e.Message);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

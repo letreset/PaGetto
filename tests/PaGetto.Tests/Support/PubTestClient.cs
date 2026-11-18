@@ -24,7 +24,11 @@ internal static class PubTestClient
     /// <summary>
     /// Creates a Dart feed, optionally with one mirror.
     /// </summary>
-    public static async Task<Feed> CreatePubFeedAsync(this WebApplicationFactory<Startup> factory, string slug, string mirrorSource = null)
+    public static async Task<Feed> CreatePubFeedAsync(
+        this WebApplicationFactory<Startup> factory,
+        string slug,
+        string mirrorSource = null,
+        Action<Feed> configure = null)
     {
         using var scope = factory.Services.CreateScope();
         var feedService = scope.ServiceProvider.GetRequiredService<IFeedService>();
@@ -34,6 +38,8 @@ internal static class PubTestClient
         {
             feed.Mirrors.Add(new FeedMirror { Enabled = true, PackageSource = mirrorSource });
         }
+
+        configure?.Invoke(feed);
 
         return await feedService.CreateFeedAsync(feed, CancellationToken.None);
     }
