@@ -1,6 +1,7 @@
 @page
 @using System.Linq
 @model PaGetto.Web.Pages.Admin.UserTokensModel
+@using PaGetto.Web.Helper
 
 @{
     ViewData["Title"] = $"Tokens of {Model.TargetUser.Username}";
@@ -48,7 +49,7 @@
                 <div style="flex: 1 1 200px; min-width: 0">
                     <div class="bgt-token-name">@token.Name <span class="bgt-slug ms-1" title="Token prefix">@token.TokenPrefix…</span></div>
                     <div class="bgt-token-sub">
-                        Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
+                        @TokenAccessText.Describe(token, Model.FeedNames) · Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
                     </div>
                 </div>
                 @if (token.IsRevoked)

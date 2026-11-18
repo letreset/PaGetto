@@ -92,6 +92,57 @@ public class FeedPermissionTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- Limited tokens ---
+
+    [Fact]
+    public async Task ReadOnlyPat_OfAUserWhoCanPush_CannotPush()
+    {
+        await _app.CreateFeedAsync(FeedA);
+        var (_, token) = await SeedUserWithPermissionsAsync(FeedA, canPush: true, canPull: true, TokenPermissions.ReadOnly);
+
+        using var push = await _client.SendAsync(BuildPushRequest($"feeds/{FeedA}/api/v2/package", token));
+        using var search = await _client.SendAsync(BuildGetRequest($"feeds/{FeedA}/v3/search", token));
+
+        // The user can see the feed, so the refusal is a 403.
+        Assert.Equal(HttpStatusCode.Forbidden, push.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, search.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReadOnlyPat_SentAsBasicPassword_CannotPush()
+    {
+        await _app.CreateFeedAsync(FeedA);
+        var (_, token) = await SeedUserWithPermissionsAsync(FeedA, canPush: true, canPull: true, TokenPermissions.ReadOnly);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, $"feeds/{FeedA}/api/v2/package");
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{LocalUsername}:{token}")));
+        request.Content = new ByteArrayContent([]);
+        using var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PatLimitedToFeedA_CannotPullFromFeedB()
+    {
+        await _app.CreateFeedAsync(FeedA);
+        await _app.CreateFeedAsync(FeedB);
+        var feedA = await GetFeedIdAsync(FeedA);
+        var (userId, token) = await SeedUserWithPermissionsAsync(FeedA, canPush: true, canPull: true, new TokenPermissions(true, true, feedA));
+        using (var scope = _app.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<IPermissionService>().GrantPermissionAsync(
+                userId, PrincipalType.User, await GetFeedIdAsync(FeedB), canPush: true, canPull: true, CancellationToken.None);
+        }
+
+        using var own = await _client.SendAsync(BuildGetRequest($"feeds/{FeedA}/v3/search", token));
+        using var other = await _client.SendAsync(BuildGetRequest($"feeds/{FeedB}/v3/search", token));
+
+        Assert.Equal(HttpStatusCode.OK, own.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, other.StatusCode);
+    }
+
     // --- Basic-auth flow ---
 
     [Fact]
@@ -173,8 +224,15 @@ public class FeedPermissionTests : IDisposable
         return request;
     }
 
+    private async Task<Guid> GetFeedIdAsync(string slug)
+    {
+        using var scope = _app.Services.CreateScope();
+        var feed = await scope.ServiceProvider.GetRequiredService<IFeedService>().GetFeedBySlugAsync(slug, CancellationToken.None);
+        return feed.Id;
+    }
+
     private async Task<(Guid userId, string plaintextToken)> SeedUserWithPermissionsAsync(
-        string feedSlug, bool canPush, bool canPull)
+        string feedSlug, bool canPush, bool canPull, TokenPermissions tokenPermissions = null)
     {
         using var scope = _app.Services.CreateScope();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
@@ -208,7 +266,7 @@ public class FeedPermissionTests : IDisposable
             CancellationToken.None);
 
         var result = await tokenService.CreateTokenAsync(
-            userId, $"token-{Guid.NewGuid():N}", DateTime.UtcNow.AddDays(30), CancellationToken.None);
+            userId, $"token-{Guid.NewGuid():N}", DateTime.UtcNow.AddDays(30), tokenPermissions ?? TokenPermissions.All, CancellationToken.None);
 
         return (userId, result.PlaintextToken);
     }

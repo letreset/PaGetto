@@ -138,6 +138,7 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<IUserService, UserService>();
         services.TryAddTransient<IGroupService, GroupService>();
         services.TryAddTransient<IPermissionService, PermissionService>();
+        services.TryAddScoped<RequestTokenScope>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();

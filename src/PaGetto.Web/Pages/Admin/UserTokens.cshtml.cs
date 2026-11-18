@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Feeds;
 using PaGetto.Core.Extensions;
 using PaGetto.Web.Audit;
 using Microsoft.AspNetCore.Authorization;
@@ -22,13 +23,15 @@ public class UserTokensModel : PageModel
 {
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
+    private readonly IFeedService _feedService;
     private readonly SystemTime _systemTime;
     private readonly WebAuditLog _audit;
 
-    public UserTokensModel(IUserService userService, ITokenService tokenService, SystemTime systemTime, WebAuditLog audit)
+    public UserTokensModel(IUserService userService, ITokenService tokenService, IFeedService feedService, SystemTime systemTime, WebAuditLog audit)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+        _feedService = feedService ?? throw new ArgumentNullException(nameof(feedService));
         _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
@@ -36,6 +39,11 @@ public class UserTokensModel : PageModel
     public User TargetUser { get; private set; }
     public List<PersonalAccessToken> Tokens { get; private set; } = new();
     public DateTime NowUtc { get; private set; }
+
+    /// <summary>
+    /// The names of all feeds by id, to describe the feed a token is limited to.
+    /// </summary>
+    public Dictionary<Guid, string> FeedNames { get; private set; } = new();
 
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
@@ -112,6 +120,7 @@ public class UserTokensModel : PageModel
             return false;
 
         Tokens = await _tokenService.GetUserTokensAsync(userId, cancellationToken);
+        FeedNames = (await _feedService.GetAllFeedsAsync(cancellationToken)).ToDictionary(f => f.Id, f => f.Name);
         NowUtc = _systemTime.UtcNow;
         return true;
     }

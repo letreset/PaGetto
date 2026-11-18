@@ -18,22 +18,26 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
 
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
+    private readonly RequestTokenScope _tokenScope;
     private readonly NugetAuthenticationOptions _authOptions;
     private readonly ILogger<FeedAuthenticationService> _logger;
 
     public FeedAuthenticationService(
         IUserService userService,
         ITokenService tokenService,
+        RequestTokenScope tokenScope,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions,
         ILogger<FeedAuthenticationService> logger)
     {
         ArgumentNullException.ThrowIfNull(userService);
         ArgumentNullException.ThrowIfNull(tokenService);
+        ArgumentNullException.ThrowIfNull(tokenScope);
         ArgumentNullException.ThrowIfNull(authOptions);
         ArgumentNullException.ThrowIfNull(logger);
 
         _userService = userService;
         _tokenService = tokenService;
+        _tokenScope = tokenScope;
         _authOptions = authOptions.Value;
         _logger = logger;
     }
@@ -49,6 +53,9 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
             LogTokenAuthenticationFailed("LoginFailure");
             return new AuthResult(false, null, null);
         }
+
+        // What the user may do in this request is limited to what the token allows.
+        _tokenScope.Use(pat);
 
         return new AuthResult(true, pat.UserId, pat.User.Username);
     }

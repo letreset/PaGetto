@@ -231,12 +231,12 @@ An anonymous request to `/feeds/{slug}/…` gets the same answer whether or not 
 
 Personal access tokens let users authenticate from NuGet clients and CI without their interactive credentials. They are available to Entra and local users.
 
-- Users create tokens on **My Tokens** (in the user menu), with a name and an expiry of 30, 60, 90 (the default), 180 or 365 days.
+- Users create tokens on **My Tokens** (in the user menu), with a name, an expiry of 30, 60, 90 (the default), 180 or 365 days, an **Access** (**Read only**, **Read and publish**, or **Read, publish and delete**, the default) and the **Feeds** it works with (**All feeds**, the default, or one feed the user can read).
 - Local accounts that can't sign in to the web UI (for example build agents) get their tokens from an administrator: **New token** on **Admin > Accounts**.
 - Users can only list and revoke their own tokens on **My Tokens**. Administrators list any user's tokens with **Tokens** in the account's **Actions** menu on **Admin > Accounts**, and revoke one of them or all active ones there. A revoked token is rejected on the next request.
 - The token (it starts with `bg_`) is shown only once, at creation time.
 - Tokens are stored as SHA-256 hashes, and can be revoked at any time.
-- A token acts as its owner: it has exactly the owner's permissions, and stops working when the owner is disabled or deleted.
+- A token acts as its owner, within its access and feeds: a read-only token of a user who can publish can only read, and a token of one feed can't read any other feed. It never has more than its owner's permissions, and stops working when the owner is disabled or deleted. Tokens created before tokens could be limited, and those from **New token** on **Admin > Accounts**, have all of their owner's permissions in every feed. A token never gives access to the web UI or the administration pages, which need a signed-in session.
 - A token created with **New token** on **Admin > Accounts** is written to the [audit log](configuration.md#audit-log) as `account_token_created`, and tokens an administrator revokes as `token_revoked` or `tokens_revoked_all`. Creating and revoking tokens on **My Tokens** is not: those are logged as `Audit: TokenCreated …` and `Audit: TokenRevoked …` lines at `Information` level, in the `PaGetto.Core.Authentication.TokenService` category, which the default `appsettings.json` doesn't log.
 
 ### Token expiry

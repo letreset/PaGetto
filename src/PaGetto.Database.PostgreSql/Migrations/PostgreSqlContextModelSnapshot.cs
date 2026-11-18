@@ -645,6 +645,12 @@ namespace PaGetto.Database.PostgreSql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanPush")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -653,6 +659,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
 
                     b.Property<int?>("ExpiryNotificationThresholdDays")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("FeedId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()

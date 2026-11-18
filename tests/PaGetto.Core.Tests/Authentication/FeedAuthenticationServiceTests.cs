@@ -61,6 +61,20 @@ public class FeedAuthenticationServiceTests
         }
 
         [Fact]
+        public async Task RecordsTheTokenThatLimitsTheRequest()
+        {
+            var target = CreateTarget(AuthenticationMode.Local);
+            var user = await CreateLocalUser("alice");
+            var created = await Tokens.CreateTokenAsync(user.Id, "ci", DateTime.UtcNow.AddDays(30), TokenPermissions.ReadOnly, Ct);
+
+            var result = await target.AuthenticateByCredentialsAsync("alice", created.PlaintextToken, Ct);
+
+            Assert.True(result.IsAuthenticated);
+            Assert.Equal(created.Token.Id, TokenScope.Token?.Id);
+            Assert.False(TokenScope.AllowsPush(user.Id, Guid.NewGuid()));
+        }
+
+        [Fact]
         public async Task RejectsRevokedToken()
         {
             var target = CreateTarget(AuthenticationMode.Local);
@@ -181,11 +195,14 @@ public class FeedAuthenticationServiceTests
             Tokens = new TokenService(Context, options, Mock.Of<ILogger<TokenService>>());
         }
 
+        protected RequestTokenScope TokenScope { get; } = new();
+
         protected FeedAuthenticationService CreateTarget(AuthenticationMode mode)
         {
             return new FeedAuthenticationService(
                 Users,
                 Tokens,
+                TokenScope,
                 CreateOptions(mode),
                 Mock.Of<ILogger<FeedAuthenticationService>>());
         }

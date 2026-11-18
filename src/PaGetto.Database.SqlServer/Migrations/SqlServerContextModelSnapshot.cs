@@ -646,6 +646,12 @@ namespace PaGetto.Database.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanPush")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -654,6 +660,9 @@ namespace PaGetto.Database.SqlServer.Migrations
 
                     b.Property<int?>("ExpiryNotificationThresholdDays")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("FeedId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()

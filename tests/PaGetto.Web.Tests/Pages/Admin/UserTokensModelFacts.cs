@@ -7,6 +7,7 @@ using PaGetto.Core.Audit;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
+using PaGetto.Core.Feeds;
 using PaGetto.Web.Pages.Admin;
 using PaGetto.Web.Tests.Audit;
 using Microsoft.AspNetCore.Http;
@@ -192,7 +193,10 @@ public class UserTokensModelFacts
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
                 new[] { new Claim(ClaimTypes.NameIdentifier, signedInUserId.ToString()), new Claim(ClaimTypes.Name, "admin") }, "TestAuth"));
 
-            return new UserTokensModel(_users.Object, _tokens.Object, time.Object, TestWebAuditLog.Create(auditEvents: _auditEvents.Object))
+            var feeds = new Mock<IFeedService>();
+            feeds.Setup(f => f.GetAllFeedsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+            return new UserTokensModel(_users.Object, _tokens.Object, feeds.Object, time.Object, TestWebAuditLog.Create(auditEvents: _auditEvents.Object))
             {
                 PageContext = new PageContext(new ActionContext(
                     new DefaultHttpContext { User = principal },

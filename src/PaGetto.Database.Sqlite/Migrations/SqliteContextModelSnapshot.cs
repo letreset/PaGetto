@@ -623,6 +623,12 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanPush")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
@@ -631,6 +637,9 @@ namespace PaGetto.Database.Sqlite.Migrations
 
                     b.Property<int?>("ExpiryNotificationThresholdDays")
                         .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("FeedId")
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()

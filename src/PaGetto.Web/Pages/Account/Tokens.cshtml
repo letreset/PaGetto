@@ -1,5 +1,7 @@
 @page
 @model PaGetto.Web.Pages.Account.TokensModel
+@using PaGetto.Web.Helper
+@using PaGetto.Web.Pages.Account
 
 @{
     ViewData["Title"] = "Personal Access Tokens";
@@ -8,7 +10,7 @@
 <div class="bgt-narrow bgt-stack">
     <div>
         <h1>Personal access tokens</h1>
-        <p class="bgt-lead">Use a token as the password / API key for NuGet clients and CI pipelines.</p>
+        <p class="bgt-lead">Use a token as the password or API key of package clients and CI pipelines. A token can do what you can do, or less: limit it to reading, or to one feed.</p>
     </div>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -37,6 +39,24 @@
                     @if (Model.MaxTokenExpiryDays >= 365)
                     {
                         <option value="365">1 year</option>
+                    }
+                </select>
+            </div>
+            <div class="bgt-f-access">
+                <label asp-for="Access" class="form-label">Access</label>
+                <select asp-for="Access" class="form-select">
+                    <option value="@TokensModel.TokenAccess.Read">Read only</option>
+                    <option value="@TokensModel.TokenAccess.Publish">Read and publish</option>
+                    <option value="@TokensModel.TokenAccess.PublishAndDelete">Read, publish and delete</option>
+                </select>
+            </div>
+            <div class="bgt-f-feed">
+                <label asp-for="FeedId" class="form-label">Feeds</label>
+                <select asp-for="FeedId" class="form-select">
+                    <option value="">All feeds</option>
+                    @foreach (var feed in Model.Feeds)
+                    {
+                        <option value="@feed.Id">@feed.Name</option>
                     }
                 </select>
             </div>
@@ -73,7 +93,7 @@
                     <div style="flex: 1 1 200px; min-width: 0">
                         <div class="bgt-token-name">@token.Name <span class="bgt-slug ms-1" title="Token prefix">@token.TokenPrefix…</span></div>
                         <div class="bgt-token-sub">
-                            Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
+                            @TokenAccessText.Describe(token, Model.FeedNames) · Created @Html.DisplayDate(token.CreatedAtUtc) · Last used @if (token.LastUsedAtUtc.HasValue) { @Html.DisplayDate(token.LastUsedAtUtc.Value) } else { <text>never</text> }
                         </div>
                     </div>
                     @if (token.IsRevoked)

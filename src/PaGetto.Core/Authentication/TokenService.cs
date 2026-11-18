@@ -33,12 +33,24 @@ public partial class TokenService : ITokenService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<TokenCreateResult> CreateTokenAsync(
+    public Task<TokenCreateResult> CreateTokenAsync(
         Guid userId,
         string name,
         DateTime expiresAtUtc,
         CancellationToken cancellationToken)
     {
+        return CreateTokenAsync(userId, name, expiresAtUtc, TokenPermissions.All, cancellationToken);
+    }
+
+    public async Task<TokenCreateResult> CreateTokenAsync(
+        Guid userId,
+        string name,
+        DateTime expiresAtUtc,
+        TokenPermissions permissions,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(permissions);
+
         if (expiresAtUtc <= DateTime.UtcNow)
         {
             throw new ArgumentException("Token expiry must be in the future.");
@@ -71,7 +83,10 @@ public partial class TokenService : ITokenService
             TokenPrefix = plaintextToken[..TokenPrefixStoredLength],
             ExpiresAtUtc = expiresAtUtc,
             CreatedAtUtc = now,
-            IsRevoked = false
+            IsRevoked = false,
+            CanPush = permissions.CanPush,
+            CanDelete = permissions.CanDelete,
+            FeedId = permissions.FeedId,
         };
 
         _context.PersonalAccessTokens.Add(token);
