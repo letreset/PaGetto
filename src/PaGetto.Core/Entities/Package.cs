@@ -35,6 +35,13 @@ public class Package
     public string[] Authors { get; set; }
     public string Description { get; set; }
     public long Downloads { get; set; }
+
+    /// <summary>
+    /// When the package was last downloaded, or null if it hasn't been since this was recorded.
+    /// A package stored from a mirror that isn't downloaded for the feed's
+    /// <see cref="Feed.MirrorCacheRetentionDays"/> is removed.
+    /// </summary>
+    public DateTime? LastDownloadedAtUtc { get; set; }
     public bool HasReadme { get; set; }
     public bool HasEmbeddedIcon { get; set; }
     public bool IsPrerelease { get; set; }

@@ -139,7 +139,7 @@ Users with the **delete** permission can **retire** a version (with the reason `
 
 | | Hex feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: Hex retires rather than deletes |
 | Upload from the browser | Not available. Publish with `mix hex.publish package` |
 | Documentation | Not hosted. Publish packages without docs |

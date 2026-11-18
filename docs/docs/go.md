@@ -115,7 +115,7 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 
 | | Go feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available |
 | Upload from the browser | Not available. Upload with `curl` or another HTTP client |
 | Retractions | Not checked by the feed: the go command reads the `retract` directives of the latest `go.mod` itself |

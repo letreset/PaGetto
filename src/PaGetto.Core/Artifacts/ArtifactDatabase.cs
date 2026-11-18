@@ -230,8 +230,11 @@ public class ArtifactDatabase : IArtifactDatabase
     public async Task AddDownloadAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
         // A single UPDATE statement, so concurrent downloads don't overwrite each other's increments.
+        var now = _time.UtcNow;
         await Versions(feedId, name, version)
-            .ExecuteUpdateAsync(s => s.SetProperty(v => v.Downloads, v => v.Downloads + 1), cancellationToken);
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(v => v.Downloads, v => v.Downloads + 1).SetProperty(v => v.LastDownloadedAtUtc, now),
+                cancellationToken);
     }
 
     public async Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken)

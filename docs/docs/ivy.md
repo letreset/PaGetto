@@ -113,7 +113,7 @@ Users with the **delete** permission can **unlist** a revision, which leaves it 
 
 | | Ivy feeds |
 |---|---|
-| Retention | Not available. Old revisions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: there is no delete in the repository layout |
 | Upload from the browser | Not available. Publish with sbt |
 | Branches | Not supported |

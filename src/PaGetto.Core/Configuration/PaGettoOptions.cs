@@ -81,6 +81,13 @@ public class PaGettoOptions
     /// </summary>
     public int UpstreamListingCacheSeconds { get; set; } = 300;
 
+    /// <summary>
+    /// After how many days without a download a package version stored from a mirror is removed;
+    /// it is mirrored again when it is next requested. 0 (the default) keeps them forever. This is
+    /// the default for feeds that don't override it in their settings.
+    /// </summary>
+    public int MirrorCacheRetentionDays { get; set; }
+
     public RetentionOptions Retention { get; set; }
 
     public DatabaseOptions Database { get; set; }

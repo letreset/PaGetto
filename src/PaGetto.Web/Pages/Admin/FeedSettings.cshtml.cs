@@ -110,6 +110,12 @@ public class FeedSettingsModel : PageModel
     [BindProperty]
     public bool UseGlobalListingCache { get; set; }
 
+    [BindProperty]
+    public int? MirrorCacheRetentionDays { get; set; }
+
+    [BindProperty]
+    public bool UseGlobalMirrorCacheRetention { get; set; }
+
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
 
@@ -160,6 +166,9 @@ public class FeedSettingsModel : PageModel
 
         UseGlobalListingCache = !feed.UpstreamListingCacheSeconds.HasValue;
         UpstreamListingCacheSeconds = feed.UpstreamListingCacheSeconds;
+
+        UseGlobalMirrorCacheRetention = !feed.MirrorCacheRetentionDays.HasValue;
+        MirrorCacheRetentionDays = feed.MirrorCacheRetentionDays;
 
         // Secrets (Password/Token) are NOT populated; use the "leave blank to keep" pattern
         Mirrors = feed.Mirrors
@@ -362,6 +371,7 @@ public class FeedSettingsModel : PageModel
         Feed.RetentionDeletePrereleasesOfOlderMajors = UseGlobalRetentionOlderMajorPrereleases ? null : RetentionDeletePrereleasesOfOlderMajors;
 
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
+        Feed.MirrorCacheRetentionDays = UseGlobalMirrorCacheRetention ? null : MirrorCacheRetentionDays;
 
         await ApplyMirrorsAsync();
 
@@ -392,6 +402,8 @@ public class FeedSettingsModel : PageModel
             "The number of prerelease versions to keep must be 0 or more.");
         ValidateOverride(UseGlobalListingCache, nameof(UpstreamListingCacheSeconds), UpstreamListingCacheSeconds, 0,
             "The upstream listing cache duration must be 0 or more seconds.");
+        ValidateOverride(UseGlobalMirrorCacheRetention, nameof(MirrorCacheRetentionDays), MirrorCacheRetentionDays, 0,
+            "The days to keep unused mirrored versions must be 0 or more.");
 
         for (var i = 0; i < Mirrors.Count; i++)
         {

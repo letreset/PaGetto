@@ -27,6 +27,7 @@ using PaGetto.Core.Npm;
 using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
+using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
@@ -139,6 +140,7 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<IGroupService, GroupService>();
         services.TryAddTransient<IPermissionService, PermissionService>();
         services.TryAddScoped<RequestTokenScope>();
+        services.TryAddScoped<RetentionCleaner>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();

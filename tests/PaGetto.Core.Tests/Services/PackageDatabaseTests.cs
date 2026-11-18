@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Extensions;
 using Moq;
 using Xunit;
 
@@ -198,7 +199,7 @@ public class PackageDatabaseTests
         public FactsBase()
         {
             Context = new Mock<IContext>();
-            Target = new PackageDatabase(Context.Object);
+            Target = new PackageDatabase(Context.Object, new SystemTime());
         }
     }
 }

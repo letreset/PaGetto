@@ -152,6 +152,20 @@ Packages deleted are always the oldest based on version numbers. The version tha
 
 `MaxVersionsPerPackage`, a retention setting of older versions, is no longer read; use the `Retention` settings instead.
 
+The `Retention` section is the default of NuGet feeds. Feeds of the other types only apply the limits set on their own settings page, so a server that already limits its NuGet feeds doesn't start removing versions of its other feeds. There the limits are applied within an hour rather than on push: the major, minor and patch of a version are its first three numbers (`v1.2.3`, `1.2-3` and `1.2` all qualify), prereleases are those the ecosystem calls prereleases and are limited per patch in the ecosystem's version order, a version that doesn't start with a number (such as Composer's `dev-main`) is never removed, and neither is the newest version of a package.
+
+### Unused mirrored packages
+
+A feed with a mirror stores every package version a client downloads through it, and keeps it. `MirrorCacheRetentionDays` removes the versions stored from a mirror that haven't been downloaded for that many days; a removed version is mirrored again when it is next requested. Packages published to the feed are never removed by it. The default, `0`, keeps them forever, and a feed can set its own value under **Unused mirrored versions** on its settings page. The check runs a minute after startup and then every hour; versions mirrored before this setting existed count from the first check.
+
+```json
+{
+    ...
+    "MirrorCacheRetentionDays": 90
+    ...
+}
+```
+
 ## Enable package overwrites
 
 Normally, PaGetto will reject a package upload if the id and version are already taken. This is to maintain the [immutability of semantically versioned packages](https://learn.microsoft.com/azure/devops/artifacts/artifacts-key-concepts?view=azure-devops#immutability).

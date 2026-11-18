@@ -56,7 +56,7 @@ public class WebUiMavenFeedTests : IDisposable
         var settings = await admin.GetStringAsync("/Admin/Feeds/jvm/Settings");
         Assert.Contains("https://repo.maven.apache.org/maven2", settings);
         Assert.Contains("Files of SNAPSHOT versions are always replaced.", settings);
-        Assert.DoesNotContain("id=\"retention\"", settings);
+        Assert.Contains("are removed within an hour", settings);
     }
 
     [Fact]

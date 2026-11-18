@@ -117,8 +117,11 @@
     };
     var deletionLabel = global.PackageDeletionBehavior == PackageDeletionBehavior.HardDelete ? "Hard delete" : "Unlist";
 
-    // Retention, the deletion behavior of the NuGet API and the NuGet V2 protocol only exist for NuGet feeds.
+    // The deletion behavior of the NuGet API and the NuGet V2 protocol only exist for NuGet feeds.
     var isNuGet = Model.Feed?.Type == FeedType.NuGet;
+
+    // The global retention limits are those of NuGet feeds; other feeds only have their own.
+    var retentionDefaults = isNuGet ? global.Retention : null;
 
     // A post that comes back without "saved" was refused, and the form holds the values it didn't save.
     var hasUnsavedInput = Microsoft.AspNetCore.Http.HttpMethods.IsPost(ViewContext.HttpContext.Request.Method) && string.IsNullOrEmpty(Model.SuccessMessage);
@@ -149,10 +152,7 @@
     <nav class="bgt-settings-nav" aria-label="Sections">
         <a href="#general">General</a>
         <a href="#package-behavior">Package behavior</a>
-        @if (isNuGet)
-        {
-            <a href="#retention">Retention</a>
-        }
+        <a href="#retention">Retention</a>
         <a href="#mirrors">Mirrors</a>
     </nav>
 
@@ -251,45 +251,54 @@
             </div>
         </section>
 
-        @if (isNuGet)
-        {
         <section id="retention" class="bgt-card bgt-card-clip">
             <div class="bgt-section-head">
                 <div>
                     <h2>Retention</h2>
-                    <p>Older versions beyond these limits are removed when a new version is pushed. Empty means unlimited.</p>
+                    @if (isNuGet)
+                    {
+                        <p>Older versions beyond these limits are removed when a new version is pushed. Empty means unlimited.</p>
+                    }
+                    else
+                    {
+                        <p>
+                            Older versions beyond these limits are removed within an hour. The major, minor and patch
+                            are the first three numbers of a version; a version that doesn't start with a number is kept,
+                            and so is the newest version of each package. Empty means unlimited.
+                        </p>
+                    }
                 </div>
             </div>
             <div class="bgt-setting">
                 <div class="bgt-setting-label"><label asp-for="RetentionMaxMajorVersions">Max major versions to keep</label></div>
                 <div class="bgt-setting-control">
-                    <input asp-for="RetentionMaxMajorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxMajorVersions)" />
+                    <input asp-for="RetentionMaxMajorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(retentionDefaults?.MaxMajorVersions)" />
                     <span asp-validation-for="RetentionMaxMajorVersions" class="text-danger"></span>
-                    @{ Inherit(nameof(Model.UseGlobalRetentionMajor), Model.UseGlobalRetentionMajor, nameof(Model.RetentionMaxMajorVersions), Limit(global.Retention?.MaxMajorVersions)); }
+                    @{ Inherit(nameof(Model.UseGlobalRetentionMajor), Model.UseGlobalRetentionMajor, nameof(Model.RetentionMaxMajorVersions), Limit(retentionDefaults?.MaxMajorVersions)); }
                 </div>
             </div>
             <div class="bgt-setting">
                 <div class="bgt-setting-label"><label asp-for="RetentionMaxMinorVersions">Max minor versions per major</label></div>
                 <div class="bgt-setting-control">
-                    <input asp-for="RetentionMaxMinorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxMinorVersions)" />
+                    <input asp-for="RetentionMaxMinorVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(retentionDefaults?.MaxMinorVersions)" />
                     <span asp-validation-for="RetentionMaxMinorVersions" class="text-danger"></span>
-                    @{ Inherit(nameof(Model.UseGlobalRetentionMinor), Model.UseGlobalRetentionMinor, nameof(Model.RetentionMaxMinorVersions), Limit(global.Retention?.MaxMinorVersions)); }
+                    @{ Inherit(nameof(Model.UseGlobalRetentionMinor), Model.UseGlobalRetentionMinor, nameof(Model.RetentionMaxMinorVersions), Limit(retentionDefaults?.MaxMinorVersions)); }
                 </div>
             </div>
             <div class="bgt-setting">
                 <div class="bgt-setting-label"><label asp-for="RetentionMaxPatchVersions">Max patch versions per minor</label></div>
                 <div class="bgt-setting-control">
-                    <input asp-for="RetentionMaxPatchVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxPatchVersions)" />
+                    <input asp-for="RetentionMaxPatchVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(retentionDefaults?.MaxPatchVersions)" />
                     <span asp-validation-for="RetentionMaxPatchVersions" class="text-danger"></span>
-                    @{ Inherit(nameof(Model.UseGlobalRetentionPatch), Model.UseGlobalRetentionPatch, nameof(Model.RetentionMaxPatchVersions), Limit(global.Retention?.MaxPatchVersions)); }
+                    @{ Inherit(nameof(Model.UseGlobalRetentionPatch), Model.UseGlobalRetentionPatch, nameof(Model.RetentionMaxPatchVersions), Limit(retentionDefaults?.MaxPatchVersions)); }
                 </div>
             </div>
             <div class="bgt-setting">
                 <div class="bgt-setting-label"><label asp-for="RetentionMaxPrereleaseVersions">Max prerelease versions per patch</label></div>
                 <div class="bgt-setting-control">
-                    <input asp-for="RetentionMaxPrereleaseVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(global.Retention?.MaxPrereleaseVersions)" />
+                    <input asp-for="RetentionMaxPrereleaseVersions" type="number" min="0" class="form-control bgt-num" placeholder="@Limit(retentionDefaults?.MaxPrereleaseVersions)" />
                     <span asp-validation-for="RetentionMaxPrereleaseVersions" class="text-danger"></span>
-                    @{ Inherit(nameof(Model.UseGlobalRetentionPrerelease), Model.UseGlobalRetentionPrerelease, nameof(Model.RetentionMaxPrereleaseVersions), Limit(global.Retention?.MaxPrereleaseVersions)); }
+                    @{ Inherit(nameof(Model.UseGlobalRetentionPrerelease), Model.UseGlobalRetentionPrerelease, nameof(Model.RetentionMaxPrereleaseVersions), Limit(retentionDefaults?.MaxPrereleaseVersions)); }
                 </div>
             </div>
             <div class="bgt-setting">
@@ -300,15 +309,14 @@
                 <div class="bgt-setting-control">
                     <label class="form-check form-switch">
                         @* Rendered by hand like the read-only switch: asp-for renders a bool? as a text input. *@
-                        <input type="checkbox" class="form-check-input" role="switch" id="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" name="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" value="true" checked="@(Model.RetentionDeletePrereleasesOfOlderMajors == true)" data-global-value="@(global.Retention?.DeletePrereleasesOfOlderMajors == true ? "true" : "false")" />
+                        <input type="checkbox" class="form-check-input" role="switch" id="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" name="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" value="true" checked="@(Model.RetentionDeletePrereleasesOfOlderMajors == true)" data-global-value="@(retentionDefaults?.DeletePrereleasesOfOlderMajors == true ? "true" : "false")" />
                         <span class="form-check-label">Delete</span>
                     </label>
                     <input type="hidden" name="@nameof(Model.RetentionDeletePrereleasesOfOlderMajors)" value="false" />
-                    @{ Inherit(nameof(Model.UseGlobalRetentionOlderMajorPrereleases), Model.UseGlobalRetentionOlderMajorPrereleases, nameof(Model.RetentionDeletePrereleasesOfOlderMajors), global.Retention?.DeletePrereleasesOfOlderMajors == true ? "Enabled" : "Disabled"); }
+                    @{ Inherit(nameof(Model.UseGlobalRetentionOlderMajorPrereleases), Model.UseGlobalRetentionOlderMajorPrereleases, nameof(Model.RetentionDeletePrereleasesOfOlderMajors), retentionDefaults?.DeletePrereleasesOfOlderMajors == true ? "Enabled" : "Disabled"); }
                 </div>
             </div>
         </section>
-        }
 
         <section id="mirrors" class="bgt-card bgt-card-clip">
             <div class="bgt-section-head">
@@ -453,6 +461,24 @@
                     </div>
                     <span asp-validation-for="UpstreamListingCacheSeconds" class="text-danger"></span>
                     @{ Inherit(nameof(Model.UseGlobalListingCache), Model.UseGlobalListingCache, nameof(Model.UpstreamListingCacheSeconds), global.UpstreamListingCacheSeconds + " seconds"); }
+                </div>
+            </div>
+
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <label asp-for="MirrorCacheRetentionDays">Unused mirrored versions</label>
+                    <div class="bgt-setting-help">
+                        Versions stored from a mirror that aren't downloaded for this many days are removed, and
+                        mirrored again when they are next requested. 0 keeps them.
+                    </div>
+                </div>
+                <div class="bgt-setting-control">
+                    <div class="bgt-with-unit">
+                        <input asp-for="MirrorCacheRetentionDays" type="number" min="0" class="form-control bgt-num" placeholder="@global.MirrorCacheRetentionDays" />
+                        <span class="bgt-unit">days</span>
+                    </div>
+                    <span asp-validation-for="MirrorCacheRetentionDays" class="text-danger"></span>
+                    @{ Inherit(nameof(Model.UseGlobalMirrorCacheRetention), Model.UseGlobalMirrorCacheRetention, nameof(Model.MirrorCacheRetentionDays), global.MirrorCacheRetentionDays == 0 ? "Keep" : global.MirrorCacheRetentionDays + " days"); }
                 </div>
             </div>
         </section>

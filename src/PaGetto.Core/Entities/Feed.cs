@@ -32,6 +32,13 @@ public class Feed
     public bool? RetentionDeletePrereleasesOfOlderMajors { get; set; }
     public int? UpstreamListingCacheSeconds { get; set; }
 
+    /// <summary>
+    /// After how many days without a download a version stored from a mirror is removed; it is
+    /// mirrored again when it is next requested. 0 keeps them; null uses
+    /// <see cref="Configuration.PaGettoOptions.MirrorCacheRetentionDays"/>.
+    /// </summary>
+    public int? MirrorCacheRetentionDays { get; set; }
+
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 

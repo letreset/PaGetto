@@ -108,7 +108,7 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 
 | | Rust feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: Cargo yanks rather than deletes |
 | Upload from the browser | Not available. Publish with `cargo publish` |
 | Owners | Not available. The feed's permissions decide who may publish and yank |

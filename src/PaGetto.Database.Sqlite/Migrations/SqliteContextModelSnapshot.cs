@@ -147,6 +147,9 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Property<bool>("IsPrerelease")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("Listed")
                         .HasColumnType("INTEGER");
 
@@ -249,6 +252,9 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<uint?>("MaxPackageSizeMiB")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MirrorCacheRetentionDays")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -478,6 +484,9 @@ namespace PaGetto.Database.Sqlite.Migrations
 
                     b.Property<string>("Language")
                         .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LicenseExpression")

@@ -11,6 +11,7 @@ using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Notifications;
+using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.Storage;
 using PaGetto.Database.MySql;
@@ -72,6 +73,9 @@ public class Startup
 
         // Deletes audit events older than Audit:RetentionDays.
         services.AddHostedService<AuditRetentionService>();
+
+        // Removes unused mirrored versions and versions beyond the retention limits of artifact feeds.
+        services.AddHostedService<RetentionCleanupService>();
 
         services.AddHealthChecks();
 
