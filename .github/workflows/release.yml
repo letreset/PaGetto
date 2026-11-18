@@ -125,7 +125,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.DOCKER_IMAGE }}
-          short-description: Lightweight NuGet and symbol server with multi-feed, per-feed permissions and Entra ID sign-in.
+          short-description: Lightweight package server for NuGet, npm, Maven, PyPI, Cargo, Go and 9 more, with registry mirrors.
           readme-filepath: ./DOCKERHUB.md
 
   helm:

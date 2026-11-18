@@ -1,32 +1,40 @@
 ![PaGetto: a lightweight, self-hosted package server](docs/static/img/social-preview.png)
 
-A lightweight package server written in C#: self-hosted, cross-platform and cloud ready. One server hosts [NuGet] packages and [symbols][symbol], npm, Maven, Python, Rust, Go, Ruby, Dart, Hex, PHP, CocoaPods, Swift, R and sbt packages and Visual Studio extensions, each ecosystem in its own feeds and with a read-through mirror of its public registry.
+A lightweight package server written in C#: self-hosted, cross-platform and cloud ready. One server hosts the packages of 15 ecosystems, from [NuGet] (with a [symbol] server) and npm to Maven, Python, Rust and Go, each in its own feeds and with a read-through mirror of its public registry.
 
 PaGetto started as a fork of [BaGetter], a NuGet server. It has a redesigned web UI, a reworked code base and new features such as more package formats, multiple feeds, user and permission management, and Microsoft Entra ID sign-in. Coming from BaGetter? The [migration guide][Migration] shows how to move an existing installation over.
 
 [![CI][CI badge]][CI link] [![Release][Release badge]][Release link] [![Docker][Docker badge]][Docker link] [![Docs][Docs badge]][Documentation]
 
+## 🧩 Package formats
+
+Each feed hosts one package format and speaks its protocol, so the standard clients work with nothing more than the feed's URL and a token.
+
+| Languages | Package format | Clients | Mirror of |
+|---|---|---|---|
+| C#, F#, Visual Basic (.NET) | [NuGet][Docs NuGet], with symbols (`.snupkg`) | dotnet CLI, NuGet CLI, Visual Studio, Rider, Paket | nuget.org, any NuGet v3 or v2 feed |
+| JavaScript, TypeScript | [npm][Docs npm] | npm, Yarn, pnpm | registry.npmjs.org |
+| Java, Kotlin, Scala, Groovy | [Maven][Docs Maven] | Maven, Gradle, sbt | Maven Central |
+| Python | [PyPI][Docs PyPI] (simple API) | pip, uv, Poetry, twine | PyPI |
+| Rust | [Cargo][Docs Cargo] (sparse registry) | Cargo | crates.io |
+| Go | [Go modules][Docs Go] (GOPROXY) | go command | proxy.golang.org |
+| Ruby | [RubyGems][Docs RubyGems] (compact index) | Bundler, gem | rubygems.org |
+| PHP | [Composer][Docs Composer] | Composer | Packagist |
+| Dart, Flutter | [pub][Docs Dart] | `dart pub`, `flutter pub` | pub.dev |
+| Elixir, Erlang | [Hex][Docs Hex] | Mix, Rebar3 | hex.pm |
+| Swift, Objective-C | [CocoaPods][Docs CocoaPods] (CDN spec repository) | CocoaPods | cdn.cocoapods.org |
+| Swift | [Swift package registry][Docs Swift] | Swift Package Manager, Xcode | other Swift package registries |
+| R | [CRAN][Docs CRAN] (source packages) | `install.packages`, renv | CRAN |
+| Scala (sbt) | [Ivy][Docs Ivy] (sbt's Ivy layout) | sbt | the sbt plugin repository |
+| Visual Studio extensions | [VSIX][Docs VSIX] (private extension gallery) | Visual Studio | other extension galleries |
+
 ## 📦 Features
 
-* **Multiple feeds**: each feed serves one ecosystem under `/feeds/{slug}/`, with its own packages, settings, retention, permissions, webhook and read-through mirrors.
-* **NuGet packages and symbols**: a feed can be a NuGet v3 feed for the dotnet CLI, Visual Studio, Rider and Paket, with a symbol server for `.snupkg` and a mirror of nuget.org.
-* **Dart and Flutter packages**: a feed can be a hosted pub repository for `dart pub` and `flutter pub`, with a mirror of pub.dev.
-* **npm packages**: a feed can be an npm registry for npm, Yarn and pnpm, with scoped packages, dist-tags and a mirror of registry.npmjs.org.
-* **Maven packages**: a feed can be a Maven repository for Maven, Gradle and sbt (Java, Kotlin, Scala), with snapshots and a mirror of Maven Central.
-* **Python packages**: a feed can be a package index for pip, uv, Poetry and twine, with wheels, sdists, yanked versions and a mirror of PyPI.
-* **Rust crates**: a feed can be a Cargo registry with the sparse protocol, for installing, `cargo publish` and `cargo yank`, with a mirror of crates.io.
-* **Go modules**: a feed can be a Go module proxy (GOPROXY) for `go get`, with uploads of module zips and a mirror of proxy.golang.org.
-* **Ruby gems**: a feed can be a gem server with the compact index for Bundler and `gem install`, with `gem push`, `gem yank`, platform gems and a mirror of rubygems.org.
-* **Hex packages**: a feed can be a Hex repository for Elixir and Erlang, with a signed registry for Mix and Rebar3, `mix hex.publish`, `mix hex.retire` and a mirror of hex.pm.
-* **PHP packages**: a feed can be a Composer repository, with uploads of package zips and a mirror of Packagist.
-* **CocoaPods pods**: a feed can be a CocoaPods spec repository in the CDN format for `pod install`, with a publish endpoint for podspecs and their source archives and a mirror of cdn.cocoapods.org.
-* **Swift packages**: a feed can be a Swift package registry for Swift Package Manager and Xcode, with `swift package-registry publish`, signed packages and a mirror of another registry.
-* **R packages**: a feed can be a CRAN-like repository of source packages for `install.packages` and renv, with uploads of source packages and a mirror of CRAN.
-* **Ivy repositories for sbt**: a feed can be an Ivy repository in sbt's Ivy layout for sbt plugins and libraries, with `sbt publish`, dynamic revisions and a mirror of the sbt plugin repository.
-* **Visual Studio extensions**: a feed can be a private extension gallery for Visual Studio, with uploads of VSIX files, update notifications in Visual Studio and a mirror of other galleries.
-* **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
-* **Admin UI** for feeds, accounts and groups.
-* **Offline support**: [mirror the public registries][Read through caching] (nuget.org, npmjs, Maven Central, PyPI, crates.io and more), several upstreams per feed.
+* **Multiple feeds**: each feed serves one package format under `/feeds/{slug}/`, with its own packages, settings, retention, permissions, webhook and read-through mirrors.
+* **Read-through mirrors**: [mirror the public registries][Read through caching], several upstreams per feed in order, so builds keep working when an upstream is down.
+* **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
+* **Web UI** to browse every feed, with readmes and install commands per client, and admin pages for feeds, accounts and groups.
+* **Operations**: retention per feed, webhooks, an audit log, health checks and OpenTelemetry metrics.
 * **Pluggable backends**: SQLite, SQL Server, PostgreSQL or MySQL; the file system, Azure Blob, AWS S3, Google Cloud Storage, Aliyun OSS or Tencent COS.
 * **Runs anywhere**: Windows, Linux and macOS, x64 and ARM64, Docker, Kubernetes (Helm) or IIS.
 
@@ -38,7 +46,7 @@ PaGetto started as a fork of [BaGetter], a NuGet server. It has a redesigned web
 docker run -d -p 5000:8080 -v pagetto-data:/data letreset/pagetto:latest
 ```
 
-Then browse to `http://localhost:5000/`.
+Then browse to `http://localhost:5000/` and sign in as `admin` with the password `admin`; PaGetto asks for a new password first. Create a feed for each package format you use under **Admin > Feeds**, and a token under **My Tokens** for your clients.
 
 **Kubernetes**
 
@@ -52,7 +60,7 @@ helm install pagetto oci://ghcr.io/letreset/charts/pagetto --version <version>
 2. Download and extract `pagetto-<version>.zip` from the [latest release][Release link].
 3. Run `dotnet PaGetto.dll`, or point an IIS site at the extracted folder.
 
-See the [documentation] for configuration, authentication and cloud deployments.
+See the [documentation] for connecting each client, configuration, authentication and cloud deployments.
 
 ## 🛠️ Development
 
@@ -77,6 +85,21 @@ Releases are cut by pushing a `vX.Y.Z` tag on `main`. Each release publishes the
 [Migration]: https://letreset.github.io/PaGetto/docs/migrating-from-bagetter
 [Read through caching]: https://letreset.github.io/PaGetto/docs/feeds#mirror-read-through-cache
 [Issues]: https://github.com/letreset/PaGetto/issues
+[Docs NuGet]: https://letreset.github.io/PaGetto/docs/nuget
+[Docs npm]: https://letreset.github.io/PaGetto/docs/npm
+[Docs Maven]: https://letreset.github.io/PaGetto/docs/maven
+[Docs PyPI]: https://letreset.github.io/PaGetto/docs/pypi
+[Docs Cargo]: https://letreset.github.io/PaGetto/docs/cargo
+[Docs Go]: https://letreset.github.io/PaGetto/docs/go
+[Docs RubyGems]: https://letreset.github.io/PaGetto/docs/rubygems
+[Docs Composer]: https://letreset.github.io/PaGetto/docs/composer
+[Docs Dart]: https://letreset.github.io/PaGetto/docs/dart
+[Docs Hex]: https://letreset.github.io/PaGetto/docs/hex
+[Docs CocoaPods]: https://letreset.github.io/PaGetto/docs/cocoapods
+[Docs Swift]: https://letreset.github.io/PaGetto/docs/swift
+[Docs CRAN]: https://letreset.github.io/PaGetto/docs/cran
+[Docs Ivy]: https://letreset.github.io/PaGetto/docs/ivy
+[Docs VSIX]: https://letreset.github.io/PaGetto/docs/vsix
 
 [CI badge]: https://img.shields.io/github/actions/workflow/status/letreset/PaGetto/ci.yml?branch=main&logo=github&label=CI
 [CI link]: https://github.com/letreset/PaGetto/actions/workflows/ci.yml
