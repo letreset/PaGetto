@@ -111,6 +111,7 @@ public static partial class DependencyInjectionExtensions
 
     private static void AddPaGettoServices(this IServiceCollection services)
     {
+        services.TryAddSingleton<ArtifactIndexCache>();
         services.TryAddSingleton<IFrameworkCompatibilityService, FrameworkCompatibilityService>();
         services.TryAddSingleton<IPackageDownloadsSource, PackageDownloadsJsonSource>();
 

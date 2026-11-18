@@ -222,6 +222,30 @@ public class RubyGemsIntegrationTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, ruby.StatusCode);
     }
 
+    [Fact]
+    public async Task CachedIndexFilesShowEveryChangeAtOnce()
+    {
+        await _app.CreateRubyGemsFeedAsync(Feed);
+        var source = RubyGemsTestClient.SourceUrl(Feed);
+
+        // Read once, so the empty index files are cached.
+        Assert.Empty(await _client.GetIndexLinesAsync(source + "versions"));
+        Assert.Equal("---\n", await _client.GetStringAsync(source + "names"));
+
+        using (await _client.PushGemAsync(Feed, "my_gem", "1.0.0"))
+        {
+        }
+
+        Assert.StartsWith("my_gem 1.0.0 ", Assert.Single(await _client.GetIndexLinesAsync(source + "versions")));
+        Assert.Equal("---\nmy_gem\n", await _client.GetStringAsync(source + "names"));
+
+        using (await _client.YankGemAsync(Feed, "my_gem", "1.0.0"))
+        {
+        }
+
+        Assert.StartsWith("my_gem -1.0.0 ", Assert.Single(await _client.GetIndexLinesAsync(source + "versions")));
+    }
+
     [Theory]
     [InlineData("not a gem", "tar")]
     [InlineData("invalid name", "not a valid gem name")]

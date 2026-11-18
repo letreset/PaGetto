@@ -15,7 +15,7 @@ namespace PaGetto.Database.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
             modelBuilder.Entity("PaGetto.Core.Entities.Artifact", b =>
                 {
@@ -233,6 +233,9 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("AllowPackageOverwrites")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ArtifactRevision")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAtUtc")

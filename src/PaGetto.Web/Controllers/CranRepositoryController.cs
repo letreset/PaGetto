@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Cran;
@@ -46,6 +47,7 @@ public class CranRepositoryController : Controller
     private readonly ICranPackageService _packages;
     private readonly IFeedContext _feedContext;
     private readonly IFeedSettingsResolver _feedSettings;
+    private readonly ArtifactIndexCache _indexes;
     private readonly IAuthenticationService _authentication;
     private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
@@ -55,6 +57,7 @@ public class CranRepositoryController : Controller
         ICranPackageService packages,
         IFeedContext feedContext,
         IFeedSettingsResolver feedSettings,
+        ArtifactIndexCache indexes,
         IAuthenticationService authentication,
         IPermissionService permissionService,
         IOptionsSnapshot<PaGettoOptions> options,
@@ -63,6 +66,7 @@ public class CranRepositoryController : Controller
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
         _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -77,7 +81,13 @@ public class CranRepositoryController : Controller
 
         if (file is IndexFileName or GzipIndexFileName)
         {
-            var index = await _packages.GetIndexAsync(feed, cancellationToken);
+            // The index includes the mirrors' packages.
+            var index = await _indexes.GetOrBuildAsync(
+                feed,
+                "cran/src/contrib/" + file,
+                ArtifactIndexCache.GetMirroredIndexDuration(_feedSettings, feed),
+                async () => BuildIndexFile(file, await _packages.GetIndexAsync(feed, cancellationToken)));
+
             return IndexFile(file, index);
         }
 
@@ -125,7 +135,7 @@ public class CranRepositoryController : Controller
     public IActionResult BinaryFile(string path)
     {
         var file = path?[(path.LastIndexOf('/') + 1)..];
-        return file is IndexFileName or GzipIndexFileName ? IndexFile(file, "") : NotFound();
+        return file is IndexFileName or GzipIndexFileName ? IndexFile(file, BuildIndexFile(file, "")) : NotFound();
     }
 
     // PUT cran/src/contrib/{file}: uploads a source package, e.g. with curl -T.
@@ -193,12 +203,17 @@ public class CranRepositoryController : Controller
         }
     }
 
-    private FileContentResult IndexFile(string file, string index)
+    private FileContentResult IndexFile(string file, byte[] content)
+    {
+        return File(content, file == IndexFileName ? TextContentType : GzipContentType);
+    }
+
+    private static byte[] BuildIndexFile(string file, string index)
     {
         var bytes = Encoding.UTF8.GetBytes(index);
         if (file == IndexFileName)
         {
-            return File(bytes, TextContentType);
+            return bytes;
         }
 
         using var compressed = new MemoryStream();
@@ -207,7 +222,7 @@ public class CranRepositoryController : Controller
             gzip.Write(bytes);
         }
 
-        return File(compressed.ToArray(), GzipContentType);
+        return compressed.ToArray();
     }
 
     /// <summary>

@@ -17,7 +17,7 @@ namespace PaGetto.Database.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
@@ -248,6 +248,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
 
                     b.Property<int?>("AllowPackageOverwrites")
                         .HasColumnType("integer");
+
+                    b.Property<long>("ArtifactRevision")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");

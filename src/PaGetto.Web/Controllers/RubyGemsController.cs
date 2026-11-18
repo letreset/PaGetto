@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
@@ -38,6 +39,7 @@ public class RubyGemsController : Controller
     private readonly IRubyGemsPackageService _gems;
     private readonly IFeedContext _feedContext;
     private readonly IFeedSettingsResolver _feedSettings;
+    private readonly ArtifactIndexCache _indexes;
     private readonly IAuthenticationService _authentication;
     private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
@@ -47,6 +49,7 @@ public class RubyGemsController : Controller
         IRubyGemsPackageService gems,
         IFeedContext feedContext,
         IFeedSettingsResolver feedSettings,
+        ArtifactIndexCache indexes,
         IAuthenticationService authentication,
         IPermissionService permissionService,
         IOptionsSnapshot<PaGettoOptions> options,
@@ -55,6 +58,7 @@ public class RubyGemsController : Controller
         _gems = gems ?? throw new ArgumentNullException(nameof(gems));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
         _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -64,7 +68,15 @@ public class RubyGemsController : Controller
     // GET rubygems/versions
     public async Task<IActionResult> Versions(CancellationToken cancellationToken)
     {
-        return IndexFile(await _gems.GetVersionsFileAsync(_feedContext.CurrentFeed, cancellationToken));
+        // The file includes the mirrors' own /versions.
+        var feed = _feedContext.CurrentFeed;
+        var file = await _indexes.GetOrBuildAsync(
+            feed,
+            "rubygems/versions",
+            ArtifactIndexCache.GetMirroredIndexDuration(_feedSettings, feed),
+            () => _gems.GetVersionsFileAsync(feed, cancellationToken));
+
+        return IndexFile(file);
     }
 
     // GET rubygems/info/{name}
@@ -77,7 +89,14 @@ public class RubyGemsController : Controller
     // GET rubygems/names
     public async Task<IActionResult> Names(CancellationToken cancellationToken)
     {
-        return IndexFile(await _gems.GetNamesFileAsync(_feedContext.CurrentFeed, cancellationToken));
+        var feed = _feedContext.CurrentFeed;
+        var file = await _indexes.GetOrBuildAsync(
+            feed,
+            "rubygems/names",
+            ArtifactIndexCache.LocalIndexDuration,
+            () => _gems.GetNamesFileAsync(feed, cancellationToken));
+
+        return IndexFile(file);
     }
 
     // GET rubygems/gems/{name}-{version}[-{platform}].gem

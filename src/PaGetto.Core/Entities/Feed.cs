@@ -35,6 +35,13 @@ public class Feed
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 
+    /// <summary>
+    /// Goes up by one whenever a package of a feed that is not a NuGet feed changes. Indexes built
+    /// from all of the feed's packages are cached under it (see
+    /// <see cref="Artifacts.ArtifactIndexCache"/>), so a change makes the next request build them again.
+    /// </summary>
+    public long ArtifactRevision { get; set; }
+
     public List<Package> Packages { get; set; }
     public List<FeedPermission> Permissions { get; set; }
     public List<FeedMirror> Mirrors { get; set; } = [];
