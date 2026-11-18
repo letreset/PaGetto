@@ -34,6 +34,7 @@ const sidebars: SidebarsConfig = {
     'swift',
     'cran',
     'ivy',
+    'vsix',
     'web-ui',
     'authentication',
     'configuration',
