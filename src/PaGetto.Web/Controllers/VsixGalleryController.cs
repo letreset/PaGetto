@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
@@ -40,6 +41,7 @@ public class VsixGalleryController : Controller
     private readonly IVsixPackageService _packages;
     private readonly IFeedContext _feedContext;
     private readonly IFeedSettingsResolver _feedSettings;
+    private readonly ArtifactIndexCache _indexes;
     private readonly IAuthenticationService _authentication;
     private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
@@ -49,6 +51,7 @@ public class VsixGalleryController : Controller
         IVsixPackageService packages,
         IFeedContext feedContext,
         IFeedSettingsResolver feedSettings,
+        ArtifactIndexCache indexes,
         IAuthenticationService authentication,
         IPermissionService permissionService,
         IOptionsSnapshot<PaGettoOptions> options,
@@ -57,6 +60,7 @@ public class VsixGalleryController : Controller
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
         _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -66,9 +70,17 @@ public class VsixGalleryController : Controller
     // GET vsix/atom.xml: the gallery.
     public async Task<IActionResult> AtomFeed(CancellationToken cancellationToken)
     {
-        var feed = await _packages.GetAtomFeedAsync(_feedContext.CurrentFeed, Url.VsixGallery(), cancellationToken);
+        // The gallery includes the mirrors' extensions, and its links are built from the gallery's
+        // URL, which has the caller's token when it is read through vsix/auth/{token}/.
+        var feed = _feedContext.CurrentFeed;
+        var galleryUrl = Url.VsixGallery();
+        var atom = await _indexes.GetOrBuildAsync(
+            feed,
+            "vsix/atom.xml " + galleryUrl,
+            ArtifactIndexCache.GetMirroredIndexDuration(_feedSettings, feed),
+            async () => Encoding.UTF8.GetBytes(await _packages.GetAtomFeedAsync(feed, galleryUrl, cancellationToken)));
 
-        return Content(feed, VsixAtomFeed.ContentType);
+        return File(atom, VsixAtomFeed.ContentType);
     }
 
     // GET vsix/extensions/{id}/{version}/{file}: the VSIX file of a version.

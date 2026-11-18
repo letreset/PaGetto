@@ -387,6 +387,63 @@ public class ArtifactDatabaseTests
         }
     }
 
+    public class ArtifactRevision : FactsBase
+    {
+        [Fact]
+        public async Task EveryChangeRaisesTheRevisionOfItsFeedOnly()
+        {
+            var other = AddFeed("other");
+
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+            Assert.Equal(1, await GetRevisionAsync(Feed));
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("2.0.0"), Ct);
+
+            Assert.True(await Target.SetListedAsync(Feed.Id, "my_package", "1.0.0", listed: false, Ct));
+            Assert.True(await Target.UpdateVersionAsync(Feed.Id, "my_package", "1.0.0", listed: true, "{}", Ct));
+            Assert.True(await Target.UpdateManifestAsync(Feed.Id, "my_package", "1.0.0", "description", "{}", Ct));
+            var file = new ArtifactFile
+            {
+                FileName = "my_package.tar.gz",
+                Size = 10,
+                Sha1 = "sha1",
+                Md5 = "md5",
+                Sha256 = "sha256",
+                Sha512 = "sha512",
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            Assert.True(await Target.AddOrReplaceFileAsync(Feed.Id, "my_package", "1.0.0", file, Ct));
+            Assert.True(await Target.SetTagAsync(Feed.Id, "my_package", "latest", "1.0.0", Ct));
+            Assert.True(await Target.RemoveTagAsync(Feed.Id, "my_package", "latest", Ct));
+            Assert.True(await Target.HardDeleteVersionAsync(Feed.Id, "my_package", "2.0.0", Ct));
+
+            Assert.Equal(9, await GetRevisionAsync(Feed));
+            Assert.Equal(0, await GetRevisionAsync(other));
+        }
+
+        [Fact]
+        public async Task ChangesThatFindNothingAndDownloadsDoNotRaiseIt()
+        {
+            await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct);
+
+            Assert.Equal(ArtifactAddResult.AlreadyExists, await Target.AddVersionAsync(Feed.Id, "my_package", NewVersion("1.0.0"), Ct));
+            Assert.False(await Target.SetListedAsync(Feed.Id, "my_package", "2.0.0", listed: false, Ct));
+            Assert.False(await Target.RemoveTagAsync(Feed.Id, "my_package", "latest", Ct));
+            Assert.False(await Target.HardDeleteVersionAsync(Feed.Id, "my_package", "2.0.0", Ct));
+            await Target.AddDownloadAsync(Feed.Id, "my_package", "1.0.0", Ct);
+
+            Assert.Equal(1, await GetRevisionAsync(Feed));
+        }
+
+        private async Task<long> GetRevisionAsync(Feed feed)
+        {
+            return await Context.Feeds
+                .AsNoTracking()
+                .Where(f => f.Id == feed.Id)
+                .Select(f => f.ArtifactRevision)
+                .SingleAsync(Ct);
+        }
+    }
+
     public class SearchAsync : FactsBase
     {
         [Fact]

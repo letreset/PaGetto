@@ -50,6 +50,7 @@ public class HexRepositoryController : Controller
     private readonly HexRegistryKeyStore _keys;
     private readonly IFeedContext _feedContext;
     private readonly IFeedSettingsResolver _feedSettings;
+    private readonly ArtifactIndexCache _indexes;
     private readonly IAuthenticationService _authentication;
     private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
@@ -61,6 +62,7 @@ public class HexRepositoryController : Controller
         HexRegistryKeyStore keys,
         IFeedContext feedContext,
         IFeedSettingsResolver feedSettings,
+        ArtifactIndexCache indexes,
         IAuthenticationService authentication,
         IPermissionService permissionService,
         IOptionsSnapshot<PaGettoOptions> options,
@@ -71,6 +73,7 @@ public class HexRepositoryController : Controller
         _keys = keys ?? throw new ArgumentNullException(nameof(keys));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
         _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -81,22 +84,34 @@ public class HexRepositoryController : Controller
     [ContentETag]
     public async Task<IActionResult> Names(CancellationToken cancellationToken)
     {
+        // Only the feed's stored packages are listed, not the mirrors'.
         var feed = _feedContext.CurrentFeed;
-        var packages = await _packages.FindPackagesAsync(feed, cancellationToken);
+        var names = await _indexes.GetOrBuildAsync(feed, "hex/names", ArtifactIndexCache.LocalIndexDuration, async () =>
+        {
+            var packages = await _packages.FindPackagesAsync(feed, cancellationToken);
 
-        using var key = await _keys.GetPrivateKeyAsync(feed, cancellationToken);
-        return File(HexRegistry.BuildNames(feed.Slug, packages, key), RegistryContentType);
+            using var key = await _keys.GetPrivateKeyAsync(feed, cancellationToken);
+            return HexRegistry.BuildNames(feed.Slug, packages, key);
+        });
+
+        return File(names, RegistryContentType);
     }
 
     // GET hex/versions
     [ContentETag]
     public async Task<IActionResult> Versions(CancellationToken cancellationToken)
     {
+        // Only the feed's stored packages are listed, not the mirrors'.
         var feed = _feedContext.CurrentFeed;
-        var packages = await _packages.FindPackagesAsync(feed, cancellationToken);
+        var versions = await _indexes.GetOrBuildAsync(feed, "hex/versions", ArtifactIndexCache.LocalIndexDuration, async () =>
+        {
+            var packages = await _packages.FindPackagesAsync(feed, cancellationToken);
 
-        using var key = await _keys.GetPrivateKeyAsync(feed, cancellationToken);
-        return File(HexRegistry.BuildVersions(feed.Slug, packages, key), RegistryContentType);
+            using var key = await _keys.GetPrivateKeyAsync(feed, cancellationToken);
+            return HexRegistry.BuildVersions(feed.Slug, packages, key);
+        });
+
+        return File(versions, RegistryContentType);
     }
 
     // GET hex/packages/{name}

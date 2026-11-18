@@ -65,6 +65,7 @@ public class ArtifactDatabase : IArtifactDatabase
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
+                await RaiseRevisionAsync(feedId);
 
                 return ArtifactAddResult.Success;
             }
@@ -90,7 +91,7 @@ public class ArtifactDatabase : IArtifactDatabase
         var updated = await Versions(feedId, name, version)
             .ExecuteUpdateAsync(s => s.SetProperty(v => v.Listed, listed), cancellationToken);
 
-        return updated > 0;
+        return await RaiseRevisionIfAsync(feedId, updated > 0);
     }
 
     public async Task<bool> UpdateVersionAsync(Guid feedId, string name, string version, bool listed, string metadataJson, CancellationToken cancellationToken)
@@ -100,7 +101,7 @@ public class ArtifactDatabase : IArtifactDatabase
                 s => s.SetProperty(v => v.Listed, listed).SetProperty(v => v.MetadataJson, metadataJson),
                 cancellationToken);
 
-        return updated > 0;
+        return await RaiseRevisionIfAsync(feedId, updated > 0);
     }
 
     public async Task<bool> UpdateManifestAsync(Guid feedId, string name, string version, string description, string metadataJson, CancellationToken cancellationToken)
@@ -110,7 +111,7 @@ public class ArtifactDatabase : IArtifactDatabase
                 s => s.SetProperty(v => v.Description, description).SetProperty(v => v.MetadataJson, metadataJson),
                 cancellationToken);
 
-        return updated > 0;
+        return await RaiseRevisionIfAsync(feedId, updated > 0);
     }
 
     public async Task<IReadOnlyList<ArtifactFile>> FindFilesAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
@@ -180,6 +181,7 @@ public class ArtifactDatabase : IArtifactDatabase
         // A single UPDATE statement, so files added at the same time are all counted.
         await Versions(feedId, name, version)
             .ExecuteUpdateAsync(s => s.SetProperty(v => v.Size, v => v.Files.Sum(f => f.Size)), cancellationToken);
+        await RaiseRevisionAsync(feedId);
 
         return true;
     }
@@ -211,6 +213,7 @@ public class ArtifactDatabase : IArtifactDatabase
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await RaiseRevisionAsync(feedId);
 
         return true;
     }
@@ -304,6 +307,7 @@ public class ArtifactDatabase : IArtifactDatabase
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
+                await RaiseRevisionAsync(feedId);
 
                 return true;
             }
@@ -320,7 +324,30 @@ public class ArtifactDatabase : IArtifactDatabase
             .Where(t => t.Artifact.FeedId == feedId && t.Artifact.Name == name && t.Name == tag)
             .ExecuteDeleteAsync(cancellationToken);
 
-        return deleted > 0;
+        return await RaiseRevisionIfAsync(feedId, deleted > 0);
+    }
+
+    /// <summary>
+    /// Raises the feed's <see cref="Feed.ArtifactRevision"/> after a change to its packages, so the
+    /// cached indexes built before the change are not served again.
+    /// </summary>
+    private async Task RaiseRevisionAsync(Guid feedId)
+    {
+        // Not cancelled: the change is already saved, and the cached indexes must not outlive it.
+        // A single UPDATE statement, so changes made at the same time each raise it.
+        await _context.Feeds
+            .Where(f => f.Id == feedId)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.ArtifactRevision, f => f.ArtifactRevision + 1), CancellationToken.None);
+    }
+
+    private async Task<bool> RaiseRevisionIfAsync(Guid feedId, bool changed)
+    {
+        if (changed)
+        {
+            await RaiseRevisionAsync(feedId);
+        }
+
+        return changed;
     }
 
     private IQueryable<ArtifactVersion> Versions(Guid feedId, string name, string version)

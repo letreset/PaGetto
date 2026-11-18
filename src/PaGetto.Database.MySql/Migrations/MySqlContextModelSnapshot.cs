@@ -18,7 +18,7 @@ namespace PaGetto.Database.MySql.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4", DelegationModes.ApplyToDatabases);
@@ -249,6 +249,9 @@ namespace PaGetto.Database.MySql.Migrations
 
                     b.Property<int?>("AllowPackageOverwrites")
                         .HasColumnType("int");
+
+                    b.Property<long>("ArtifactRevision")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");

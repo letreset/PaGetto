@@ -73,7 +73,7 @@ The feed answers `201 Created`, or an error with the reason as plain text, which
 
 The feed answers these requests:
 
-- `/vsix/atom.xml`: the gallery, an Atom feed with one entry for each extension: its newest listed version, with the extension's display name, description, publisher, the products it installs into (its installation targets), its download count and links. Visual Studio compares the entry's `Vsix` element with the installed extensions to offer updates.
+- `/vsix/atom.xml`: the gallery, an Atom feed with one entry for each extension: its newest listed version, with the extension's display name, description, publisher, the products it installs into (its installation targets), its download count (which can be up to five minutes old, as the gallery is cached) and links. Visual Studio compares the entry's `Vsix` element with the installed extensions to offer updates.
 - `/vsix/extensions/{id}/{version}/{id}-{version}.vsix`: the VSIX file of a version. Every version is served at this path, whatever the file name.
 - `/vsix/extensions/{id}/{version}/icon` and `/preview`: the icon and preview image of the manifest (PNG, JPEG, GIF, BMP or ICO), read from the VSIX file.
 - `/vsix/auth/{token}/...`: the same, for Visual Studio with user accounts (see [Authentication](#authentication)).

@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Tests.Support;
@@ -81,7 +82,6 @@ public class VsixGalleryIntegrationTests : IDisposable
         Assert.Equal("Says hello from the editor.", stored.Description);
         Assert.False(stored.IsPrerelease);
         Assert.Equal(1, stored.Downloads);
-        Assert.Equal(1, (await _client.GetVsixGalleryAsync(Feed))[Id].Downloads);
     }
 
     [Fact]
@@ -353,9 +353,11 @@ public class VsixGalleryIntegrationTests : IDisposable
         using var scope = _app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<IContext>();
 
-        var stored = await context.ArtifactVersions.SingleAsync(v => v.Version == version);
-        stored.Listed = listed;
-        await context.SaveChangesAsync(default);
+        var stored = await context.ArtifactVersions.Include(v => v.Artifact).SingleAsync(v => v.Version == version);
+
+        // Through the artifact database, as the web UI does, so the feed's cached indexes are rebuilt.
+        var artifacts = scope.ServiceProvider.GetRequiredService<IArtifactDatabase>();
+        Assert.True(await artifacts.SetListedAsync(stored.Artifact.FeedId, stored.Artifact.Name, version, listed, default));
     }
 
     public void Dispose()
