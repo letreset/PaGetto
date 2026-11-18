@@ -368,6 +368,10 @@ R sends the credentials of the repository URL with Basic authentication: `https:
 
 sbt sends the credentials whose realm (`PaGetto`) and host match the server's challenge with Basic authentication, with a personal access token as the password. See [Ivy repositories for sbt](ivy.md#authentication).
 
+## Using PaGetto from Visual Studio
+
+Visual Studio can't sign in to an extension gallery: it only sends the user's Windows credentials. With user accounts, it reads the gallery of a VSIX feed through a URL with a personal access token in its path, `https://your-server/feeds/{slug}/vsix/auth/<token>/atom.xml`, which can only read. Uploads use Basic authentication with a token as the password. See [Visual Studio extensions](vsix.md#authentication).
+
 ## Using PaGetto from Swift Package Manager
 
 Swift Package Manager sends a personal access token as a Bearer token, after `swift package-registry login https://your-server/feeds/{slug}/swift/login --token <token>` has checked and stored it. `login` also takes a username and password, sent with Basic authentication. See [Swift packages](swift.md#authentication).
