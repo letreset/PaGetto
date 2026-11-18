@@ -1,12 +1,33 @@
 # PaGetto
 
-A lightweight, self-hosted **NuGet and symbol server** for .NET teams. It implements the NuGet v3 protocol, so `dotnet`, NuGet, Visual Studio and Rider work with it out of the box.
+A lightweight, self-hosted **package server** for 15 ecosystems. Each feed hosts one package format and speaks its protocol, so the standard clients work with nothing more than the feed's URL and a token, and every feed can mirror the public registry of its ecosystem.
 
-It supports:
+## Package formats
 
-- **Multiple feeds**: each feed has its own packages, settings, retention, and read-through mirror of nuget.org or any other feed.
-- **Users and permissions**: local accounts, **Microsoft Entra ID** sign-in, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
-- **An admin UI** for feeds, accounts and groups.
+| Languages | Package format | Clients | Mirror of |
+|---|---|---|---|
+| C#, F#, Visual Basic (.NET) | [NuGet](https://letreset.github.io/PaGetto/docs/nuget), with symbols (`.snupkg`) | dotnet CLI, NuGet CLI, Visual Studio, Rider, Paket | nuget.org, any NuGet v3 or v2 feed |
+| JavaScript, TypeScript | [npm](https://letreset.github.io/PaGetto/docs/npm) | npm, Yarn, pnpm | registry.npmjs.org |
+| Java, Kotlin, Scala, Groovy | [Maven](https://letreset.github.io/PaGetto/docs/maven) | Maven, Gradle, sbt | Maven Central |
+| Python | [PyPI](https://letreset.github.io/PaGetto/docs/pypi) (simple API) | pip, uv, Poetry, twine | PyPI |
+| Rust | [Cargo](https://letreset.github.io/PaGetto/docs/cargo) (sparse registry) | Cargo | crates.io |
+| Go | [Go modules](https://letreset.github.io/PaGetto/docs/go) (GOPROXY) | go command | proxy.golang.org |
+| Ruby | [RubyGems](https://letreset.github.io/PaGetto/docs/rubygems) (compact index) | Bundler, gem | rubygems.org |
+| PHP | [Composer](https://letreset.github.io/PaGetto/docs/composer) | Composer | Packagist |
+| Dart, Flutter | [pub](https://letreset.github.io/PaGetto/docs/dart) | `dart pub`, `flutter pub` | pub.dev |
+| Elixir, Erlang | [Hex](https://letreset.github.io/PaGetto/docs/hex) | Mix, Rebar3 | hex.pm |
+| Swift, Objective-C | [CocoaPods](https://letreset.github.io/PaGetto/docs/cocoapods) (CDN spec repository) | CocoaPods | cdn.cocoapods.org |
+| Swift | [Swift package registry](https://letreset.github.io/PaGetto/docs/swift) | Swift Package Manager, Xcode | other Swift package registries |
+| R | [CRAN](https://letreset.github.io/PaGetto/docs/cran) (source packages) | `install.packages`, renv | CRAN |
+| Scala (sbt) | [Ivy](https://letreset.github.io/PaGetto/docs/ivy) (sbt's Ivy layout) | sbt | the sbt plugin repository |
+| Visual Studio extensions | [VSIX](https://letreset.github.io/PaGetto/docs/vsix) (private extension gallery) | Visual Studio | other extension galleries |
+
+## Features
+
+- **Multiple feeds**: each feed serves one package format under `/feeds/{slug}/`, with its own packages, settings, retention, permissions, webhook and read-through mirrors (several upstreams per feed, in order).
+- **Users and permissions**: local accounts, **Microsoft Entra ID** sign-in, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
+- **A web UI** to browse every feed, with readmes and install commands per client, and admin pages for feeds, accounts and groups.
+- **Operations**: retention per feed, webhooks, an audit log, health checks and OpenTelemetry metrics.
 - **Pluggable backends**: SQLite, SQL Server, PostgreSQL or MySQL for the database; the file system, Azure Blob, AWS S3, Google Cloud Storage, Aliyun OSS or Tencent COS for storage.
 
 ## Quick start
@@ -16,11 +37,19 @@ docker run -d --name pagetto -p 5000:8080 -v pagetto-data:/data \
   letreset/pagetto:latest
 ```
 
-Open http://localhost:5000 and sign in as `admin` with the password `admin`. PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it:
+Open http://localhost:5000 and sign in as `admin` with the password `admin`. PaGetto asks for a new password first. Then create a token under **My Tokens** and push a package with it. The default feed is a NuGet feed:
 
 ```bash
 dotnet nuget push -s http://localhost:5000/v3/index.json -k <token> MyPackage.1.0.0.nupkg
 ```
+
+For the other formats, create a feed of their type under **Admin > Feeds** and point the client at it, for example an npm feed with the slug `js`:
+
+```bash
+npm publish --registry http://localhost:5000/feeds/js/npm/
+```
+
+The feed's **Connect** page shows the configuration and authentication for its clients.
 
 Change the default password right after the first start. By default the image stores packages, symbols, the SQLite database and Data Protection keys in `/data`. Mount a volume there to keep them.
 
