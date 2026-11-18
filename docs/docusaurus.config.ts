@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'PaGetto',
-  tagline: 'A lightweight, self-hosted NuGet and symbol server',
+  tagline: 'A lightweight, self-hosted package server for NuGet, npm, Maven, PyPI and more',
   favicon: 'img/favicon.svg',
 
   url: 'https://letreset.github.io',

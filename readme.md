@@ -1,14 +1,15 @@
-![PaGetto: a lightweight, self-hosted NuGet and symbol server](docs/static/img/social-preview.png)
+![PaGetto: a lightweight, self-hosted package server](docs/static/img/social-preview.png)
 
-A lightweight [NuGet] and [symbol] server written in C#: self-hosted, cross-platform and cloud ready.
+A lightweight package server written in C#: self-hosted, cross-platform and cloud ready. One server hosts [NuGet] packages and [symbols][symbol], npm, Maven, Python, Rust, Go, Ruby, Dart, Hex, PHP, CocoaPods, Swift, R and sbt packages and Visual Studio extensions, each ecosystem in its own feeds and with a read-through mirror of its public registry.
 
-PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base and new features such as multiple feeds, user and permission management, and Microsoft Entra ID sign-in. Coming from BaGetter? The [migration guide][Migration] shows how to move an existing installation over.
+PaGetto started as a fork of [BaGetter], a NuGet server. It has a redesigned web UI, a reworked code base and new features such as more package formats, multiple feeds, user and permission management, and Microsoft Entra ID sign-in. Coming from BaGetter? The [migration guide][Migration] shows how to move an existing installation over.
 
 [![CI][CI badge]][CI link] [![Release][Release badge]][Release link] [![Docker][Docker badge]][Docker link] [![Docs][Docs badge]][Documentation]
 
 ## 📦 Features
 
-* **Multiple feeds**: each feed has its own packages, settings, retention and read-through mirror, under `/feeds/{slug}/v3/index.json`.
+* **Multiple feeds**: each feed serves one ecosystem under `/feeds/{slug}/`, with its own packages, settings, retention, permissions, webhook and read-through mirrors.
+* **NuGet packages and symbols**: a feed can be a NuGet v3 feed for the dotnet CLI, Visual Studio, Rider and Paket, with a symbol server for `.snupkg` and a mirror of nuget.org.
 * **Dart and Flutter packages**: a feed can be a hosted pub repository for `dart pub` and `flutter pub`, with a mirror of pub.dev.
 * **npm packages**: a feed can be an npm registry for npm, Yarn and pnpm, with scoped packages, dist-tags and a mirror of registry.npmjs.org.
 * **Maven packages**: a feed can be a Maven repository for Maven, Gradle and sbt (Java, Kotlin, Scala), with snapshots and a mirror of Maven Central.
@@ -25,7 +26,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **Visual Studio extensions**: a feed can be a private extension gallery for Visual Studio, with uploads of VSIX files, update notifications in Visual Studio and a mirror of other galleries.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
-* **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.
+* **Offline support**: [mirror the public registries][Read through caching] (nuget.org, npmjs, Maven Central, PyPI, crates.io and more), several upstreams per feed.
 * **Pluggable backends**: SQLite, SQL Server, PostgreSQL or MySQL; the file system, Azure Blob, AWS S3, Google Cloud Storage, Aliyun OSS or Tencent COS.
 * **Runs anywhere**: Windows, Linux and macOS, x64 and ARM64, Docker, Kubernetes (Helm) or IIS.
 
@@ -74,7 +75,7 @@ Releases are cut by pushing a `vX.Y.Z` tag on `main`. Each release publishes the
 [hosting bundle]: https://dotnet.microsoft.com/permalink/dotnetcore-current-windows-runtime-bundle-installer
 [Documentation]: https://letreset.github.io/PaGetto/
 [Migration]: https://letreset.github.io/PaGetto/docs/migrating-from-bagetter
-[Read through caching]: https://letreset.github.io/PaGetto/docs/configuration#enable-read-through-caching
+[Read through caching]: https://letreset.github.io/PaGetto/docs/feeds#mirror-read-through-cache
 [Issues]: https://github.com/letreset/PaGetto/issues
 
 [CI badge]: https://img.shields.io/github/actions/workflow/status/letreset/PaGetto/ci.yml?branch=main&logo=github&label=CI
