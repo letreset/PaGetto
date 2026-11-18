@@ -161,6 +161,7 @@ npm feeds have the npm registry API under `npm/` (`NpmPackageController`). A sco
 - `GET npm/{name}` (the package document; `?write=true` leaves out mirror-only versions), `GET npm/{name}/-/{name}-{version}.tgz`.
 - `PUT npm/{name}`: publish (with `_attachments`) or a changed document (deprecate; versions left out are unpublished). `PUT npm/{name}/-rev/{rev}` is the same, `DELETE npm/{name}/-rev/{rev}` unpublishes the package, and `DELETE npm/{**path}` takes the tarball delete of `npm unpublish`.
 - `GET npm/-/package/{name}/dist-tags`, `PUT`/`DELETE npm/-/package/{name}/dist-tags/{tag}`, `GET npm/-/v1/search`, `GET npm/-/ping`, `GET npm/-/whoami`.
+- `POST npm/-/npm/v1/security/advisories/bulk` (`npm audit`, often gzipped): forwarded to the first mirror that answers (`NpmUpstreamClient.GetAdvisoriesOrNullAsync`), without the names of packages published to the feed (`IArtifactDatabase.FindPublishedNamesAsync`); `{}` without mirrors, 502 when none answers.
 
 Maven feeds have the [repository layout](https://maven.apache.org/repositories/layout.html) under `maven2/` (`MavenRepositoryController`):
 - `GET`/`HEAD maven2/{**path}`: a file of a version (`{groupPath}/{artifactId}/{version}/{fileName}`, with `X-Checksum-SHA1`/`-MD5`/`-SHA256` headers), its `.sha1`/`.md5`/`.sha256`/`.sha512`, or a `maven-metadata.xml` of an artifact or snapshot version.

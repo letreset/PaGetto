@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -37,6 +39,9 @@ public class NpmPackageController : Controller
 
     private const int MaxSearchResults = 250;
 
+    // An audit request names every package of a project with its versions.
+    private const long MaxAuditRequestBytes = 16 * BytesPerMiB;
+
     private readonly INpmPackageService _packages;
     private readonly IArtifactDatabase _artifacts;
     private readonly IFeedContext _feedContext;
@@ -64,6 +69,49 @@ public class NpmPackageController : Controller
     public IActionResult Ping()
     {
         return Content("{}", "application/json");
+    }
+
+    // POST npm/-/npm/v1/security/advisories/bulk
+    // npm audit: the package names and versions in use, usually gzipped. The advisories come from
+    // the feed's mirrors; the feed's own packages are not sent to them.
+    public async Task<IActionResult> Audit(CancellationToken cancellationToken)
+    {
+        if (Request.ContentLength > MaxAuditRequestBytes)
+        {
+            return NpmError(StatusCodes.Status413PayloadTooLarge, "The audit request is too large.");
+        }
+
+        JsonObject request;
+        try
+        {
+            var gzipped = string.Equals(Request.Headers.ContentEncoding, "gzip", StringComparison.OrdinalIgnoreCase);
+            await using var body = gzipped ? new GZipStream(Request.Body, CompressionMode.Decompress) : Request.Body;
+
+            var bytes = await ReadAtMostAsync(body, MaxAuditRequestBytes, cancellationToken);
+            if (bytes == null)
+            {
+                return NpmError(StatusCodes.Status413PayloadTooLarge, "The audit request is too large.");
+            }
+
+            request = JsonNode.Parse(bytes) as JsonObject;
+        }
+        catch (Exception e) when (e is JsonException or InvalidDataException)
+        {
+            request = null;
+        }
+
+        if (request == null)
+        {
+            return NpmError(StatusCodes.Status400BadRequest, "The audit request must be a JSON object of package names and versions.");
+        }
+
+        var advisories = await _packages.GetAdvisoriesOrNullAsync(_feedContext.CurrentFeed, request, cancellationToken);
+        if (advisories == null)
+        {
+            return NpmError(StatusCodes.Status502BadGateway, "No mirror of this feed answered the audit request.");
+        }
+
+        return File(advisories, "application/json");
     }
 
     // GET npm/-/whoami
@@ -505,6 +553,25 @@ public class NpmPackageController : Controller
     /// <summary>
     /// An error the npm client shows: it prints the <c>error</c> of the body after the status.
     /// </summary>
+    /// <returns>The stream's content, or null if it is longer than <paramref name="maxBytes"/>.</returns>
+    private static async Task<byte[]> ReadAtMostAsync(Stream stream, long maxBytes, CancellationToken cancellationToken)
+    {
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        int read;
+        while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
+        {
+            if (buffer.Length + read > maxBytes)
+            {
+                return null;
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        return buffer.ToArray();
+    }
+
     private static ContentResult NpmError(int statusCode, string message)
     {
         return NpmJson(new JsonObject { ["error"] = message }, statusCode);

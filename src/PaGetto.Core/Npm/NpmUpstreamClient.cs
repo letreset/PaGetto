@@ -24,6 +24,11 @@ namespace PaGetto.Core.Npm;
 /// </summary>
 public partial class NpmUpstreamClient
 {
+    /// <summary>
+    /// The bulk advisory endpoint of an npm registry, below its URL.
+    /// </summary>
+    public const string AdvisoriesPath = "-/npm/v1/security/advisories/bulk";
+
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly IUpstreamClientFactory _clients;
     private readonly UpstreamListingCache _cache;
@@ -218,6 +223,43 @@ public partial class NpmUpstreamClient
     }
 
     /// <summary>
+    /// Asks the feed's mirrors for the security advisories of packages, the bulk advisory request
+    /// of <c>npm audit</c>. The mirrors are asked in order, and the first that answers serves it.
+    /// </summary>
+    /// <param name="feed">The feed whose mirrors are asked.</param>
+    /// <param name="body">The request: package names with the versions in use.</param>
+    /// <param name="cancellationToken">A token to cancel the task.</param>
+    /// <returns>The advisories as the mirror answered them, or null if no mirror answered.</returns>
+    public virtual async Task<byte[]> GetAdvisoriesOrNullAsync(Feed feed, byte[] body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        foreach (var mirror in _feedSettings.GetMirrorOptions(feed))
+        {
+            try
+            {
+                using var client = _clients.CreateHttpClient(mirror, feed.Id, authenticate: true);
+                using var content = new ByteArrayContent(body);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                using var response = await client.PostAsync(GetBaseUrl(mirror) + AdvisoriesPath, content, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                }
+
+                LogAdvisoriesFailed(null, mirror.PackageSource, (int)response.StatusCode);
+            }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+            {
+                LogAdvisoriesFailed(e, mirror.PackageSource, 0);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The mirror's registry URL with a trailing slash, so it can be used as a prefix.
     /// </summary>
     private static string GetBaseUrl(MirrorOptions mirror)
@@ -238,4 +280,7 @@ public partial class NpmUpstreamClient
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Upstream answered {StatusCode} for npm tarball {TarballUrl}")]
     private partial void LogTarballDownloadFailed(string tarballUrl, int statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Upstream {PackageSource} did not answer the npm audit request (status {StatusCode})")]
+    private partial void LogAdvisoriesFailed(Exception exception, Uri packageSource, int statusCode);
 }

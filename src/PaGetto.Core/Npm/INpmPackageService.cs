@@ -50,6 +50,17 @@ public interface INpmPackageService
     Task<Stream> GetTarballStreamOrNullAsync(Feed feed, string name, string version, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The security advisories of the packages <c>npm audit</c> asks about, from the feed's
+    /// mirrors. The feed's own packages are left out of the question, so their names never reach
+    /// a mirror; nothing is known about them, as about every package of a feed without mirrors.
+    /// </summary>
+    /// <param name="feed">The feed.</param>
+    /// <param name="request">The bulk advisory request: package names with the versions in use.</param>
+    /// <param name="cancellationToken">A token to cancel the task.</param>
+    /// <returns>The advisories as JSON, or null if the feed's mirrors didn't answer.</returns>
+    Task<byte[]> GetAdvisoriesOrNullAsync(Feed feed, JsonObject request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Publishes a version, as <c>npm publish</c> sends it: one manifest in <c>versions</c>, its
     /// tarball in <c>_attachments</c> and the tags to point at it in <c>dist-tags</c>.
     /// </summary>
