@@ -77,6 +77,7 @@ public partial class FallbackUpstreamClient : IUpstreamClient
             }
             catch (Exception e) when (!cancellationToken.IsCancellationRequested)
             {
+                UpstreamListingCache.ReportFailure();
                 LogDownloadFailed(e, id, version, upstream.GetServiceIndexUrl());
             }
         }
@@ -101,6 +102,7 @@ public partial class FallbackUpstreamClient : IUpstreamClient
         }
         catch (Exception e) when (!cancellationToken.IsCancellationRequested)
         {
+            UpstreamListingCache.ReportFailure();
             LogListFailed(e, id, upstream.GetServiceIndexUrl());
 
             return [];

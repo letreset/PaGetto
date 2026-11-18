@@ -88,6 +88,7 @@ public partial class NpmUpstreamClient
 
         if (!response.IsSuccessStatusCode)
         {
+            UpstreamListingCache.ReportFailure(response);
             LogTarballDownloadFailed(version.TarballUrl, (int)response.StatusCode);
             return null;
         }
@@ -115,6 +116,7 @@ public partial class NpmUpstreamClient
             catch (Exception e) when (e is HttpRequestException or JsonException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogListingFailed(e, name, mirror.PackageSource);
             }

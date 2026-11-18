@@ -89,6 +89,7 @@ public partial class VsixUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -99,6 +100,7 @@ public partial class VsixUpstreamClient
         catch (Exception e) when (e is HttpRequestException or ArtifactFileTooLargeException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogRequestFailed(e, url);
             return null;
         }
@@ -122,6 +124,7 @@ public partial class VsixUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -152,6 +155,7 @@ public partial class VsixUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogRequestFailed(e, url);
             return null;
         }
@@ -171,6 +175,7 @@ public partial class VsixUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -208,6 +213,7 @@ public partial class VsixUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException or XmlException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return null;

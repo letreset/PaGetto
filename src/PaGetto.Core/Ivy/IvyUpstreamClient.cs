@@ -150,6 +150,7 @@ public partial class IvyUpstreamClient
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    UpstreamListingCache.ReportFailure(response);
                     LogListingFailed(url, (int)response.StatusCode);
                     continue;
                 }
@@ -173,6 +174,7 @@ public partial class IvyUpstreamClient
             catch (Exception e) when (e is HttpRequestException or InvalidDataException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down is skipped, like a NuGet mirror.
                 LogListingException(e, url);
             }

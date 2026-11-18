@@ -85,6 +85,7 @@ public partial class HexUpstreamClient
 
         if (!response.IsSuccessStatusCode)
         {
+            UpstreamListingCache.ReportFailure(response);
             LogTarballDownloadFailed(url, (int)response.StatusCode);
             return null;
         }
@@ -112,6 +113,7 @@ public partial class HexUpstreamClient
             catch (Exception e) when (e is HttpRequestException or InvalidDataException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogListingFailed(e, name, mirror.PackageSource);
             }

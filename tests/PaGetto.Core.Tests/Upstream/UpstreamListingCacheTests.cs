@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Upstream;
@@ -27,7 +29,7 @@ public class UpstreamListingCacheTests
         }
 
         [Fact]
-        public async Task ConcurrentMissesShareAnEmptyResultWithoutCachingIt()
+        public async Task ConcurrentMissesShareAnEmptyResultAndItIsCachedBriefly()
         {
             var first = Target.GetOrListAsync(Key, Duration, ListAsync, CancellationToken.None);
             var second = Target.GetOrListAsync(Key, Duration, ListAsync, CancellationToken.None);
@@ -36,12 +38,39 @@ public class UpstreamListingCacheTests
             await Task.WhenAll(first, second);
             Assert.Equal(1, ListCalls);
 
+            Assert.Empty(await Target.GetOrListAsync(Key, Duration, ListAsync, CancellationToken.None));
+            Assert.Equal(1, ListCalls);
+
+            Clock.Advance(UpstreamListingCache.MissDuration + TimeSpan.FromSeconds(1));
             Upstream = new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var third = Target.GetOrListAsync(Key, Duration, ListAsync, CancellationToken.None);
-            Upstream.SetResult([]);
-            await third;
+            var later = Target.GetOrListAsync(Key, Duration, ListAsync, CancellationToken.None);
+            Upstream.SetResult(["1.0.0"]);
+
+            Assert.Equal(new[] { "1.0.0" }, await later);
+            Assert.Equal(2, ListCalls);
+        }
+
+        [Fact]
+        public async Task EmptyResultOfAFailedMirrorIsNotCached()
+        {
+            await Target.GetOrListAsync(Key, Duration, FailingListAsync, CancellationToken.None);
+            await Target.GetOrListAsync(Key, Duration, FailingListAsync, CancellationToken.None);
 
             Assert.Equal(2, ListCalls);
+        }
+
+        [Fact]
+        public async Task NotFoundIsNotAFailure()
+        {
+            using var notFound = new HttpResponseMessage(HttpStatusCode.NotFound);
+            using var serverError = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+
+            await Target.GetOrListAsync("a", Duration, _ => ListAfterAsync(notFound), CancellationToken.None);
+            await Target.GetOrListAsync("a", Duration, _ => ListAfterAsync(notFound), CancellationToken.None);
+            await Target.GetOrListAsync("b", Duration, _ => ListAfterAsync(serverError), CancellationToken.None);
+            await Target.GetOrListAsync("b", Duration, _ => ListAfterAsync(serverError), CancellationToken.None);
+
+            Assert.Equal(3, ListCalls);
         }
 
         [Fact]
@@ -110,13 +139,37 @@ public class UpstreamListingCacheTests
         protected const string Key = "key";
         protected static readonly TimeSpan Duration = TimeSpan.FromMinutes(5);
 
-        protected readonly UpstreamListingCache Target = new();
+        protected readonly CachingUpstreamClientTests.FakeClock Clock = new();
+        protected readonly UpstreamListingCache Target;
 
         // Every list call waits on the current source, so tests control when the upstream answers.
         protected TaskCompletionSource<IReadOnlyList<string>> Upstream = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         protected int ListCalls;
         protected CancellationToken ListToken;
+
+        protected FactsBase()
+        {
+            Target = new UpstreamListingCache(Clock);
+        }
+
+        // Like an upstream client whose only mirror failed: the failure is logged, and the
+        // listing is empty.
+        protected async Task<IReadOnlyList<string>> FailingListAsync(CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref ListCalls);
+            await Task.Yield();
+            UpstreamListingCache.ReportFailure();
+            return [];
+        }
+
+        protected async Task<IReadOnlyList<string>> ListAfterAsync(HttpResponseMessage response)
+        {
+            Interlocked.Increment(ref ListCalls);
+            await Task.Yield();
+            UpstreamListingCache.ReportFailure(response);
+            return [];
+        }
 
         protected Task<IReadOnlyList<string>> ListAsync(CancellationToken cancellationToken)
         {

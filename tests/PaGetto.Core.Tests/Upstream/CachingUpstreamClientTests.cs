@@ -58,11 +58,15 @@ public class CachingUpstreamClientTests
         }
 
         [Fact]
-        public async Task DoesNotCacheEmptyResults()
+        public async Task CachesEmptyResultsBriefly()
         {
             Inner.Setup(u => u.ListPackageVersionsAsync(Id, Cancellation)).ReturnsAsync(Versions());
 
             await Target.ListPackageVersionsAsync(Id, Cancellation);
+            await Target.ListPackageVersionsAsync(Id, Cancellation);
+            Inner.Verify(u => u.ListPackageVersionsAsync(Id, Cancellation), Times.Once);
+
+            Clock.Advance(UpstreamListingCache.MissDuration + TimeSpan.FromSeconds(1));
             await Target.ListPackageVersionsAsync(Id, Cancellation);
 
             Inner.Verify(u => u.ListPackageVersionsAsync(Id, Cancellation), Times.Exactly(2));
@@ -132,11 +136,15 @@ public class CachingUpstreamClientTests
         }
 
         [Fact]
-        public async Task DoesNotCacheEmptyResults()
+        public async Task CachesEmptyResultsBriefly()
         {
             Inner.Setup(u => u.ListPackagesAsync(Id, Cancellation)).ReturnsAsync(new List<Package>());
 
             await Target.ListPackagesAsync(Id, Cancellation);
+            await Target.ListPackagesAsync(Id, Cancellation);
+            Inner.Verify(u => u.ListPackagesAsync(Id, Cancellation), Times.Once);
+
+            Clock.Advance(UpstreamListingCache.MissDuration + TimeSpan.FromSeconds(1));
             await Target.ListPackagesAsync(Id, Cancellation);
 
             Inner.Verify(u => u.ListPackagesAsync(Id, Cancellation), Times.Exactly(2));

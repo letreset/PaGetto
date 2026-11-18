@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -90,17 +91,11 @@ public partial class RubyGemsUpstreamClient
             ("gem-versions", feed.Id, feed.UpdatedAtUtc.Ticks),
             async token =>
             {
-                var files = new List<byte[]>();
-                foreach (var mirror in mirrors)
-                {
-                    var file = await TryMirrorAsync(mirror, feed.Id, "versions", (response, _, t) => ReadVersionsBodyAsync(response, t), token);
-                    if (file != null)
-                    {
-                        files.Add(file);
-                    }
-                }
+                // The mirrors are asked at once; their files are kept in the mirrors' order.
+                var files = await Task.WhenAll(mirrors.Select(mirror =>
+                    TryMirrorAsync(mirror, feed.Id, "versions", (response, _, t) => ReadVersionsBodyAsync(response, t), token)));
 
-                return files;
+                return files.Where(file => file != null).ToList();
             },
             cancellationToken);
     }
@@ -256,6 +251,7 @@ public partial class RubyGemsUpstreamClient
 
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return default;
             }
@@ -265,6 +261,7 @@ public partial class RubyGemsUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException or ArtifactFileTooLargeException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return default;

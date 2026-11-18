@@ -134,6 +134,7 @@ public partial class CocoaPodsUpstreamClient
 
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -150,6 +151,7 @@ public partial class CocoaPodsUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return null;

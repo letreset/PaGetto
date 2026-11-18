@@ -104,6 +104,7 @@ public partial class MavenUpstreamClient
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    UpstreamListingCache.ReportFailure(response);
                     LogDownloadFailed(path, mirror.PackageSource, (int)response.StatusCode);
                     continue;
                 }
@@ -133,6 +134,7 @@ public partial class MavenUpstreamClient
             catch (Exception e) when (e is HttpRequestException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down is skipped, like a NuGet mirror.
                 LogDownloadException(e, path, mirror.PackageSource);
             }
@@ -173,6 +175,7 @@ public partial class MavenUpstreamClient
             catch (Exception e) when (e is HttpRequestException or XmlException or InvalidDataException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogMetadataFailed(e, path, mirror.PackageSource);
             }
@@ -190,6 +193,7 @@ public partial class MavenUpstreamClient
             using var response = await client.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 return null;
             }
 
@@ -198,6 +202,7 @@ public partial class MavenUpstreamClient
         catch (Exception e) when (e is HttpRequestException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogChecksumFailed(e, url);
             return null;
         }
