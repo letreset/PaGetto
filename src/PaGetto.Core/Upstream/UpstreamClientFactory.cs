@@ -47,7 +47,7 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         if (mirrors.Count == 0)
             return _disabled;
 
-        var upstream = CreateForMirrors(mirrors, feed.Id);
+        var upstream = CreateForMirrors(mirrors, feed.Id, _feedSettings.GetMaxPackageSizeBytes(feed));
 
         // The combined listing of all mirrors is cached, so one lookup serves a whole request.
         var cacheDuration = _feedSettings.GetUpstreamListingCacheDuration(feed);
@@ -62,29 +62,29 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         return CreateHttpClient(mirror, feedId, _loggerFactory.CreateLogger<UpstreamClientFactory>(), authenticate);
     }
 
-    private IUpstreamClient CreateForMirrors(IReadOnlyList<MirrorOptions> mirrors, Guid feedId)
+    private IUpstreamClient CreateForMirrors(IReadOnlyList<MirrorOptions> mirrors, Guid feedId, long maxPackageBytes)
     {
         // A single upstream is used directly, exactly as before multiple mirrors existed.
         if (mirrors.Count == 1)
-            return CreateForMirror(mirrors[0], feedId);
+            return CreateForMirror(mirrors[0], feedId, maxPackageBytes);
 
-        var upstreams = mirrors.Select(m => CreateForMirror(m, feedId)).ToList();
+        var upstreams = mirrors.Select(m => CreateForMirror(m, feedId, maxPackageBytes)).ToList();
         return new FallbackUpstreamClient(upstreams, _loggerFactory.CreateLogger<FallbackUpstreamClient>());
     }
 
-    private IUpstreamClient CreateForMirror(MirrorOptions mirrorOptions, Guid feedId)
+    private IUpstreamClient CreateForMirror(MirrorOptions mirrorOptions, Guid feedId, long maxPackageBytes)
     {
         if (mirrorOptions.Legacy)
         {
             var snapshot = new StaticOptionsSnapshot<MirrorOptions>(mirrorOptions);
-            return new V2UpstreamClient(snapshot, _loggerFactory.CreateLogger<V2UpstreamClient>());
+            return new V2UpstreamClient(snapshot, _loggerFactory.CreateLogger<V2UpstreamClient>(), maxPackageBytes);
         }
 
         var logger = _loggerFactory.CreateLogger<UpstreamClientFactory>();
         var httpClient = CreateHttpClient(mirrorOptions, feedId, logger);
         var clientFactory = new NuGetClientFactory(httpClient, mirrorOptions.PackageSource.ToString());
         var nugetClient = new NuGetClient(clientFactory);
-        return new V3UpstreamClient(nugetClient, _loggerFactory.CreateLogger<V3UpstreamClient>());
+        return new V3UpstreamClient(nugetClient, _loggerFactory.CreateLogger<V3UpstreamClient>(), maxPackageBytes);
     }
 
     // Headers that must never be forwarded to upstream feeds regardless of what is stored in the DB.

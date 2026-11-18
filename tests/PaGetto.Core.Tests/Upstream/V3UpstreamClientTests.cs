@@ -238,6 +238,19 @@ public class V3UpstreamClientTests
             Assert.NotNull(result);
             Assert.True(result.CanSeek);
         }
+
+        [Fact]
+        public async Task RefusesAPackageLargerThanTheFeedLimit()
+        {
+            Client
+                .Setup(c => c.DownloadPackageAsync(ID, Version, Cancellation))
+                .ReturnsAsync(new MemoryStream(new byte[11]));
+            var target = new V3UpstreamClient(Client.Object, Mock.Of<ILogger<V3UpstreamClient>>(), maxPackageBytes: 10);
+
+            var result = await target.DownloadPackageOrNullAsync(ID, Version, Cancellation);
+
+            Assert.Null(result);
+        }
     }
 
     public class FactsBase
