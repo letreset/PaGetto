@@ -22,8 +22,9 @@ function HomepageHeader() {
           </div>
           <p className={`hero__subtitle ${styles.tagline}`}>{siteConfig.tagline}</p>
           <p className={styles.subtitle}>
-            Multiple feeds, per-feed permissions, Entra ID sign-in and read-through mirrors
-            of nuget.org. Runs on Docker, Kubernetes or any machine with .NET.
+            Fifteen package formats on one server, each in its own feeds, with per-feed
+            permissions, Entra ID sign-in and read-through mirrors of the public registries.
+            Runs on Docker, Kubernetes or any machine with .NET.
           </p>
           <div className={styles.buttons}>
             <Link className="button button--primary" to="/docs">
@@ -43,7 +44,7 @@ function HomepageHeader() {
 export default function Home(): JSX.Element {
   const {siteConfig} = useDocusaurusContext();
   return (
-    <Layout title={siteConfig.tagline} description="PaGetto is a lightweight, self-hosted NuGet and symbol server with multiple feeds, per-feed permissions and Entra ID sign-in.">
+    <Layout title={siteConfig.tagline} description="PaGetto is a lightweight, self-hosted package server for NuGet, npm, Maven, Python, Rust, Go and nine more ecosystems, with multiple feeds, per-feed permissions, mirrors and Entra ID sign-in.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

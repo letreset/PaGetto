@@ -19,17 +19,23 @@ export default function QuickStartTerminal(): ReactNode {
         <span className={styles.title}>bash · quick start</span>
       </div>
       <pre className={styles.body}>
-        <span className={styles.comment}># run the server</span>
+        <span className={styles.comment}># run the server, sign in as admin, create a token</span>
         {'\n'}
         <Prompt />
-        {'docker run -d -p 5000:8080 -v pagetto-data:/data \\\n    -e ApiKey=change-me letreset/pagetto:latest\n'}
+        {'docker run -d -p 5000:8080 -v pagetto-data:/data \\\n    letreset/pagetto:latest\n'}
         <span className={styles.output}>3f9c2a1e8b7d…</span>
         {'\n\n'}
-        <span className={styles.comment}># push a package</span>
+        <span className={styles.comment}># push a NuGet package to the default feed</span>
         {'\n'}
         <Prompt />
-        {'dotnet nuget push -s http://localhost:5000/v3/index.json \\\n    -k change-me MyPackage.1.0.0.nupkg\n'}
+        {'dotnet nuget push -s http://localhost:5000/v3/index.json \\\n    -k $TOKEN MyPackage.1.0.0.nupkg\n'}
         <span className={styles.success}>Your package was pushed.</span>
+        {'\n\n'}
+        <span className={styles.comment}># publish to an npm feed</span>
+        {'\n'}
+        <Prompt />
+        {'npm publish \\\n    --registry http://localhost:5000/feeds/js/npm/\n'}
+        <span className={styles.success}>+ my-lib@1.0.0</span>
         {'\n'}
         <Prompt />
         <span className={styles.cursor} aria-hidden="true" />
