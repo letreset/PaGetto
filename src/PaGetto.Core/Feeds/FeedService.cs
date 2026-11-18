@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Hex;
 using PaGetto.Core.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,17 +23,20 @@ public partial class FeedService : IFeedService
     private readonly IContext _context;
     private readonly IPackageStorageService _packageStorage;
     private readonly IArtifactStorageService _artifactStorage;
+    private readonly IStorageService _storage;
     private readonly ILogger<FeedService> _logger;
 
     public FeedService(
         IContext context,
         IPackageStorageService packageStorage,
         IArtifactStorageService artifactStorage,
+        IStorageService storage,
         ILogger<FeedService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _packageStorage = packageStorage ?? throw new ArgumentNullException(nameof(packageStorage));
         _artifactStorage = artifactStorage ?? throw new ArgumentNullException(nameof(artifactStorage));
+        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -169,6 +173,20 @@ public partial class FeedService : IFeedService
             }
         }
 
+        // A Hex feed's signing key goes with it, so a feed created later with the same slug signs
+        // with a key of its own, which clients of the deleted feed don't trust.
+        if (feed.Type == FeedType.Hex)
+        {
+            try
+            {
+                await _storage.DeleteAsync(HexRegistry.GetKeyPath(feed.Slug), cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                LogHexKeyDeleteFailed(ex, feed.Slug);
+            }
+        }
+
         return true;
     }
 
@@ -221,4 +239,7 @@ public partial class FeedService : IFeedService
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to delete stored content for package {PackageName} {PackageVersion} while deleting feed {FeedSlug}")]
     private partial void LogArtifactContentDeleteFailed(Exception exception, string packageName, string packageVersion, string feedSlug);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to delete the registry key of Hex feed {FeedSlug} while deleting it")]
+    private partial void LogHexKeyDeleteFailed(Exception exception, string feedSlug);
 }

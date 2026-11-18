@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Feeds;
 using PaGetto.Core.Tests.Support;
 using PaGetto.Tests.Support;
 using Xunit;
@@ -144,6 +145,24 @@ public class HexRepositoryIntegrationTests : IDisposable
         Assert.StartsWith("-----BEGIN PUBLIC KEY-----", first);
         Assert.Equal(first, second);
         Assert.NotEqual(first, other);
+    }
+
+    [Fact]
+    public async Task FeedCreatedWithTheSlugOfADeletedOneHasAKeyOfItsOwn()
+    {
+        var deleted = await _app.CreateHexFeedAsync(Feed);
+        var first = await _client.GetStringAsync($"{HexTestClient.RepositoryUrl(Feed)}/public_key");
+
+        using (var scope = _app.Services.CreateScope())
+        {
+            Assert.True(await scope.ServiceProvider.GetRequiredService<IFeedService>().DeleteFeedAsync(deleted.Id, default));
+        }
+
+        await _app.CreateHexFeedAsync(Feed);
+        var second = await _client.GetStringAsync($"{HexTestClient.RepositoryUrl(Feed)}/public_key");
+
+        Assert.StartsWith("-----BEGIN PUBLIC KEY-----", second);
+        Assert.NotEqual(first, second);
     }
 
     [Fact]

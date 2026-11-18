@@ -16,7 +16,7 @@ The feed's **Connect** page shows the repository URL, the repository name and th
 
 ### The repository name and the signed registry
 
-A Hex repository signs its registry, and clients check every registry file against the repository's public key. Each Hex feed has its own RSA key, created the first time the feed is used. The private key is kept in the package storage, encrypted with the [Data Protection keys](upgrading.md#data-protection-keys), which are kept there too. Back up the storage, and the Data Protection certificate if you configured one: if the key is lost, clients have to be given the new public key.
+A Hex repository signs its registry, and clients check every registry file against the repository's public key. Each Hex feed has its own RSA key, created the first time the feed is used. The private key is kept in the package storage, encrypted with the [Data Protection keys](upgrading.md#data-protection-keys), which are kept there too. Back up the storage, and the Data Protection certificate if you configured one: if the key is lost, clients have to be given the new public key. Deleting a Hex feed deletes its key, so a feed created later with the same slug has a new key, which clients of the deleted feed don't accept.
 
 The public key is at `/hex/public_key` of the feed. Clients also check that the registry is the one of the repository they configured, so a feed is a repository named after its slug: add it under that name.
 

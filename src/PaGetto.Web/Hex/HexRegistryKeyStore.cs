@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Hex;
 using PaGetto.Core.Storage;
 
 namespace PaGetto.Web.Hex;
@@ -28,9 +29,10 @@ public sealed class HexRegistryKeyStore
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IDataProtector _protector;
 
-    // The private key of each feed as PEM, by feed slug. An RSA object is made for each use,
-    // because instances are not safe to share between threads.
-    private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _keys = new(StringComparer.Ordinal);
+    // The private key of each feed as PEM, by feed id: a feed created with the slug of a deleted
+    // one gets a key of its own. An RSA object is made for each use, because instances are not
+    // safe to share between threads.
+    private readonly ConcurrentDictionary<Guid, Lazy<Task<string>>> _keys = new();
 
     public HexRegistryKeyStore(IServiceScopeFactory scopeFactory, IDataProtectionProvider dataProtection)
     {
@@ -77,12 +79,13 @@ public sealed class HexRegistryKeyStore
 
     private Task<string> GetPemAsync(Feed feed, CancellationToken cancellationToken)
     {
-        var key = _keys.GetOrAdd(feed.Slug, slug => new Lazy<Task<string>>(() => LoadOrCreateAsync(slug)));
+        var slug = feed.Slug;
+        var key = _keys.GetOrAdd(feed.Id, _ => new Lazy<Task<string>>(() => LoadOrCreateAsync(slug)));
 
-        return WaitAsync(feed.Slug, key, cancellationToken);
+        return WaitAsync(feed.Id, key, cancellationToken);
     }
 
-    private async Task<string> WaitAsync(string slug, Lazy<Task<string>> key, CancellationToken cancellationToken)
+    private async Task<string> WaitAsync(Guid feedId, Lazy<Task<string>> key, CancellationToken cancellationToken)
     {
         try
         {
@@ -91,7 +94,7 @@ public sealed class HexRegistryKeyStore
         catch (Exception e) when (e is not OperationCanceledException)
         {
             // A failed load is tried again by the next request.
-            _keys.TryRemove(KeyValuePair.Create(slug, key));
+            _keys.TryRemove(KeyValuePair.Create(feedId, key));
             throw;
         }
     }
@@ -100,7 +103,7 @@ public sealed class HexRegistryKeyStore
     {
         using var scope = _scopeFactory.CreateScope();
         var storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
-        var path = $"hex/{slug}/registry-key";
+        var path = HexRegistry.GetKeyPath(slug);
 
         var stored = await TryReadAsync(storage, path);
         if (stored == null)
