@@ -13,28 +13,33 @@ public partial class PermissionService : IPermissionService
 {
     private readonly IContext _context;
     private readonly IUserService _userService;
+    private readonly RequestTokenScope _tokenScope;
     private readonly ILogger<PermissionService> _logger;
 
-    public PermissionService(IContext context, IUserService userService, ILogger<PermissionService> logger)
+    public PermissionService(IContext context, IUserService userService, RequestTokenScope tokenScope, ILogger<PermissionService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _tokenScope = tokenScope ?? throw new ArgumentNullException(nameof(tokenScope));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<bool> CanPushAsync(Guid userId, Guid feedId, CancellationToken cancellationToken)
     {
-        return await HasPermissionAsync(userId, feedId, p => p.CanPush, cancellationToken);
+        return _tokenScope.AllowsPush(userId, feedId)
+            && await HasPermissionAsync(userId, feedId, p => p.CanPush, cancellationToken);
     }
 
     public async Task<bool> CanPullAsync(Guid userId, Guid feedId, CancellationToken cancellationToken)
     {
-        return await HasPermissionAsync(userId, feedId, p => p.CanPull, cancellationToken);
+        return _tokenScope.AllowsPull(userId, feedId)
+            && await HasPermissionAsync(userId, feedId, p => p.CanPull, cancellationToken);
     }
 
     public async Task<bool> CanDeleteAsync(Guid userId, Guid feedId, CancellationToken cancellationToken)
     {
-        return await HasPermissionAsync(userId, feedId, p => p.CanDelete, cancellationToken);
+        return _tokenScope.AllowsDelete(userId, feedId)
+            && await HasPermissionAsync(userId, feedId, p => p.CanDelete, cancellationToken);
     }
 
     public async Task<FeedPermission> GetPermissionAsync(

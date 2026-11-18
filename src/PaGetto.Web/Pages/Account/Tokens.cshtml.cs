@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Threading;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Feeds;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -18,17 +20,52 @@ namespace PaGetto.Web.Pages.Account;
 public class TokensModel : PageModel
 {
     private readonly ITokenService _tokenService;
+    private readonly IFeedService _feedService;
+    private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<NugetAuthenticationOptions> _authOptions;
 
     public TokensModel(
         ITokenService tokenService,
+        IFeedService feedService,
+        IPermissionService permissionService,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions)
     {
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+        _feedService = feedService ?? throw new ArgumentNullException(nameof(feedService));
+        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
     }
 
+    /// <summary>
+    /// What a new token may do. Every token can read what its user can read.
+    /// </summary>
+    public enum TokenAccess
+    {
+        Read,
+        Publish,
+        PublishAndDelete,
+    }
+
     public List<PersonalAccessToken> Tokens { get; set; } = new();
+
+    /// <summary>
+    /// The feeds the user can read, which a token can be limited to.
+    /// </summary>
+    public List<Feed> Feeds { get; set; } = new();
+
+    /// <summary>
+    /// The names of all feeds by id, to describe the feed a token is limited to.
+    /// </summary>
+    public Dictionary<Guid, string> FeedNames { get; set; } = new();
+
+    [BindProperty]
+    public TokenAccess Access { get; set; } = TokenAccess.PublishAndDelete;
+
+    /// <summary>
+    /// The only feed the new token may be used with, or null for every feed.
+    /// </summary>
+    [BindProperty]
+    public Guid? FeedId { get; set; }
 
     [BindProperty]
     [Required(ErrorMessage = "Token name is required.")]
@@ -58,7 +95,7 @@ public class TokensModel : PageModel
         var userId = GetUserId();
         if (userId == Guid.Empty) return RedirectToPage("/Login");
 
-        Tokens = await _tokenService.GetUserTokensAsync(userId, cancellationToken);
+        await LoadAsync(userId, cancellationToken);
         return Page();
     }
 
@@ -69,8 +106,14 @@ public class TokensModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            Tokens = await _tokenService.GetUserTokensAsync(userId, cancellationToken);
+            await LoadAsync(userId, cancellationToken);
             return Page();
+        }
+
+        if (FeedId is { } feedId && !await _permissionService.CanPullAsync(userId, feedId, cancellationToken))
+        {
+            ErrorMessage = "You can only limit a token to a feed you can read.";
+            return RedirectToPage();
         }
 
         var maxDays = _authOptions.Value.MaxTokenExpiryDays;
@@ -81,10 +124,16 @@ public class TokensModel : PageModel
 
         try
         {
+            var permissions = new TokenPermissions(
+                CanPush: Access != TokenAccess.Read,
+                CanDelete: Access == TokenAccess.PublishAndDelete,
+                FeedId: FeedId);
+
             var result = await _tokenService.CreateTokenAsync(
                 userId,
                 TokenName,
                 DateTime.UtcNow.AddDays(ExpiryDays),
+                permissions,
                 cancellationToken);
 
             NewTokenPlaintext = result.PlaintextToken;
@@ -110,5 +159,22 @@ public class TokensModel : PageModel
         }
 
         return RedirectToPage();
+    }
+
+    private async Task LoadAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        Tokens = await _tokenService.GetUserTokensAsync(userId, cancellationToken);
+
+        var feeds = await _feedService.GetAllFeedsAsync(cancellationToken);
+        FeedNames = feeds.ToDictionary(f => f.Id, f => f.Name);
+
+        Feeds.Clear();
+        foreach (var feed in feeds.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (await _permissionService.CanPullAsync(userId, feed.Id, cancellationToken))
+            {
+                Feeds.Add(feed);
+            }
+        }
     }
 }

@@ -237,6 +237,56 @@ public class PermissionServiceTests
         }
     }
 
+    public class LimitedTokens : FactsBase
+    {
+        [Fact]
+        public async Task AReadOnlyTokenOfAnAdminReadsButDoesNotChange()
+        {
+            var userId = Guid.NewGuid();
+            await CreateUser(userId, "admintoken");
+            UserService.Setup(s => s.IsAdminAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            TokenScope.Use(new PersonalAccessToken { UserId = userId, CanPush = false, CanDelete = false });
+
+            Assert.True(await Target.CanPullAsync(userId, _defaultFeedId, Ct));
+            Assert.False(await Target.CanPushAsync(userId, _defaultFeedId, Ct));
+            Assert.False(await Target.CanDeleteAsync(userId, _defaultFeedId, Ct));
+        }
+
+        [Fact]
+        public async Task ATokenOfOneFeedHasNothingInAnother()
+        {
+            var userId = Guid.NewGuid();
+            await CreateUser(userId, "feedtoken");
+            UserService.Setup(s => s.IsAdminAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            TokenScope.Use(new PersonalAccessToken { UserId = userId, CanPush = true, CanDelete = true, FeedId = _feedAId });
+
+            Assert.True(await Target.CanPushAsync(userId, _feedAId, Ct));
+            Assert.False(await Target.CanPullAsync(userId, _feedBId, Ct));
+            Assert.False(await Target.CanPushAsync(userId, _feedBId, Ct));
+        }
+
+        [Fact]
+        public async Task ATokenDoesNotGrantWhatItsUserLacks()
+        {
+            var userId = Guid.NewGuid();
+            await CreateUser(userId, "plaintoken");
+            TokenScope.Use(new PersonalAccessToken { UserId = userId, CanPush = true, CanDelete = true });
+
+            Assert.False(await Target.CanPushAsync(userId, _feedAId, Ct));
+        }
+
+        [Fact]
+        public async Task ATokenLimitsOnlyItsOwnUser()
+        {
+            var userId = Guid.NewGuid();
+            await CreateUser(userId, "otheradmin");
+            UserService.Setup(s => s.IsAdminAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            TokenScope.Use(new PersonalAccessToken { UserId = Guid.NewGuid(), CanPush = false, CanDelete = false });
+
+            Assert.True(await Target.CanPushAsync(userId, _feedAId, Ct));
+        }
+    }
+
     public class RevokePermissionAsync : FactsBase
     {
         [Fact]
@@ -390,6 +440,7 @@ public class PermissionServiceTests
         protected readonly TestDbContext Context;
         protected readonly Mock<IUserService> UserService;
         protected readonly PermissionService Target;
+        protected readonly RequestTokenScope TokenScope = new();
         protected readonly CancellationToken Ct = CancellationToken.None;
 
         protected FactsBase()
@@ -407,6 +458,7 @@ public class PermissionServiceTests
             Target = new PermissionService(
                 Context,
                 UserService.Object,
+                TokenScope,
                 Mock.Of<ILogger<PermissionService>>());
         }
 

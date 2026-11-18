@@ -646,6 +646,12 @@ namespace PaGetto.Database.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("CanPush")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -654,6 +660,9 @@ namespace PaGetto.Database.MySql.Migrations
 
                     b.Property<int?>("ExpiryNotificationThresholdDays")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("FeedId")
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()
