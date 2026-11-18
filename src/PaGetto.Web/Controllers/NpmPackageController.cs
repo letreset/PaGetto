@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -12,10 +11,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Npm;
@@ -44,9 +41,7 @@ public class NpmPackageController : Controller
     private readonly IArtifactDatabase _artifacts;
     private readonly IFeedContext _feedContext;
     private readonly IFeedSettingsResolver _feedSettings;
-    private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
-    private readonly IOptionsSnapshot<PaGettoOptions> _options;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly WebAuditLog _audit;
 
     public NpmPackageController(
@@ -54,18 +49,14 @@ public class NpmPackageController : Controller
         IArtifactDatabase artifacts,
         IFeedContext feedContext,
         IFeedSettingsResolver feedSettings,
-        IAuthenticationService authentication,
-        IPermissionService permissionService,
-        IOptionsSnapshot<PaGettoOptions> options,
+        FeedChangeAuthorizer changes,
         WebAuditLog audit)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
-        _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -126,14 +117,18 @@ public class NpmPackageController : Controller
         var feed = _feedContext.CurrentFeed;
         var maxTarballBytes = _feedSettings.GetMaxPackageSizeBytes(feed);
 
-        var (canPush, canDelete) = await GetWritePermissionsAsync(cancellationToken);
+        // A changed document may deprecate (push permission) and unpublish (delete permission).
+        var push = await _changes.CheckAsync(User, GetBearerToken(), FeedPermissionRequirement.Push, cancellationToken);
+        var delete = await _changes.CheckAsync(User, GetBearerToken(), FeedPermissionRequirement.Delete, cancellationToken);
+        var canPush = push != FeedChangeAccess.Unauthorized;
+        var canDelete = delete != FeedChangeAccess.Unauthorized;
         if (!canPush && !canDelete)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_unauthorized", name, null);
             return NpmError(StatusCodes.Status403Forbidden, "You do not have permission to change packages of this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (push == FeedChangeAccess.ReadOnly || delete == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_read_only", name, null);
             return ReadOnly();
@@ -393,43 +388,16 @@ public class NpmPackageController : Controller
         });
     }
 
-    /// <summary>
-    /// What the caller may change in the current feed. The caller is already known to be allowed
-    /// to read it.
-    /// </summary>
-    private async Task<(bool CanPush, bool CanDelete)> GetWritePermissionsAsync(CancellationToken cancellationToken)
-    {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as the npm auth token.
-            var authorized = await _authentication.AuthenticateAsync(GetBearerToken(), cancellationToken);
-            return (authorized, authorized);
-        }
-
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            return (false, false);
-        }
-
-        return (
-            await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken),
-            await _permissionService.CanDeleteAsync(userId, feed.Id, cancellationToken));
-    }
-
     private async Task<IActionResult> CheckCanPushAsync(string name, CancellationToken cancellationToken)
     {
-        var (canPush, _) = await GetWritePermissionsAsync(cancellationToken);
-        if (!canPush)
+        var access = await _changes.CheckAsync(User, GetBearerToken(), FeedPermissionRequirement.Push, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             await AuditAsync(LogLevel.Warning, "package_tag_unauthorized", name, null);
             return NpmError(StatusCodes.Status403Forbidden, "You do not have permission to change packages of this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_tag_read_only", name, null);
             return ReadOnly();
@@ -440,14 +408,14 @@ public class NpmPackageController : Controller
 
     private async Task<IActionResult> CheckCanDeleteAsync(string name, string version, CancellationToken cancellationToken)
     {
-        var (_, canDelete) = await GetWritePermissionsAsync(cancellationToken);
-        if (!canDelete)
+        var access = await _changes.CheckAsync(User, GetBearerToken(), FeedPermissionRequirement.Delete, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             await AuditAsync(LogLevel.Warning, "package_delete_unauthorized", name, version);
             return NpmError(StatusCodes.Status403Forbidden, "You do not have permission to unpublish packages from this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(_feedContext.CurrentFeed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_delete_read_only", name, version);
             return ReadOnly();
@@ -565,13 +533,6 @@ public class NpmPackageController : Controller
 
     private async Task AuditAsync(LogLevel level, string eventName, string packageName, string packageVersion)
     {
-        var actor = User.Identity?.Name;
-        if (string.IsNullOrEmpty(actor))
-        {
-            // Config mode API keys are shared and carry no user identity.
-            actor = string.IsNullOrEmpty(GetBearerToken()) ? "anonymous" : "api-key";
-        }
-
-        await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, actor);
+        await _audit.PackageApiAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, GetBearerToken());
     }
 }
