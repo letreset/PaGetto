@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -349,15 +348,12 @@ public partial class HexPackageService : IHexPackageService
         tarball.Position = 0;
         var hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(tarball, cancellationToken));
 
-        tarball.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, name, version.ToString(), tarball, readmeStream, cancellationToken);
-
         var description = manifest.Description?.Trim();
 
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             name,
             new ArtifactVersion
             {
@@ -368,10 +364,11 @@ public partial class HexPackageService : IHexPackageService
                 MetadataJson = manifest.ToJson(),
                 ContentHash = hash,
                 Size = tarball.Length,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            tarball,
+            readme,
             cancellationToken);
     }
 

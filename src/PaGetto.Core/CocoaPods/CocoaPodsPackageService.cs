@@ -213,11 +213,6 @@ public partial class CocoaPodsPackageService : ICocoaPodsPackageService
             }
 
             var json = spec.ToJsonString();
-            if (archive != null)
-            {
-                await _storage.SaveAsync(feed.Slug, escaped, text, archive.Stream, readme: null, cancellationToken);
-            }
-
             var result = await AddVersionAsync(feed, escaped, version, json, CocoaPodsPodspec.GetSummary(spec), archive, cachedFrom: null, cancellationToken);
             if (result == ArtifactAddResult.AlreadyExists)
             {
@@ -324,8 +319,10 @@ public partial class CocoaPodsPackageService : ICocoaPodsPackageService
     {
         description = description?.Trim();
 
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             escapedName,
             new ArtifactVersion
             {
@@ -336,10 +333,11 @@ public partial class CocoaPodsPackageService : ICocoaPodsPackageService
                 MetadataJson = podspecJson,
                 ContentHash = archive?.Sha256,
                 Size = archive?.Size ?? Encoding.UTF8.GetByteCount(podspecJson),
-                HasReadme = false,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            archive?.Stream,
+            readme: null,
             cancellationToken);
     }
 

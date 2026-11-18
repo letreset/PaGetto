@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -418,13 +417,10 @@ public partial class GoModuleService : IGoModuleService
         string cachedFrom,
         CancellationToken cancellationToken)
     {
-        zip.Stream.Position = 0;
-        using var readmeStream = readme == null ? null : new MemoryStream(Encoding.UTF8.GetBytes(readme));
-
-        await _storage.SaveAsync(feed.Slug, name, version.ToString(), zip.Stream, readmeStream, cancellationToken);
-
-        return await _artifacts.AddVersionAsync(
-            feed.Id,
+        return await ArtifactPublisher.AddAsync(
+            _artifacts,
+            _storage,
+            feed,
             name,
             new ArtifactVersion
             {
@@ -434,10 +430,11 @@ public partial class GoModuleService : IGoModuleService
                 MetadataJson = manifestJson,
                 ContentHash = zip.Sha256,
                 Size = zip.Size,
-                HasReadme = readme != null,
                 CachedFrom = cachedFrom,
                 Published = _time.UtcNow,
             },
+            zip.Stream,
+            readme,
             cancellationToken);
     }
 
