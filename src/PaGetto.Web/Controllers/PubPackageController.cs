@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -9,9 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PaGetto.Core.Authentication;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Pub;
@@ -34,29 +31,23 @@ public partial class PubPackageController : Controller
 
     private readonly IPubPackageService _packages;
     private readonly IFeedContext _feedContext;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
-    private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
-    private readonly IOptionsSnapshot<PaGettoOptions> _options;
     private readonly WebAuditLog _audit;
     private readonly ILogger<PubPackageController> _logger;
 
     public PubPackageController(
         IPubPackageService packages,
         IFeedContext feedContext,
+        FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
-        IAuthenticationService authentication,
-        IPermissionService permissionService,
-        IOptionsSnapshot<PaGettoOptions> options,
         WebAuditLog audit,
         ILogger<PubPackageController> logger)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
-        _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -242,23 +233,8 @@ public partial class PubPackageController : Controller
     /// </summary>
     private async Task<IActionResult> CheckCanPublishAsync(CancellationToken cancellationToken)
     {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        bool authorized;
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as the pub token.
-            authorized = await _authentication.AuthenticateAsync(GetBearerToken(), cancellationToken);
-        }
-        else
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            authorized = Guid.TryParse(userIdClaim, out var userId)
-                && await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken);
-        }
-
-        if (!authorized)
+        var access = await _changes.CheckAsync(User, GetBearerToken(), FeedPermissionRequirement.Push, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_unauthorized", null, null);
 
@@ -268,7 +244,7 @@ public partial class PubPackageController : Controller
             return StatusCode(403);
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_read_only", null, null);
             return PubError(400, "ReadOnly", "This feed is read-only.");
