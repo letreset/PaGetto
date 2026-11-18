@@ -105,6 +105,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Ivy)
+{
+    <partial name="_ConnectIvy" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

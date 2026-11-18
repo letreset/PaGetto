@@ -1,7 +1,7 @@
 namespace PaGetto.Core.Maven;
 
 /// <summary>
-/// The result of <see cref="IMavenRepositoryService.PutAsync"/>.
+/// The result of <see cref="IMavenRepositoryService.PutAsync"/> and <see cref="Ivy.IIvyRepositoryService.PutAsync"/>.
 /// </summary>
 public sealed class MavenPutResult
 {

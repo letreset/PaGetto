@@ -31,6 +31,7 @@ public class PaGettoEndpointBuilder
         MapCocoaPodsRoutes(endpoints);
         MapSwiftRoutes(endpoints);
         MapCranRoutes(endpoints);
+        MapIvyRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -711,6 +712,26 @@ public class PaGettoEndpointBuilder
             name: null,
             pattern: "cran/src/contrib/{file}",
             defaults: new { controller = "CranRepository", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The Ivy repository of Ivy feeds, in the Ivy layout of sbt. It is nothing but paths, so it is at
+    /// <c>ivy/</c> under the feed, clear of the pages of the web UI.
+    /// See: https://www.scala-sbt.org/1.x/docs/Resolvers.html#Custom+Layout
+    /// </summary>
+    public void MapIvyRoutes(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "ivy/{**path}",
+            defaults: new { controller = "IvyRepository", action = "Get" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("GET", "HEAD") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "ivy/{**path}",
+            defaults: new { controller = "IvyRepository", action = "Put" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
     }
 }

@@ -156,6 +156,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsIvyRevisionsInMavensOrder()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Ivy, [Version("1.0.0"), Version("1.10.0"), Version("1.2.0-RC1"), Version("1.2.0"), Version("1.2.0-SNAPSHOT")]);
+
+            Assert.Equal(new[] { "1.10.0", "1.2.0", "1.2.0-SNAPSHOT", "1.2.0-RC1", "1.0.0" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));
