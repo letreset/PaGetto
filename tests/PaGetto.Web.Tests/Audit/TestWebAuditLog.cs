@@ -1,5 +1,6 @@
 using PaGetto.Core.Audit;
 using PaGetto.Core.Extensions;
+using PaGetto.Core.Webhooks;
 using PaGetto.Web.Audit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ public static class TestWebAuditLog
         return new WebAuditLog(
             logger ?? NullLogger<WebAuditLog>.Instance,
             services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
-            systemTime ?? new SystemTime());
+            systemTime ?? new SystemTime(),
+            new WebhookQueue(NullLogger<WebhookQueue>.Instance));
     }
 }

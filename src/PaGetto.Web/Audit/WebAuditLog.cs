@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
+using PaGetto.Core.Webhooks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,12 +24,14 @@ public partial class WebAuditLog
     private readonly ILogger<WebAuditLog> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly SystemTime _systemTime;
+    private readonly WebhookQueue _webhooks;
 
-    public WebAuditLog(ILogger<WebAuditLog> logger, IServiceScopeFactory scopeFactory, SystemTime systemTime)
+    public WebAuditLog(ILogger<WebAuditLog> logger, IServiceScopeFactory scopeFactory, SystemTime systemTime, WebhookQueue webhooks)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
+        _webhooks = webhooks ?? throw new ArgumentNullException(nameof(webhooks));
     }
 
     /// <summary>
@@ -52,6 +55,9 @@ public partial class WebAuditLog
                 PackageId = packageId,
                 PackageVersion = packageVersion,
             });
+
+            // A change that succeeded is also sent to the feed's webhook, in the background.
+            _webhooks.Enqueue(new WebhookEvent(eventName, feed, packageId, packageVersion, actor, _systemTime.UtcNow));
         }
     }
 

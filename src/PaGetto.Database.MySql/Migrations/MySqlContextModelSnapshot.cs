@@ -316,6 +316,14 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Property<int?>("UpstreamListingCacheSeconds")
                         .HasColumnType("int");
 
+                    b.Property<string>("WebhookSecret")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")

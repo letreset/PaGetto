@@ -314,6 +314,14 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<int?>("UpstreamListingCacheSeconds")
                         .HasColumnType("int");
 
+                    b.Property<string>("WebhookSecret")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")

@@ -34,6 +34,7 @@ using PaGetto.Core.Statistics;
 using PaGetto.Core.Storage;
 using PaGetto.Core.Swift;
 using PaGetto.Core.Upstream;
+using PaGetto.Core.Webhooks;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
 using PaGetto.Core.Vsix;
@@ -141,6 +142,7 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<IPermissionService, PermissionService>();
         services.TryAddScoped<RequestTokenScope>();
         services.TryAddScoped<RetentionCleaner>();
+        services.TryAddSingleton<WebhookQueue>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();

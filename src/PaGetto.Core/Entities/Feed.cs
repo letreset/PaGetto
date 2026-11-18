@@ -39,6 +39,17 @@ public class Feed
     /// </summary>
     public int? MirrorCacheRetentionDays { get; set; }
 
+    /// <summary>
+    /// The URL that is sent a POST for every package published, unlisted, relisted or deleted in
+    /// the feed, or null for none.
+    /// </summary>
+    public string WebhookUrl { get; set; }
+
+    /// <summary>
+    /// The secret the webhook's body is signed with (HMAC-SHA256, in <c>X-PaGetto-Signature</c>), or null.
+    /// </summary>
+    public string WebhookSecret { get; set; }
+
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 
