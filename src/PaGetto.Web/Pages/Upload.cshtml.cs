@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
@@ -30,7 +31,6 @@ namespace PaGetto.Web.Pages;
 [FeedType(FeedType.NuGet)]
 public partial class UploadModel : PageModel
 {
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IPermissionService _permissions;
     private readonly IFeedContext _feedContext;
@@ -128,16 +128,13 @@ public partial class UploadModel : PageModel
 
         try
         {
-            using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
+            using var uploadStream = await Request.GetUploadStreamOrNullAsync(MaxUploadBytes(), cancellationToken);
             if (uploadStream == null)
                 return await AuditedAsync(StatusCodes.Status400BadRequest, "package_upload_invalid_package", "invalid", "The file is not a valid package.");
 
             var identity = TryReadPackageIdentity(uploadStream);
             var packageId = identity?.Id;
             var packageVersion = identity?.Version?.ToNormalizedString();
-
-            if (uploadStream.Length > MaxUploadBytes())
-                return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "package_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
 
             var result = await _packageIndexer.IndexAsync(
                 _feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, uploadStream, cacheFeedUrl: null, published: null, cancellationToken);
@@ -151,6 +148,10 @@ public partial class UploadModel : PageModel
                 _ => await AuditedAsync(
                     StatusCodes.Status400BadRequest, "package_upload_invalid_package", "invalid", "The file is not a valid package.", packageId, packageVersion),
             };
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "package_upload_too_large", "too_large", TooLargeMessage());
         }
         catch (Exception e)
         {
@@ -166,16 +167,13 @@ public partial class UploadModel : PageModel
 
         try
         {
-            using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
+            using var uploadStream = await Request.GetUploadStreamOrNullAsync(MaxUploadBytes(), cancellationToken);
             if (uploadStream == null)
                 return await AuditedAsync(StatusCodes.Status400BadRequest, "symbol_upload_invalid_package", "invalid", "The file is not a valid symbol package.");
 
             var identity = TryReadPackageIdentity(uploadStream);
             var packageId = identity?.Id;
             var packageVersion = identity?.Version?.ToNormalizedString();
-
-            if (uploadStream.Length > MaxUploadBytes())
-                return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "symbol_upload_too_large", "too_large", TooLargeMessage(), packageId, packageVersion);
 
             var result = await _symbolIndexer.IndexAsync(
                 _feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, uploadStream, cancellationToken);
@@ -189,6 +187,10 @@ public partial class UploadModel : PageModel
                 _ => await AuditedAsync(
                     StatusCodes.Status400BadRequest, "symbol_upload_invalid_package", "invalid", "The file is not a valid symbol package.", packageId, packageVersion),
             };
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            return await AuditedAsync(StatusCodes.Status413PayloadTooLarge, "symbol_upload_too_large", "too_large", TooLargeMessage());
         }
         catch (Exception e)
         {
@@ -247,7 +249,7 @@ public partial class UploadModel : PageModel
 
     private long MaxUploadBytes()
     {
-        return (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
+        return _feedSettings.GetMaxPackageSizeBytes(_feedContext.CurrentFeed);
     }
 
     private string TooLargeMessage()

@@ -77,7 +77,7 @@ public class PackagePublishControllerFacts
             await controller.Upload(CancellationToken.None);
 
             Assert.Equal(413, controller.Response.StatusCode);
-            VerifyAudit(LogLevel.Warning, "package_upload_too_large", "Foo", "1.0.0", "api-key");
+            VerifyAudit(LogLevel.Warning, "package_upload_too_large", null, null, "api-key");
             Indexer.Verify(
                 i => i.IndexAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()),
                 Times.Never);

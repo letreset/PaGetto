@@ -2,6 +2,7 @@ using System;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Feeds;
@@ -21,7 +22,6 @@ namespace PaGetto.Web.Controllers;
 [FeedType(FeedType.NuGet)]
 public partial class SymbolController : Controller
 {
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IAuthenticationService _authentication;
     private readonly IFeedAuthenticationService _feedAuthentication;
@@ -77,19 +77,10 @@ public partial class SymbolController : Controller
 
         try
         {
-            using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
+            using var uploadStream = await Request.GetUploadStreamOrNullAsync(_feedSettings.GetMaxPackageSizeBytes(_feedContext.CurrentFeed), cancellationToken);
             if (uploadStream == null)
             {
                 HttpContext.Response.StatusCode = 400;
-                return;
-            }
-
-            // The server-wide request limit applies before the feed is known; a feed can only lower it.
-            var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
-            if (uploadStream.Length > maxBytes)
-            {
-                await _audit.SymbolAsync(HttpContext, LogLevel.Warning, "symbol_upload_too_large", _feedContext.CurrentFeed.Slug, HttpContext.User.Identity?.Name ?? "anonymous");
-                HttpContext.Response.StatusCode = 413;
                 return;
             }
 
@@ -109,6 +100,11 @@ public partial class SymbolController : Controller
                     HttpContext.Response.StatusCode = 201;
                     break;
             }
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            await _audit.SymbolAsync(HttpContext, LogLevel.Warning, "symbol_upload_too_large", _feedContext.CurrentFeed.Slug, HttpContext.User.Identity?.Name ?? "anonymous");
+            HttpContext.Response.StatusCode = 413;
         }
         catch (Exception e)
         {

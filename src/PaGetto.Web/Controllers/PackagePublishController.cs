@@ -3,6 +3,7 @@ using System.IO;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Configuration;
@@ -23,7 +24,6 @@ namespace PaGetto.Web.Controllers;
 [FeedType(FeedType.NuGet)]
 public partial class PackagePublishController : Controller
 {
-    private const long BytesPerMiB = 1024L * 1024;
 
     private readonly IAuthenticationService _authentication;
     private readonly IFeedAuthenticationService _feedAuthentication;
@@ -85,7 +85,7 @@ public partial class PackagePublishController : Controller
 
         try
         {
-            using var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken);
+            using var uploadStream = await Request.GetUploadStreamOrNullAsync(_feedSettings.GetMaxPackageSizeBytes(_feedContext.CurrentFeed), cancellationToken);
             if (uploadStream == null)
             {
                 await AuditAsync(LogLevel.Warning, "package_upload_invalid_package", null, null, actor);
@@ -96,15 +96,6 @@ public partial class PackagePublishController : Controller
             var identity = TryReadPackageIdentity(uploadStream);
             var packageId = identity?.Id;
             var packageVersion = identity?.Version?.ToNormalizedString();
-
-            // The server-wide request limit applies before the feed is known; a feed can only lower it.
-            var maxBytes = (long)_feedSettings.GetMaxPackageSizeMiB(_feedContext.CurrentFeed) * BytesPerMiB;
-            if (uploadStream.Length > maxBytes)
-            {
-                await AuditAsync(LogLevel.Warning, "package_upload_too_large", packageId, packageVersion, actor);
-                HttpContext.Response.StatusCode = 413;
-                return;
-            }
 
             var result = await _indexer.IndexAsync(_feedContext.CurrentFeed.Id, _feedContext.CurrentFeed.Slug, uploadStream, cacheFeedUrl: null, published: null, cancellationToken);
 
@@ -125,6 +116,11 @@ public partial class PackagePublishController : Controller
                     HttpContext.Response.StatusCode = 201;
                     break;
             }
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            await AuditAsync(LogLevel.Warning, "package_upload_too_large", null, null, actor);
+            HttpContext.Response.StatusCode = 413;
         }
         catch (Exception e)
         {

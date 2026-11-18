@@ -137,6 +137,22 @@ public class PubApiIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task ArchiveLargerThanTheFeedLimitIsRejectedWithAMessage()
+    {
+        await _app.CreatePubFeedAsync(Feed, configure: f => f.MaxPackageSizeMiB = 1);
+
+        // Random text doesn't compress, so the archive stays above 1 MiB.
+        var readme = Convert.ToBase64String(RandomNumberGenerator.GetBytes(2 * 1024 * 1024));
+        using var finalize = await _client.PublishAsync(Feed, PubArchiveBuilder.Create("my_package", "1.0.0", readme: readme));
+
+        Assert.Equal(HttpStatusCode.BadRequest, finalize.StatusCode);
+        Assert.Contains("1 MiB", await finalize.ReadErrorMessageAsync());
+
+        using var package = await _client.GetAsync($"feeds/{Feed}/api/packages/my_package");
+        Assert.Equal(HttpStatusCode.NotFound, package.StatusCode);
+    }
+
+    [Fact]
     public async Task FinalizingWithoutAnUploadDoesNotClaimSuccess()
     {
         await _app.CreatePubFeedAsync(Feed);

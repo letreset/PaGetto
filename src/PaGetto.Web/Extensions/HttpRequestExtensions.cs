@@ -4,8 +4,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace PaGetto.Web.Extensions;
 
@@ -13,16 +15,46 @@ public static class HttpRequestExtensions
 {
     public const string ApiKeyHeader = "X-NuGet-ApiKey";
 
-    public static async Task<Stream> GetUploadStreamOrNullAsync(this HttpRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// The most a multipart form may add to the file it carries: its boundaries, part headers and
+    /// small fields.
+    /// </summary>
+    public const long MaxFormOverheadBytes = 64 * 1024;
+
+    /// <summary>
+    /// Reads an uploaded file, the first file of a multipart form or else the request body, into a
+    /// temporary file.
+    /// </summary>
+    /// <param name="request">The request.</param>
+    /// <param name="maxBytes">The largest file accepted, the feed's package size limit.</param>
+    /// <param name="cancellationToken">A token to cancel the task.</param>
+    /// <returns>The file, or null if the form has no file.</returns>
+    /// <exception cref="ArtifactFileTooLargeException">
+    /// The file is larger than <paramref name="maxBytes"/>. A request that declares a larger length
+    /// is refused before any of its body is read.
+    /// </exception>
+    public static async Task<Stream> GetUploadStreamOrNullAsync(this HttpRequest request, long maxBytes, CancellationToken cancellationToken)
     {
-        // Try to get the nupkg from the multipart/form-data. If that's empty,
-        // fallback to the request's body.
+        // The server-wide request limit applies before the feed is known; a feed can only lower it.
+        var maxRequestBytes = maxBytes + MaxFormOverheadBytes;
+        if (request.ContentLength > maxRequestBytes)
+        {
+            throw new ArtifactFileTooLargeException(maxBytes);
+        }
+
+        var sizeLimit = request.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (sizeLimit is { IsReadOnly: false })
+        {
+            sizeLimit.MaxRequestBodySize = maxRequestBytes;
+        }
+
         Stream rawUploadStream = null;
         try
         {
-            if (request.HasFormContentType && request.Form.Files.Count > 0)
+            if (request.HasFormContentType)
             {
-                rawUploadStream = request.Form.Files[0].OpenReadStream();
+                var form = await request.ReadFormAsync(cancellationToken);
+                rawUploadStream = form.Files.Count > 0 ? form.Files[0].OpenReadStream() : request.Body;
             }
             else
             {
@@ -31,7 +63,13 @@ public static class HttpRequestExtensions
 
             // Convert the upload stream into a temporary file stream to
             // minimize memory usage.
-            return await rawUploadStream?.AsTemporaryFileStreamAsync(cancellationToken);
+            return await rawUploadStream.AsTemporaryFileStreamAsync(maxBytes, cancellationToken);
+        }
+        catch (Exception e) when (e is InvalidDataException
+            || (e is BadHttpRequestException bad && bad.StatusCode == StatusCodes.Status413PayloadTooLarge))
+        {
+            // InvalidDataException is a form part over the server's limit.
+            throw new ArtifactFileTooLargeException(maxBytes);
         }
         finally
         {
