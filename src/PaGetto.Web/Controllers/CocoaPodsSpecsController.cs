@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -11,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Entities;
@@ -44,6 +44,7 @@ public class CocoaPodsSpecsController : Controller
     private readonly IFeedContext _feedContext;
     private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
+    private readonly ArtifactIndexCache _indexes;
     private readonly WebAuditLog _audit;
 
     public CocoaPodsSpecsController(
@@ -51,12 +52,14 @@ public class CocoaPodsSpecsController : Controller
         IFeedContext feedContext,
         FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
+        ArtifactIndexCache indexes,
         WebAuditLog audit)
     {
         _pods = pods ?? throw new ArgumentNullException(nameof(pods));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
         _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -73,7 +76,12 @@ public class CocoaPodsSpecsController : Controller
         }
         else if (file == CocoaPodsSpecRepository.AllPodsFileName)
         {
-            content = await _pods.GetAllPodsAsync(feed, cancellationToken);
+            content = await _indexes.GetOrBuildAsync(
+                feed,
+                "cocoapods/" + file,
+                ArtifactIndexCache.LocalIndexDuration,
+                () => _pods.GetAllPodsAsync(feed, cancellationToken),
+                text => text.Length * sizeof(char));
         }
         else if (file == CocoaPodsSpecRepository.DeprecatedPodspecsFileName)
         {
@@ -83,7 +91,13 @@ public class CocoaPodsSpecsController : Controller
         }
         else if (CocoaPodsSpecRepository.TryParseIndexFileName(file, out var shard))
         {
-            content = await _pods.GetIndexAsync(feed, shard, cancellationToken);
+            // CocoaPods asks for the shard of each pod it resolves, and a shard is merged with the mirrors'.
+            content = await _indexes.GetOrBuildAsync(
+                feed,
+                "cocoapods/" + file,
+                ArtifactIndexCache.GetMirroredIndexDuration(_feedSettings, feed),
+                () => _pods.GetIndexAsync(feed, shard, cancellationToken),
+                text => text.Length * sizeof(char));
         }
         else
         {

@@ -20,6 +20,12 @@ public interface IArtifactDatabase
     Task<IReadOnlyList<ArtifactVersion>> FindVersionsAsync(Guid feedId, string name, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Finds every version of every package of a feed, including unlisted ones, in one query.
+    /// </summary>
+    /// <returns>The versions found, each with its <see cref="ArtifactVersion.Artifact"/>. Always non-null.</returns>
+    Task<IReadOnlyList<ArtifactVersion>> FindAllVersionsAsync(Guid feedId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Finds one version of a package, listed or not.
     /// </summary>
     /// <returns>The version with its <see cref="ArtifactVersion.Artifact"/>, or null.</returns>

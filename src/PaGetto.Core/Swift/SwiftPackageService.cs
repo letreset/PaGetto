@@ -22,6 +22,7 @@ public partial class SwiftPackageService : ISwiftPackageService
 
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
+    private readonly ArtifactIndexCache _indexes;
     private readonly SwiftUpstreamClient _upstream;
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
@@ -31,6 +32,7 @@ public partial class SwiftPackageService : ISwiftPackageService
     public SwiftPackageService(
         IArtifactDatabase artifacts,
         IArtifactStorageService storage,
+        ArtifactIndexCache indexes,
         SwiftUpstreamClient upstream,
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
@@ -39,6 +41,7 @@ public partial class SwiftPackageService : ISwiftPackageService
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
         _upstream = upstream ?? throw new ArgumentNullException(nameof(upstream));
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
@@ -103,6 +106,48 @@ public partial class SwiftPackageService : ISwiftPackageService
         return await _storage.GetArchiveStreamAsync(feed.Slug, storedName, release.Version.Version, cancellationToken);
     }
 
+    /// <summary>
+    /// The identifiers of the feed's packages by each normalized repository URL their releases name,
+    /// in the order of the packages' stored names.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> FindIdentifiersByUrlAsync(Feed feed, CancellationToken cancellationToken)
+    {
+        var byUrl = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        var packages = (await _artifacts.FindAllVersionsAsync(feed.Id, cancellationToken))
+            .GroupBy(v => v.Artifact.Name)
+            .OrderBy(p => p.Key, StringComparer.Ordinal);
+
+        foreach (var package in packages)
+        {
+            var urls = package
+                .SelectMany(v => SwiftReleaseMetadata.GetRepositoryUrls(SwiftManifest.Parse(v.MetadataJson).Metadata))
+                .Select(SwiftReleaseMetadata.NormalizeRepositoryUrl)
+                .Where(url => url.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+
+            if (urls.Count == 0)
+            {
+                continue;
+            }
+
+            var latest = ArtifactVersionOrder.GetLatest(FeedType.Swift, package);
+            var identifier = SwiftManifest.Parse(latest.MetadataJson).Id ?? package.Key;
+
+            foreach (var url in urls)
+            {
+                if (!byUrl.TryGetValue(url, out var list))
+                {
+                    byUrl[url] = list = [];
+                }
+
+                list.Add(identifier);
+            }
+        }
+
+        return byUrl.ToDictionary(e => e.Key, e => (IReadOnlyList<string>)e.Value, StringComparer.Ordinal);
+    }
+
     public async Task<IReadOnlyList<string>> LookupIdentifiersAsync(Feed feed, string repositoryUrl, CancellationToken cancellationToken)
     {
         var wanted = SwiftReleaseMetadata.NormalizeRepositoryUrl(repositoryUrl);
@@ -110,18 +155,16 @@ public partial class SwiftPackageService : ISwiftPackageService
 
         if (wanted.Length > 0)
         {
-            foreach (var storedName in await _artifacts.FindNamesAsync(feed.Id, cancellationToken))
-            {
-                var versions = await _artifacts.FindVersionsAsync(feed.Id, storedName, cancellationToken);
-                var manifests = versions.Select(v => SwiftManifest.Parse(v.MetadataJson)).ToList();
+            // Swift Package Manager asks for each dependency it has by URL, so the lookup table of
+            // the feed is built once, and again after a package of the feed changed.
+            var byUrl = await _indexes.GetOrBuildAsync(
+                feed,
+                "swift/identifiers",
+                ArtifactIndexCache.LocalIndexDuration,
+                () => FindIdentifiersByUrlAsync(feed, cancellationToken),
+                table => table.Sum(e => e.Key.Length + e.Value.Sum(id => id.Length)) * sizeof(char));
 
-                if (manifests.Any(m => SwiftReleaseMetadata.GetRepositoryUrls(m.Metadata)
-                    .Any(url => SwiftReleaseMetadata.NormalizeRepositoryUrl(url) == wanted)))
-                {
-                    var latest = ArtifactVersionOrder.GetLatest(FeedType.Swift, versions);
-                    identifiers.Add(SwiftManifest.Parse(latest.MetadataJson).Id ?? storedName);
-                }
-            }
+            identifiers.AddRange(byUrl.GetValueOrDefault(wanted) ?? []);
         }
 
         foreach (var identifier in await _upstream.LookupIdentifiersAsync(feed, repositoryUrl, cancellationToken))
