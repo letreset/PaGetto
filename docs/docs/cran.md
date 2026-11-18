@@ -1,6 +1,6 @@
 # R packages
 
-PaGetto can host R packages next to NuGet, Dart, npm, Maven, Python, Rust, Go, Ruby, Hex, PHP, CocoaPods and Swift packages. A feed of the type **R** is a [CRAN-like repository](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Setting-up-a-package-repository) of source packages: `install.packages` and renv install packages from it, source packages are uploaded to it with a plain HTTP request, and it can mirror [CRAN](https://cran.r-project.org) or another CRAN-like repository.
+A feed of the type **R** is a [CRAN-like repository](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Setting-up-a-package-repository) of R source packages: `install.packages` and renv install packages from it, source packages are uploaded to it with a plain HTTP request, and it can mirror [CRAN](https://cran.r-project.org) or another CRAN-like repository.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -104,7 +104,7 @@ An R feed can mirror other CRAN-like repositories. On the feed's settings page, 
 - The archive of a package combines the feed's versions with the mirror's `src/contrib/Archive/{name}/`.
 - A version is downloaded from the mirror when it is first asked for, checked against the MD5 of the mirror's index, stored in the feed and served from there afterwards. Only source packages are mirrored.
 - With several mirrors, they are asked in order: the first one whose index has a package serves it. A mirror that is unreachable is skipped.
-- The index and the archive listings of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)). CRAN's index has more than 20,000 packages, so the feed's index is a few MiB.
+- The index and the archive listings of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)). CRAN's index has more than 20,000 packages, so the feed's index is a few MiB.
 
 ## In the web UI
 
@@ -112,7 +112,9 @@ An R feed lists the packages stored in it, with search. A package's page shows t
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the index while it can still be downloaded, **relist** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to R feeds as to any other feed. These differ:
 
 | | R feeds |
 |---|---|
@@ -122,4 +124,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Binary packages | Not hosted or mirrored |
 | `PACKAGES.rds`, `Meta/archive.rds`, CRAN's package checks and web pages | Not served |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo, Go, RubyGems, Hex, Composer, CocoaPods and Swift APIs answer `404 Not Found` on an R feed, and the CRAN repository answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on an R feed, and the CRAN repository answers `404 Not Found` on feeds of other types.

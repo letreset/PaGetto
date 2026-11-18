@@ -1,6 +1,6 @@
 # Rust crates
 
-PaGetto can host Rust crates next to NuGet, Dart, npm, Maven and Python packages. A feed of the type **Rust** is a Cargo registry: Cargo installs crates from it, `cargo publish` and `cargo yank` work against it, and it can mirror [crates.io](https://crates.io) or another sparse registry.
+A feed of the type **Rust** is a Cargo registry for Rust crates: Cargo installs crates from it, `cargo publish` and `cargo yank` work against it, and it can mirror [crates.io](https://crates.io) or another sparse registry.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -96,7 +96,7 @@ A Rust feed can mirror other sparse registries. On the feed's settings page, add
 - A version published to the feed hides the same version of the mirror.
 - With several mirrors, they are asked in order and the first one that has a crate lists all of its versions. A mirror that is unreachable is skipped.
 - The mirror's `config.json` says where its crates are downloaded from. Credentials are only sent to the mirror's own URLs, not to download hosts such as `static.crates.io`.
-- The index files of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The index files of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 ## In the web UI
 
@@ -104,7 +104,9 @@ A Rust feed lists the crates stored in it, with search, under the names they wer
 
 Users with the **delete** permission can **yank** a version, **unyank** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Rust feeds as to any other feed. These differ:
 
 | | Rust feeds |
 |---|---|
@@ -114,4 +116,4 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 | Owners | Not available. The feed's permissions decide who may publish and yank |
 | Git index | Not available. Only the sparse protocol is served |
 
-The NuGet, pub, npm, Maven and PyPI APIs answer `404 Not Found` on a Rust feed, and the Cargo registry answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Rust feed, and the Cargo registry answers `404 Not Found` on feeds of other types.

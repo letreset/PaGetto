@@ -1,6 +1,6 @@
 # Hex packages
 
-PaGetto can host Elixir and Erlang packages next to NuGet, Dart, npm, Maven, Python, Rust, Go and Ruby packages. A feed of the type **Hex** is a Hex repository: Mix and Rebar3 install packages from it, `mix hex.publish` and `mix hex.retire` work against it, and it can mirror [hex.pm](https://hex.pm) or another Hex repository.
+A feed of the type **Hex** is a Hex repository for Elixir and Erlang packages: Mix and Rebar3 install packages from it, `mix hex.publish` and `mix hex.retire` work against it, and it can mirror [hex.pm](https://hex.pm) or another Hex repository.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -127,7 +127,7 @@ A Hex feed can mirror other Hex repositories. On the feed's settings page, add a
 - A version published to the feed hides the same version of the mirror.
 - With several mirrors, they are asked in order and the first one that has a package lists all of its versions. A mirror that is unreachable is skipped.
 - `/hex/names` and `/hex/versions` only list the packages stored in the feed. Mix and Rebar3 ask for each package by name, so they find the mirror's packages anyway.
-- The registry files of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The registry files of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 ## In the web UI
 
@@ -135,7 +135,9 @@ A Hex feed lists the packages stored in it, with search. A package's page shows 
 
 Users with the **delete** permission can **retire** a version (with the reason `other`), **unretire** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Hex feeds as to any other feed. These differ:
 
 | | Hex feeds |
 |---|---|
@@ -145,4 +147,4 @@ Users with the **delete** permission can **retire** a version (with the reason `
 | Documentation | Not hosted. Publish packages without docs |
 | Owners and organizations | Not available. The feed's permissions decide who may publish and retire |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo, Go and RubyGems APIs answer `404 Not Found` on a Hex feed, and the Hex repository answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Hex feed, and the Hex repository answers `404 Not Found` on feeds of other types.

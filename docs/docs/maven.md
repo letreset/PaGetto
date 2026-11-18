@@ -1,6 +1,6 @@
 # Maven packages
 
-PaGetto can host Java, Kotlin and Scala libraries next to NuGet, Dart and npm packages. A feed of the type **Maven** is a Maven repository: Maven, Gradle and sbt download from it and deploy to it, and it can mirror [Maven Central](https://repo.maven.apache.org/maven2) or another Maven repository.
+A feed of the type **Maven** is a Maven repository for Java, Kotlin and Scala libraries: Maven, Gradle and sbt download from it and deploy to it, and it can mirror [Maven Central](https://repo.maven.apache.org/maven2) or another Maven repository.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -148,7 +148,7 @@ A Maven feed can mirror other Maven repositories. On the feed's settings page, a
 - A version published to the feed hides the same version of the mirror: a file it doesn't have is not fetched from the mirror.
 - `SNAPSHOT` versions are not mirrored.
 - With several mirrors, they are asked in order and the first one that has a file serves it. A mirror that is unreachable is skipped.
-- The `maven-metadata.xml` files of mirrors, which also tell Maven the prefixes of plugins (`mvn dependency:tree`), are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The `maven-metadata.xml` files of mirrors, which also tell Maven the prefixes of plugins (`mvn dependency:tree`), are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 ## In the web UI
 
@@ -156,7 +156,9 @@ A Maven feed lists the packages stored in it, with search. A package's page show
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of `maven-metadata.xml` (it can still be downloaded by its exact version), **relist** it, or delete it with its files for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Maven feeds as to any other feed. These differ:
 
 | | Maven feeds |
 |---|---|
@@ -166,4 +168,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Group metadata | The plugin prefixes of a group come from the mirrors only, not from plugins deployed to the feed |
 | Search | Only the web UI searches; the repository layout has no search |
 
-The NuGet, pub and npm APIs answer `404 Not Found` on a Maven feed, and the Maven repository answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Maven feed, and the Maven repository answers `404 Not Found` on feeds of other types.

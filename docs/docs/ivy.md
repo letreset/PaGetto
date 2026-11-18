@@ -1,6 +1,6 @@
 # Ivy repositories for sbt
 
-PaGetto can host sbt plugins and Scala and Java libraries in the Ivy layout next to its other packages. A feed of the type **Ivy** is an Ivy repository in the layout that sbt publishes with `Resolver.ivyStylePatterns`: sbt resolves from it and publishes to it, and it can mirror the [sbt plugin repository](https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases) or another Ivy repository in the same layout.
+A feed of the type **Ivy** is an Ivy repository for sbt plugins and Scala and Java libraries, in the layout that sbt publishes with `Resolver.ivyStylePatterns`: sbt resolves from it and publishes to it, and it can mirror the [sbt plugin repository](https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases) or another Ivy repository in the same layout.
 
 Most libraries, and sbt plugins from sbt 1.9 on, are published in the Maven layout; use a [Maven feed](maven.md) for those. An Ivy feed is for builds that publish with `publishMavenStyle := false`, and for the older sbt plugins that are only in the Ivy layout.
 
@@ -97,7 +97,7 @@ Uploaded checksums are compared with the stored file and rejected when they diff
 
 An Ivy feed can mirror other Ivy repositories in the same layout. On the feed's settings page, add a mirror with the URL `https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases` (see [Mirror](feeds.md#mirror-read-through-cache) for the settings every mirror has). Then:
 
-- The directory listing of a module has the revisions published to the feed and those the mirror lists in its own directory listing. Listings of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The directory listing of a module has the revisions published to the feed and those the mirror lists in its own directory listing. Listings of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 - A file of a revision is downloaded from the mirror on its first use, checked against the `.sha1` the mirror lists, stored in the feed and served from there afterwards.
 - A revision published to the feed hides the same revision of the mirror: a file it doesn't have is not fetched from the mirror.
 - `SNAPSHOT` revisions are not mirrored.
@@ -109,7 +109,9 @@ An Ivy feed lists the modules stored in it, with search. A module's page shows t
 
 Users with the **delete** permission can **unlist** a revision, which leaves it out of the directory listing (it can still be resolved by its exact revision), **relist** it, or delete it with its files for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Ivy feeds as to any other feed. These differ:
 
 | | Ivy feeds |
 |---|---|
@@ -119,5 +121,5 @@ Users with the **delete** permission can **unlist** a revision, which leaves it 
 | Branches | Not supported |
 | Search | Only the web UI searches; the repository layout has no search |
 
-The NuGet and Maven APIs answer `404 Not Found` on an Ivy feed, and the Ivy repository answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on an Ivy feed, and the Ivy repository answers `404 Not Found` on feeds of other types.
 

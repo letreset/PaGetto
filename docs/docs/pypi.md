@@ -1,6 +1,6 @@
 # Python packages
 
-PaGetto can host Python packages next to NuGet, Dart, npm and Maven packages. A feed of the type **Python** is a package index: pip, uv and Poetry install from it, twine and `uv publish` upload to it, and it can mirror [PyPI](https://pypi.org) or another package index.
+A feed of the type **Python** is a Python package index: pip, uv and Poetry install from it, twine and `uv publish` upload to it, and it can mirror [PyPI](https://pypi.org) or another package index.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -116,7 +116,7 @@ A Python feed can mirror other package indexes. On the feed's settings page, add
 - A version published to the feed hides the same version of the mirror.
 - With several mirrors, they are asked in order and the first one that has a project lists all of its files. A mirror that is unreachable is skipped.
 - Mirrors are asked for the JSON form of the API and may answer with the HTML form, so other servers such as devpi, Artifactory or Nexus work too. Credentials are only sent to the mirror's own host, not to file hosts such as `files.pythonhosted.org`.
-- The project pages of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The project pages of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 ## In the web UI
 
@@ -124,7 +124,9 @@ A Python feed lists the packages stored in it, with search, under the names they
 
 Users with the **delete** permission can **yank** a version, **unyank** it, or delete it with its files for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Python feeds as to any other feed. These differ:
 
 | | Python feeds |
 |---|---|
@@ -134,4 +136,4 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 | Search | Only the web UI searches; the simple API has no search (`pip search` was removed from PyPI too) |
 | Formats | Wheels and sdists only; no eggs |
 
-The NuGet, pub, npm and Maven APIs answer `404 Not Found` on a Python feed, and the package index answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Python feed, and the package index answers `404 Not Found` on feeds of other types.

@@ -1,6 +1,6 @@
 # CocoaPods pods
 
-PaGetto can host pods for Swift and Objective-C next to NuGet, Dart, npm, Maven, Python, Rust, Go, Ruby, Hex and PHP packages. A feed of the type **CocoaPods** is a CocoaPods spec repository in the [CDN format](https://github.com/CocoaPods/Core/blob/master/lib/cocoapods-core/cdn_source.rb) that cdn.cocoapods.org uses: `pod install` reads pods from it, podspecs are published to it with a plain HTTP request, optionally with their source archive, and it can mirror [the public spec repository](https://cdn.cocoapods.org) or another CDN spec repository.
+A feed of the type **CocoaPods** is a CocoaPods spec repository for Swift and Objective-C pods, in the [CDN format](https://github.com/CocoaPods/Core/blob/master/lib/cocoapods-core/cdn_source.rb) that cdn.cocoapods.org uses: `pod install` reads pods from it, podspecs are published to it with a plain HTTP request, optionally with their source archive, and it can mirror [the public spec repository](https://cdn.cocoapods.org) or another CDN spec repository.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -99,7 +99,7 @@ A CocoaPods feed can mirror other spec repositories in the CDN format with the s
 - A podspec is downloaded from the mirror when CocoaPods first asks for it, stored in the feed as the mirror serves it, and served from there afterwards. CocoaPods downloads the podspecs of every version of a pod it resolves, so they are all stored.
 - The mirror only has the podspecs: the pods' sources stay where their podspecs point, usually GitHub, which the machines that install the pods must be able to reach.
 - With several mirrors, they are asked in order: the first one whose index lists a pod lists all of its versions. A mirror that is unreachable is skipped.
-- The index files of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The index files of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 The few public pods whose names have other characters, such as non-ASCII letters, are left out of the index and can't be mirrored.
 
@@ -109,7 +109,9 @@ A CocoaPods feed lists the pods stored in it, with search. A pod's page shows th
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the index while its podspec can still be downloaded, **relist** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to CocoaPods feeds as to any other feed. These differ:
 
 | | CocoaPods feeds |
 |---|---|
@@ -120,4 +122,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Ruby podspecs | Not accepted. Convert them with `pod ipc spec` |
 | Full-text search of `pod search --full` | Not available |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo, Go, RubyGems, Hex and Composer APIs answer `404 Not Found` on a CocoaPods feed, and the spec repository answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a CocoaPods feed, and the spec repository answers `404 Not Found` on feeds of other types.
