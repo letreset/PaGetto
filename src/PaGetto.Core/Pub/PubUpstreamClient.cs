@@ -73,10 +73,11 @@ public partial class PubUpstreamClient
     }
 
     /// <summary>
-    /// Downloads a version's archive to a temporary file.
+    /// Downloads a version's archive to a temporary file, failing with an
+    /// <see cref="Artifacts.ArtifactFileTooLargeException"/> once it has more than <paramref name="maxBytes"/>.
     /// </summary>
     /// <returns>The archive, or null if the upstream does not serve it.</returns>
-    public virtual async Task<Stream> DownloadArchiveOrNullAsync(Feed feed, PubUpstreamVersion version, CancellationToken cancellationToken)
+    public virtual async Task<Stream> DownloadArchiveOrNullAsync(Feed feed, PubUpstreamVersion version, long maxBytes, CancellationToken cancellationToken)
     {
         // Archives may be served from another host than the mirror, which must not get its credentials.
         var isMirrorUrl = version.ArchiveUrl.StartsWith(GetBaseUrl(version.Mirror), StringComparison.OrdinalIgnoreCase);
@@ -91,7 +92,7 @@ public partial class PubUpstreamClient
         }
 
         await using var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await content.AsTemporaryFileStreamAsync(cancellationToken);
+        return await content.AsTemporaryFileStreamAsync(maxBytes, cancellationToken);
     }
 
     private async Task<IReadOnlyList<PubUpstreamVersion>> ListFromMirrorsAsync(

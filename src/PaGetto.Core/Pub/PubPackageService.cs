@@ -23,6 +23,8 @@ public partial class PubPackageService : IPubPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
+    private const long BytesPerMiB = 1024L * 1024;
+
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
     private readonly PubUpstreamClient _upstream;
@@ -185,7 +187,7 @@ public partial class PubPackageService : IPubPackageService
 
         try
         {
-            using var archive = await _upstream.DownloadArchiveOrNullAsync(feed, upstream, cancellationToken);
+            using var archive = await _upstream.DownloadArchiveOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
             if (archive == null)
             {
                 return false;
@@ -301,6 +303,11 @@ public partial class PubPackageService : IPubPackageService
             Version = version,
             Message = $"Version {version} of package {name} already exists.",
         };
+    }
+
+    private long GetMaxBytes(Feed feed)
+    {
+        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A pub package uploaded to feed {FeedSlug} is invalid")]

@@ -195,9 +195,10 @@ public class PubPackageServiceTests
             var bytes = PubArchiveBuilder.Create("my_package", "2.0.0", readme: "# Upstream").ToArray();
             var upstreamVersion = UpstreamVersion("2.0.0", sha256: Convert.ToHexStringLower(SHA256.HashData(bytes)), retracted: true);
 
+            FeedSettings.Setup(s => s.GetMaxPackageSizeMiB(Feed)).Returns(8);
             Upstream.Setup(u => u.ListVersionsAsync(Feed, "my_package", Ct)).ReturnsAsync([upstreamVersion]);
             Upstream
-                .Setup(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, Ct))
+                .Setup(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, 8L * 1024 * 1024, Ct))
                 .ReturnsAsync(() => new MemoryStream(bytes));
 
             await Target.GetArchiveStreamOrNullAsync(Feed, "my_package", "2.0.0", Ct);
@@ -213,7 +214,7 @@ public class PubPackageServiceTests
             Assert.Equal(2, version.Downloads);
 
             // The second download is served from the feed.
-            Upstream.Verify(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, Ct), Times.Once);
+            Upstream.Verify(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, It.IsAny<long>(), Ct), Times.Once);
         }
 
         [Fact]
@@ -223,7 +224,7 @@ public class PubPackageServiceTests
 
             Upstream.Setup(u => u.ListVersionsAsync(Feed, "my_package", Ct)).ReturnsAsync([upstreamVersion]);
             Upstream
-                .Setup(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, Ct))
+                .Setup(u => u.DownloadArchiveOrNullAsync(Feed, upstreamVersion, It.IsAny<long>(), Ct))
                 .ReturnsAsync(() => PubArchiveBuilder.Create("my_package", "2.0.0"));
 
             Assert.Null(await Target.GetArchiveStreamOrNullAsync(Feed, "my_package", "2.0.0", Ct));

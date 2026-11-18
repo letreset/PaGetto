@@ -76,10 +76,11 @@ public partial class CargoUpstreamClient
     }
 
     /// <summary>
-    /// Downloads a version's <c>.crate</c> file to a temporary file.
+    /// Downloads a version's <c>.crate</c> file to a temporary file, failing with an
+    /// <see cref="Artifacts.ArtifactFileTooLargeException"/> once it has more than <paramref name="maxBytes"/>.
     /// </summary>
     /// <returns>The crate, or null if the upstream does not serve it.</returns>
-    public virtual async Task<Stream> DownloadCrateOrNullAsync(Feed feed, CargoUpstreamVersion version, CancellationToken cancellationToken)
+    public virtual async Task<Stream> DownloadCrateOrNullAsync(Feed feed, CargoUpstreamVersion version, long maxBytes, CancellationToken cancellationToken)
     {
         // Crates may be served from another host than the index (crates.io serves them from
         // static.crates.io), which must not get the mirror's credentials.
@@ -95,7 +96,7 @@ public partial class CargoUpstreamClient
         }
 
         await using var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await content.AsTemporaryFileStreamAsync(cancellationToken);
+        return await content.AsTemporaryFileStreamAsync(maxBytes, cancellationToken);
     }
 
     private async Task<IReadOnlyList<CargoUpstreamVersion>> ListFromMirrorsAsync(

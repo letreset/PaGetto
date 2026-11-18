@@ -74,10 +74,11 @@ public partial class NpmUpstreamClient
     }
 
     /// <summary>
-    /// Downloads a version's tarball to a temporary file.
+    /// Downloads a version's tarball to a temporary file, failing with an
+    /// <see cref="Artifacts.ArtifactFileTooLargeException"/> once it has more than <paramref name="maxBytes"/>.
     /// </summary>
     /// <returns>The tarball, or null if the upstream does not serve it.</returns>
-    public virtual async Task<Stream> DownloadTarballOrNullAsync(Feed feed, NpmUpstreamVersion version, CancellationToken cancellationToken)
+    public virtual async Task<Stream> DownloadTarballOrNullAsync(Feed feed, NpmUpstreamVersion version, long maxBytes, CancellationToken cancellationToken)
     {
         // Tarballs may be served from another host than the mirror, which must not get its credentials.
         var isMirrorUrl = version.TarballUrl.StartsWith(GetBaseUrl(version.Mirror), StringComparison.OrdinalIgnoreCase);
@@ -92,7 +93,7 @@ public partial class NpmUpstreamClient
         }
 
         await using var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await content.AsTemporaryFileStreamAsync(cancellationToken);
+        return await content.AsTemporaryFileStreamAsync(maxBytes, cancellationToken);
     }
 
     private async Task<IReadOnlyList<NpmUpstreamVersion>> ListFromMirrorsAsync(

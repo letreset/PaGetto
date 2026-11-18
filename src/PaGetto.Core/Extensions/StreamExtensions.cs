@@ -3,6 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 
 namespace PaGetto.Core.Extensions;
 
@@ -41,6 +42,20 @@ public static class StreamExtensions
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Copies at most <paramref name="maxBytes"/> of a stream to a file, and returns that file as a
+    /// stream. The underlying file will be deleted when the resulting stream is disposed.
+    /// </summary>
+    /// <exception cref="ArtifactFileTooLargeException">The stream has more than <paramref name="maxBytes"/>.</exception>
+    public static async Task<FileStream> AsTemporaryFileStreamAsync(
+        this Stream original,
+        long maxBytes,
+        CancellationToken cancellationToken)
+    {
+        await using var limited = new LimitedReadStream(original, maxBytes, () => new ArtifactFileTooLargeException(maxBytes));
+        return await limited.AsTemporaryFileStreamAsync(cancellationToken);
     }
 
     public static bool Matches(this Stream content, Stream target)
