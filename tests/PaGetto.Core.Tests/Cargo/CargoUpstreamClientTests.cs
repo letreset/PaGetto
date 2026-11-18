@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
@@ -82,10 +83,27 @@ public class CargoUpstreamClientTests
             using var crate = await Target.DownloadCrateOrNullAsync(
                 Feed,
                 new CargoUpstreamVersion { Name = "abc", Version = "1.0.0", DownloadUrl = downloadUrl, Mirror = mirror },
+                maxBytes: 1024,
                 CancellationToken.None);
 
             Assert.NotNull(crate);
             Assert.Equal(new[] { authenticate }, Authenticated);
+        }
+
+        [Fact]
+        public async Task RefusesACrateLargerThanTheLimit()
+        {
+            var mirror = AddMirror("https://index.example.com/");
+            const string downloadUrl = "https://index.example.com/api/v1/crates/abc/1.0.0/download";
+            Responses[downloadUrl] = "a crate of 24 bytes long";
+
+            var version = new CargoUpstreamVersion { Name = "abc", Version = "1.0.0", DownloadUrl = downloadUrl, Mirror = mirror };
+
+            await Assert.ThrowsAsync<ArtifactFileTooLargeException>(
+                () => Target.DownloadCrateOrNullAsync(Feed, version, maxBytes: 23, CancellationToken.None));
+
+            using var crate = await Target.DownloadCrateOrNullAsync(Feed, version, maxBytes: 24, CancellationToken.None);
+            Assert.Equal(24, crate.Length);
         }
     }
 

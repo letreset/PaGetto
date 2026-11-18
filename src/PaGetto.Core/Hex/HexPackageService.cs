@@ -21,6 +21,8 @@ public partial class HexPackageService : IHexPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
+    private const long BytesPerMiB = 1024L * 1024;
+
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
     private readonly HexUpstreamClient _upstream;
@@ -268,7 +270,7 @@ public partial class HexPackageService : IHexPackageService
 
         try
         {
-            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, name, upstream, cancellationToken);
+            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, name, upstream, GetMaxBytes(feed), cancellationToken);
             if (tarball == null)
             {
                 return false;
@@ -404,6 +406,11 @@ public partial class HexPackageService : IHexPackageService
     private static HexPublishResult AlreadyExists(string name, string version, string message)
     {
         return new HexPublishResult { Status = HexPublishStatus.AlreadyExists, Name = name, Version = version, Message = message };
+    }
+
+    private long GetMaxBytes(Feed feed)
+    {
+        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A Hex package published to feed {FeedSlug} is invalid")]

@@ -22,6 +22,8 @@ public partial class CargoPackageService : ICargoPackageService
     // The length of the description column.
     private const int MaxDescriptionLength = 4000;
 
+    private const long BytesPerMiB = 1024L * 1024;
+
     private readonly IArtifactDatabase _artifacts;
     private readonly IArtifactStorageService _storage;
     private readonly CargoUpstreamClient _upstream;
@@ -223,7 +225,7 @@ public partial class CargoPackageService : ICargoPackageService
 
         try
         {
-            using var crate = await _upstream.DownloadCrateOrNullAsync(feed, upstream, cancellationToken);
+            using var crate = await _upstream.DownloadCrateOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
             if (crate == null)
             {
                 return false;
@@ -338,6 +340,11 @@ public partial class CargoPackageService : ICargoPackageService
             Version = version,
             Message = $"Version {version} of crate {name} already exists.",
         };
+    }
+
+    private long GetMaxBytes(Feed feed)
+    {
+        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A crate published to feed {FeedSlug} is invalid")]

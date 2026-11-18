@@ -33,6 +33,8 @@ public partial class NpmPackageService : INpmPackageService
 
     // The lengths of the description and tag name columns.
     private const int MaxDescriptionLength = 4000;
+
+    private const long BytesPerMiB = 1024L * 1024;
     private const int MaxTagLength = 128;
 
     private readonly IArtifactDatabase _artifacts;
@@ -530,7 +532,7 @@ public partial class NpmPackageService : INpmPackageService
 
         try
         {
-            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, upstream, cancellationToken);
+            using var tarball = await _upstream.DownloadTarballOrNullAsync(feed, upstream, GetMaxBytes(feed), cancellationToken);
             if (tarball == null)
             {
                 return false;
@@ -763,6 +765,11 @@ public partial class NpmPackageService : INpmPackageService
 
     [GeneratedRegex("^[A-Za-z][A-Za-z0-9._-]*$", RegexOptions.CultureInvariant)]
     private static partial Regex TagRegex();
+
+    private long GetMaxBytes(Feed feed)
+    {
+        return _feedSettings.GetMaxPackageSizeMiB(feed) * BytesPerMiB;
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "An npm package published to feed {FeedSlug} is invalid")]
     private partial void LogInvalidPackage(Exception exception, string feedSlug);

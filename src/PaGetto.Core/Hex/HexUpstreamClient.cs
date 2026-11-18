@@ -72,10 +72,11 @@ public partial class HexUpstreamClient
     }
 
     /// <summary>
-    /// Downloads a version's tarball to a temporary file.
+    /// Downloads a version's tarball to a temporary file, failing with an
+    /// <see cref="Artifacts.ArtifactFileTooLargeException"/> once it has more than <paramref name="maxBytes"/>.
     /// </summary>
     /// <returns>The tarball, or null if the upstream does not serve it.</returns>
-    public virtual async Task<Stream> DownloadTarballOrNullAsync(Feed feed, string name, HexUpstreamRelease release, CancellationToken cancellationToken)
+    public virtual async Task<Stream> DownloadTarballOrNullAsync(Feed feed, string name, HexUpstreamRelease release, long maxBytes, CancellationToken cancellationToken)
     {
         var url = $"{GetBaseUrl(release.Mirror)}tarballs/{name}-{Uri.EscapeDataString(release.Release.Version)}.tar";
 
@@ -89,7 +90,7 @@ public partial class HexUpstreamClient
         }
 
         await using var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await content.AsTemporaryFileStreamAsync(cancellationToken);
+        return await content.AsTemporaryFileStreamAsync(maxBytes, cancellationToken);
     }
 
     private async Task<IReadOnlyList<HexUpstreamRelease>> ListFromMirrorsAsync(
