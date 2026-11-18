@@ -1,6 +1,6 @@
 # Swift packages
 
-PaGetto can host Swift packages next to NuGet, Dart, npm, Maven, Python, Rust, Go, Ruby, Hex, PHP and CocoaPods packages. A feed of the type **Swift** is a Swift package registry: it speaks the [registry API](https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) of Swift Package Manager (SE-0292, with publishing from SE-0391), so `swift package resolve`, `swift build` and Xcode install packages from it, `swift package-registry publish` publishes to it, and it can mirror another Swift package registry.
+A feed of the type **Swift** is a Swift package registry: it speaks the [registry API](https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) of Swift Package Manager (SE-0292, with publishing from SE-0391), so `swift package resolve`, `swift build` and Xcode install packages from it, `swift package-registry publish` publishes to it, and it can mirror another Swift package registry.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -114,7 +114,7 @@ A Swift feed can mirror other Swift package registries, such as another PaGetto 
 - A release is downloaded from the mirror when Swift Package Manager first asks for it, checked against the mirror's checksum, stored in the feed with the mirror's metadata and signature, and served from there afterwards.
 - `GET /swift/identifiers` also asks the mirrors.
 - With several mirrors, they are asked in order: the first one that has a package lists all of its releases. A mirror that is unreachable is skipped.
-- The release lists of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The release lists of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 ## In the web UI
 
@@ -122,7 +122,9 @@ A Swift feed lists the packages stored in it, with search. A package's page show
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the release list while it can still be downloaded, **relist** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Swift feeds as to any other feed. These differ:
 
 | | Swift feeds |
 |---|---|
@@ -133,4 +135,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Asynchronous publishing (`202 Accepted`) | Not used. Every publish is done when it answers |
 | Search with `swift package-registry` | Not available. Search the web UI |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo, Go, RubyGems, Hex, Composer and CocoaPods APIs answer `404 Not Found` on a Swift feed, and the registry API answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Swift feed, and the registry API answers `404 Not Found` on feeds of other types.

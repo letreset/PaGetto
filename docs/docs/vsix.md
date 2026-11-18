@@ -1,6 +1,6 @@
 # Visual Studio extensions
 
-PaGetto can host Visual Studio extensions next to NuGet, Dart, npm, Maven, Python, Rust, Go, Ruby, Hex, PHP, CocoaPods, Swift, R and Ivy packages. A feed of the type **VSIX** is a [private extension gallery](https://learn.microsoft.com/visualstudio/extensibility/private-galleries): Visual Studio lists its extensions in **Manage Extensions**, installs them and offers their updates, VSIX files are uploaded to it with a plain HTTP request, and it can mirror other galleries.
+A feed of the type **VSIX** is a [private extension gallery](https://learn.microsoft.com/visualstudio/extensibility/private-galleries) for Visual Studio extensions: Visual Studio lists its extensions in **Manage Extensions**, installs them and offers their updates, VSIX files are uploaded to it with a plain HTTP request, and it can mirror other galleries.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards. VS Code extensions are not hosted yet: VS Code has no setting for a private gallery that works without an enterprise policy.
 
@@ -89,7 +89,7 @@ A VSIX feed can mirror the Atom feeds of other private galleries, such as `https
 - A gallery lists one version of each extension, so only that version can be mirrored. Galleries have no checksums, so the downloaded file is only checked to have the identifier and version of the mirror's entry.
 - The mirror's credentials are sent to the mirror's host only, not to other hosts its entries link to.
 - With several mirrors, they are asked in order: the first one whose feed has an extension offers it. A mirror that is unreachable is skipped.
-- The feeds of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The feeds of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 The Visual Studio Marketplace is not an Atom feed and can't be mirrored.
 
@@ -99,7 +99,9 @@ A VSIX feed lists the extensions stored in it by their display names, with searc
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the gallery while it can still be downloaded, **relist** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to VSIX feeds as to any other feed. These differ:
 
 | | VSIX feeds |
 |---|---|
@@ -110,4 +112,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Extension packs | Hosted, but the gallery doesn't list the extensions they contain |
 | Ratings, reviews, the Marketplace's API | Not available |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo, Go, RubyGems, Hex, Composer, CocoaPods, Swift, CRAN and Ivy APIs answer `404 Not Found` on a VSIX feed, and the gallery answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a VSIX feed, and the gallery answers `404 Not Found` on feeds of other types.

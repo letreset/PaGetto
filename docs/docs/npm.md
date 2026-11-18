@@ -1,6 +1,6 @@
 # npm packages
 
-PaGetto can host JavaScript and TypeScript packages next to NuGet and Dart packages. A feed of the type **npm** is an npm registry: npm, Yarn and pnpm install from it and publish to it, and it can mirror [registry.npmjs.org](https://registry.npmjs.org) or another npm registry.
+A feed of the type **npm** is an npm registry for JavaScript and TypeScript packages: npm, Yarn and pnpm install from it and publish to it, and it can mirror [registry.npmjs.org](https://registry.npmjs.org) or another npm registry.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -86,7 +86,7 @@ An npm feed can mirror other npm registries. On the feed's settings page, add a 
 - A package's document combines the versions published to the feed with those of the mirror. A version published to the feed hides the same version of the mirror, and so does a dist-tag.
 - A version is downloaded from the mirror on its first use, checked against the integrity hash the mirror lists, stored in the feed and served from there afterwards.
 - With several mirrors, they are asked in order and the first one that has the package serves all of its versions. A mirror that is unreachable is skipped.
-- Package documents from mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- Package documents from mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 A mirror's credentials are only sent to the mirror itself, not to another host its tarballs are served from.
 
@@ -108,7 +108,9 @@ Users with the **delete** permission can **deprecate** a version (without a mess
 
 Package names are stored in lowercase, so an older npmjs.org package with capitals in its name, such as `JSONStream`, is listed as `jsonstream`.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to npm feeds as to any other feed. These differ:
 
 | | npm feeds |
 |---|---|
@@ -119,4 +121,4 @@ Package names are stored in lowercase, so an older npmjs.org package with capita
 | `npm audit` | Answered by the feed's mirrors, without the feed's own packages. See [npm audit](#npm-audit) |
 | Search | `npm search` finds the packages stored in the feed, not those only a mirror has |
 
-The NuGet and pub APIs answer `404 Not Found` on an npm feed, and the npm API answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on an npm feed, and the npm API answers `404 Not Found` on feeds of other types.

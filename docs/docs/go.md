@@ -1,6 +1,6 @@
 # Go modules
 
-PaGetto can host Go modules next to NuGet, Dart, npm, Maven, Python and Rust packages. A feed of the type **Go** is a [module proxy](https://go.dev/ref/mod#goproxy-protocol): the go command downloads modules from it, modules are uploaded to it with a plain HTTP request, and it can mirror [proxy.golang.org](https://proxy.golang.org) or another module proxy.
+A feed of the type **Go** is a [module proxy](https://go.dev/ref/mod#goproxy-protocol) for Go modules: the go command downloads modules from it, modules are uploaded to it with a plain HTTP request, and it can mirror [proxy.golang.org](https://proxy.golang.org) or another module proxy.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -101,7 +101,7 @@ A Go feed can mirror other module proxies. On the feed's settings page, add a mi
 - A version uploaded to the feed hides the same version of the mirror, and a version unlisted in the feed is left out of the list even when the mirror has it.
 - A query that is not a version, such as `go get example.com/tool@main`, is passed on to the mirror.
 - With several mirrors, they are asked in order: the first one that lists a module lists all of its versions, and the first one that has a version serves it. A mirror that is unreachable is skipped.
-- The version lists of mirrors are cached in memory like the version lists of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- The version lists of mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 The checksums of mirrored modules are still checked against the checksum database, unless `GONOSUMDB` or `GOSUMDB=off` turns that off.
 
@@ -111,7 +111,9 @@ A Go feed lists the modules stored in it, with search, under their module paths.
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the list and `@latest` while it can still be downloaded, **relist** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Go feeds as to any other feed. These differ:
 
 | | Go feeds |
 |---|---|
@@ -122,4 +124,4 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 | Checksum database | Not served. Private modules need `GONOSUMDB` |
 | Direct access to version control | Not available. Modules come from uploads and mirrors |
 
-The NuGet, pub, npm, Maven, PyPI and Cargo APIs answer `404 Not Found` on a Go feed, and the module proxy answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Go feed, and the module proxy answers `404 Not Found` on feeds of other types.

@@ -1,6 +1,6 @@
 # Ruby gems
 
-PaGetto can host Ruby gems next to NuGet, Dart, npm, Maven, Python and Rust packages and Go modules. A feed of the type **Ruby** is a gem server with the [compact index](https://guides.rubygems.org/rubygems-org-compact-index-api/) that Bundler and RubyGems read: `bundle install` and `gem install` install gems from it, `gem push` and `gem yank` publish and yank them, and it can mirror [rubygems.org](https://rubygems.org) or another gem server.
+A feed of the type **Ruby** is a gem server with the [compact index](https://guides.rubygems.org/rubygems-org-compact-index-api/) that Bundler and RubyGems read: `bundle install` and `gem install` install gems from it, `gem push` and `gem yank` publish and yank them, and it can mirror [rubygems.org](https://rubygems.org) or another gem server.
 
 A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards.
 
@@ -112,7 +112,9 @@ A Ruby feed lists the gems stored in it, with search. A gem's page shows the rea
 
 Users with the **delete** permission can **yank** a version, **unyank** it, or delete it for good.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Ruby feeds as to any other feed. These differ:
 
 | | Ruby feeds |
 |---|---|
@@ -122,4 +124,4 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 | Full index (`specs.4.8.gz`) and dependency API | Not served. `gem search --remote` doesn't work |
 | Yanking one platform of a version | Not available. A yank applies to all platforms of the version |
 
-The NuGet, pub, npm, Maven, PyPI, Cargo and Go APIs answer `404 Not Found` on a Ruby feed, and the gem server answers `404 Not Found` on other feeds.
+The APIs of other feed types answer `404 Not Found` on a Ruby feed, and the gem server answers `404 Not Found` on feeds of other types.

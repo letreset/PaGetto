@@ -1,8 +1,8 @@
 # Dart and Flutter packages
 
-PaGetto can host Dart and Flutter packages next to NuGet packages. A feed of the type **Dart** is a [hosted pub repository](https://dart.dev/tools/pub/custom-package-repositories): `dart pub` and `flutter pub` publish to it and fetch from it, and it can mirror [pub.dev](https://pub.dev) or another pub server.
+A feed of the type **Dart** is a [hosted pub repository](https://dart.dev/tools/pub/custom-package-repositories) for Dart and Flutter packages: `dart pub` and `flutter pub` publish to it and fetch from it, and it can mirror [pub.dev](https://pub.dev) or another pub server.
 
-A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards, so NuGet and Dart packages live in separate feeds with their own settings and permissions.
+A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards, so Dart packages live in feeds of their own, with their own settings and permissions.
 
 ## Create a Dart feed
 
@@ -92,7 +92,7 @@ PaGetto checks the uploaded archive before it accepts it:
 - The archive must not be larger than the feed's **Max package size**.
 - A version that already exists is rejected, unless the feed's **Package overwrite policy** allows replacing it.
 
-When a package is rejected, `dart pub publish` shows the reason. Unlike NuGet, pub treats build metadata as part of the version, so `1.0.0+1` and `1.0.0+2` are two versions.
+When a package is rejected, `dart pub publish` shows the reason. Build metadata is part of the version in pub, so `1.0.0+1` and `1.0.0+2` are two versions.
 
 ## Mirror pub.dev
 
@@ -101,26 +101,27 @@ A Dart feed can mirror other pub servers. On the feed's settings page, add a mir
 - A package's version list combines the versions published to the feed with those of the mirror. A version published to the feed hides the same version of the mirror.
 - A version is downloaded from the mirror on its first use, checked against the SHA-256 hash the mirror lists, stored in the feed and served from there afterwards.
 - With several mirrors, they are asked in order and the first one that has the package serves all of its versions. A mirror that is unreachable is skipped.
-- Version lists from mirrors are cached in memory like those of NuGet mirrors (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
+- Version lists from mirrors are cached in memory, as on every feed type (see [Upstream listing cache](feeds.md#upstream-listing-cache)).
 
 A mirror's credentials are only sent to the mirror itself, not to another host its archives are served from.
 
 ## In the web UI
 
-The feed menu in the header and the heading of the package list show each feed's type (NuGet or Dart), so visitors can tell what a feed is for. A Dart feed lists the packages stored in it, with search. A package's page shows its readme, dependencies, SDK constraints and versions, and the lines to add to `pubspec.yaml`. Packages that are only available from a mirror appear once a version has been downloaded.
+The feed menu in the header and the heading of the package list show each feed's type, so visitors can tell what a feed is for. A Dart feed lists the packages stored in it, with search. A package's page shows its readme, dependencies, SDK constraints and versions, and the lines to add to `pubspec.yaml`. Packages that are only available from a mirror appear once a version has been downloaded.
 
 Users with the **delete** permission can **retract** a version (pub's word for unlisting: the version stays downloadable, but clients don't pick it for new installs), **restore** it, or delete it for good.
 
 Raw HTML in a package's readme is shown as text.
 
-## What is different from NuGet feeds
+## Feed settings and limits
+
+Most [feed settings](feeds.md#feed-settings) apply to Dart feeds as to any other feed. These differ:
 
 | | Dart feeds |
 |---|---|
 | Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
-| Deletion behavior | Not available: the setting is about the NuGet delete API. In the web UI, retracting and deleting are separate buttons |
+| Deletion behavior | Not available: retracting and deleting are separate buttons in the web UI |
 | Upload from the browser | Not available. Publish with `dart pub publish` |
-| Symbols, Atom feed, search API | NuGet only |
 | Security advisories | Not served |
 
-The NuGet API answers `404 Not Found` on a Dart feed, and the pub API answers `404 Not Found` on a NuGet feed.
+The APIs of other feed types answer `404 Not Found` on a Dart feed, and the pub API answers `404 Not Found` on feeds of other types.
