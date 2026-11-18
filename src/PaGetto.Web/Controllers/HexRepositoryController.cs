@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -10,11 +9,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Hex;
@@ -49,11 +46,9 @@ public class HexRepositoryController : Controller
     private readonly IArtifactDatabase _artifacts;
     private readonly HexRegistryKeyStore _keys;
     private readonly IFeedContext _feedContext;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly ArtifactIndexCache _indexes;
-    private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
-    private readonly IOptionsSnapshot<PaGettoOptions> _options;
     private readonly WebAuditLog _audit;
 
     public HexRepositoryController(
@@ -61,22 +56,18 @@ public class HexRepositoryController : Controller
         IArtifactDatabase artifacts,
         HexRegistryKeyStore keys,
         IFeedContext feedContext,
+        FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
         ArtifactIndexCache indexes,
-        IAuthenticationService authentication,
-        IPermissionService permissionService,
-        IOptionsSnapshot<PaGettoOptions> options,
         WebAuditLog audit)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _keys = keys ?? throw new ArgumentNullException(nameof(keys));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _indexes = indexes ?? throw new ArgumentNullException(nameof(indexes));
-        _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -358,25 +349,8 @@ public class HexRepositoryController : Controller
         string packageVersion,
         CancellationToken cancellationToken)
     {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        bool authorized;
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as HEX_API_KEY.
-            authorized = await _authentication.AuthenticateAsync(GetApiKey(), cancellationToken);
-        }
-        else
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            authorized = Guid.TryParse(userIdClaim, out var userId)
-                && (permission == FeedPermissionRequirement.Push
-                    ? await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken)
-                    : await _permissionService.CanDeleteAsync(userId, feed.Id, cancellationToken));
-        }
-
-        if (!authorized)
+        var access = await _changes.CheckAsync(User, GetApiKey(), permission, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             if (!Request.Headers.ContainsKey("Authorization"))
             {
@@ -387,7 +361,7 @@ public class HexRepositoryController : Controller
             return HexError(StatusCodes.Status403Forbidden, "You do not have permission to change packages of this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, $"{action}_read_only", packageName, packageVersion);
             return HexError(StatusCodes.Status403Forbidden, "This feed is read-only.");

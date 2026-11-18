@@ -10,11 +10,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Web.Audit;
@@ -42,29 +40,23 @@ public class CargoRegistryController : Controller
     private readonly ICargoPackageService _packages;
     private readonly IArtifactDatabase _artifacts;
     private readonly IFeedContext _feedContext;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
-    private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
-    private readonly IOptionsSnapshot<PaGettoOptions> _options;
     private readonly WebAuditLog _audit;
 
     public CargoRegistryController(
         ICargoPackageService packages,
         IArtifactDatabase artifacts,
         IFeedContext feedContext,
+        FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
-        IAuthenticationService authentication,
-        IPermissionService permissionService,
-        IOptionsSnapshot<PaGettoOptions> options,
         WebAuditLog audit)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
-        _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -272,25 +264,8 @@ public class CargoRegistryController : Controller
         string packageVersion,
         CancellationToken cancellationToken)
     {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        bool authorized;
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as the Cargo token.
-            authorized = await _authentication.AuthenticateAsync(GetApiKey(), cancellationToken);
-        }
-        else
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            authorized = Guid.TryParse(userIdClaim, out var userId)
-                && (permission == FeedPermissionRequirement.Push
-                    ? await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken)
-                    : await _permissionService.CanDeleteAsync(userId, feed.Id, cancellationToken));
-        }
-
-        if (!authorized)
+        var access = await _changes.CheckAsync(User, GetApiKey(), permission, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             if (!Request.Headers.ContainsKey("Authorization"))
             {
@@ -301,7 +276,7 @@ public class CargoRegistryController : Controller
             return CargoError(StatusCodes.Status403Forbidden, "You do not have permission to change crates of this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, $"{action}_read_only", packageName, packageVersion);
             return CargoError(StatusCodes.Status403Forbidden, "This feed is read-only.");

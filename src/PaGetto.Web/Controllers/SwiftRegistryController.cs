@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -53,26 +52,26 @@ public partial class SwiftRegistryController : Controller
 
     private readonly ISwiftPackageService _packages;
     private readonly IFeedContext _feedContext;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
     private readonly IOptionsSnapshot<PaGettoOptions> _options;
     private readonly WebAuditLog _audit;
 
     public SwiftRegistryController(
         ISwiftPackageService packages,
         IFeedContext feedContext,
+        FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
         IAuthenticationService authentication,
-        IPermissionService permissionService,
         IOptionsSnapshot<PaGettoOptions> options,
         WebAuditLog audit)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
@@ -227,7 +226,7 @@ public partial class SwiftRegistryController : Controller
     {
         // With user accounts, the caller is signed in to get here. A Legacy server checks the API key.
         var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-        if (authMode == AuthenticationMode.Legacy && !await _authentication.AuthenticateAsync(GetApiKey(), cancellationToken))
+        if (authMode == AuthenticationMode.Legacy && !await _authentication.AuthenticateAsync(Request.GetApiKeyOrPassword(), cancellationToken))
         {
             return Challenge(AuthenticationConstants.NugetBasicAuthenticationScheme);
         }
@@ -404,23 +403,8 @@ public partial class SwiftRegistryController : Controller
     /// </summary>
     private async Task<IActionResult> CheckCanPublishAsync(string id, string version, CancellationToken cancellationToken)
     {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        bool authorized;
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as the password or a Bearer token.
-            authorized = await _authentication.AuthenticateAsync(GetApiKey(), cancellationToken);
-        }
-        else
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            authorized = Guid.TryParse(userIdClaim, out var userId)
-                && await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken);
-        }
-
-        if (!authorized)
+        var access = await _changes.CheckAsync(User, Request.GetApiKeyOrPassword(), FeedPermissionRequirement.Push, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             if (!Request.Headers.ContainsKey("Authorization"))
             {
@@ -431,46 +415,13 @@ public partial class SwiftRegistryController : Controller
             return ProblemDetail(StatusCodes.Status403Forbidden, "You do not have permission to publish packages to this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_read_only", id, version);
             return ProblemDetail(StatusCodes.Status403Forbidden, "This feed is read-only.");
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// The API key in Legacy mode: the password of Basic authentication, a Bearer token, or the
-    /// NuGet API key header.
-    /// </summary>
-    private string GetApiKey()
-    {
-        var apiKey = Request.Headers[HttpRequestExtensions.ApiKeyHeader].ToString();
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            return apiKey;
-        }
-
-        if (!AuthenticationHeaderValue.TryParse(Request.Headers.Authorization, out var header) || header.Parameter == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
-        {
-            return header.Parameter;
-        }
-
-        try
-        {
-            var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(header.Parameter)).Split(':', 2);
-            return credentials.Length == 2 ? credentials[1] : null;
-        }
-        catch (FormatException)
-        {
-            return null;
-        }
     }
 
     private static ContentResult ReleaseNotFound(string scope, string name, string version)
@@ -512,7 +463,7 @@ public partial class SwiftRegistryController : Controller
         if (string.IsNullOrEmpty(actor))
         {
             // Config mode API keys are shared and carry no user identity.
-            actor = string.IsNullOrEmpty(GetApiKey()) ? "anonymous" : "api-key";
+            actor = string.IsNullOrEmpty(Request.GetApiKeyOrPassword()) ? "anonymous" : "api-key";
         }
 
         await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, actor);

@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,9 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PaGetto.Core.Authentication;
-using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Ivy;
@@ -38,27 +35,21 @@ public class IvyRepositoryController : Controller
 
     private readonly IIvyRepositoryService _repository;
     private readonly IFeedContext _feedContext;
+    private readonly FeedChangeAuthorizer _changes;
     private readonly IFeedSettingsResolver _feedSettings;
-    private readonly IAuthenticationService _authentication;
-    private readonly IPermissionService _permissionService;
-    private readonly IOptionsSnapshot<PaGettoOptions> _options;
     private readonly WebAuditLog _audit;
 
     public IvyRepositoryController(
         IIvyRepositoryService repository,
         IFeedContext feedContext,
+        FeedChangeAuthorizer changes,
         IFeedSettingsResolver feedSettings,
-        IAuthenticationService authentication,
-        IPermissionService permissionService,
-        IOptionsSnapshot<PaGettoOptions> options,
         WebAuditLog audit)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _feedContext = feedContext ?? throw new ArgumentNullException(nameof(feedContext));
+        _changes = changes ?? throw new ArgumentNullException(nameof(changes));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
-        _authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -179,23 +170,8 @@ public class IvyRepositoryController : Controller
     /// </summary>
     private async Task<IActionResult> CheckCanPublishAsync(string packageName, string version, CancellationToken cancellationToken)
     {
-        var feed = _feedContext.CurrentFeed;
-        var authMode = _options.Value.Authentication?.Mode ?? AuthenticationMode.Legacy;
-
-        bool authorized;
-        if (authMode == AuthenticationMode.Legacy)
-        {
-            // Static auth mode: the configured API key, sent as the password.
-            authorized = await _authentication.AuthenticateAsync(GetApiKey(), cancellationToken);
-        }
-        else
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            authorized = Guid.TryParse(userIdClaim, out var userId)
-                && await _permissionService.CanPushAsync(userId, feed.Id, cancellationToken);
-        }
-
-        if (!authorized)
+        var access = await _changes.CheckAsync(User, Request.GetApiKeyOrPassword(), FeedPermissionRequirement.Push, cancellationToken);
+        if (access == FeedChangeAccess.Unauthorized)
         {
             // sbt only sends its credentials when it is challenged for them.
             if (!Request.Headers.ContainsKey("Authorization"))
@@ -207,46 +183,13 @@ public class IvyRepositoryController : Controller
             return IvyError(StatusCodes.Status403Forbidden, "You do not have permission to publish packages to this feed.");
         }
 
-        if (_feedSettings.GetIsReadOnlyMode(feed))
+        if (access == FeedChangeAccess.ReadOnly)
         {
             await AuditAsync(LogLevel.Warning, "package_upload_read_only", packageName, version);
             return IvyError(StatusCodes.Status403Forbidden, "This feed is read-only.");
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// The API key in Legacy mode: the password of Basic authentication, which is all that sbt can
-    /// send, or the NuGet API key header.
-    /// </summary>
-    private string GetApiKey()
-    {
-        var apiKey = Request.Headers[HttpRequestExtensions.ApiKeyHeader].ToString();
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            return apiKey;
-        }
-
-        if (!AuthenticationHeaderValue.TryParse(Request.Headers.Authorization, out var header) || header.Parameter == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
-        {
-            return header.Parameter;
-        }
-
-        try
-        {
-            var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(header.Parameter)).Split(':', 2);
-            return credentials.Length == 2 ? credentials[1] : null;
-        }
-        catch (FormatException)
-        {
-            return null;
-        }
     }
 
     private ContentResult TooLarge(long maxBytes)
@@ -306,7 +249,7 @@ public class IvyRepositoryController : Controller
         if (string.IsNullOrEmpty(actor))
         {
             // Config mode API keys are shared and carry no user identity.
-            actor = string.IsNullOrEmpty(GetApiKey()) ? "anonymous" : "api-key";
+            actor = string.IsNullOrEmpty(Request.GetApiKeyOrPassword()) ? "anonymous" : "api-key";
         }
 
         await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, actor);

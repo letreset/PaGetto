@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using PaGetto.Core;
 using PaGetto.Core.Extensions;
 using PaGetto.Web.Audit;
+using PaGetto.Web.Authentication;
 using PaGetto.Web.Controllers;
 using PaGetto.Web.Helper;
 using PaGetto.Web.Hex;
@@ -31,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IUrlGenerator, PaGettoUrlGenerator>();
         services.AddSingleton<WebAuditLog>();
         services.AddSingleton<HexRegistryKeyStore>();
+        services.AddScoped<FeedChangeAuthorizer>();
 
         services.AddSingleton(ApplicationVersionHelper.GetVersion());
 
