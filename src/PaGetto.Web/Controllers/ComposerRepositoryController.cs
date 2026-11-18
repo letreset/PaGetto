@@ -1,6 +1,4 @@
 using System;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,6 +68,7 @@ public class ComposerRepositoryController : Controller
     }
 
     // GET composer/p2/{vendor}/{package}.json and composer/p2/{vendor}/{package}~dev.json
+    [ContentETag]
     public async Task<IActionResult> Metadata(string vendor, string file, CancellationToken cancellationToken)
     {
         if (!file.EndsWith(".json", StringComparison.Ordinal))

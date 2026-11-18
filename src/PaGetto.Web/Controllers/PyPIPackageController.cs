@@ -75,6 +75,7 @@ public class PyPIPackageController : Controller
 
     // GET pypi/simple/
     // The projects that have files in the feed.
+    [ContentETag]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var names = await _packages.ListProjectsAsync(_feedContext.CurrentFeed, cancellationToken);
@@ -108,6 +109,7 @@ public class PyPIPackageController : Controller
 
     // GET pypi/simple/{name}/
     // The files of a project.
+    [ContentETag]
     public async Task<IActionResult> Project(string name, CancellationToken cancellationToken)
     {
         if (!PyPIPackageName.IsValid(name))

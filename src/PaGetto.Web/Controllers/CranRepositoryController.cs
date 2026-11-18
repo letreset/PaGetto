@@ -196,7 +196,12 @@ public class CranRepositoryController : Controller
 
     private FileContentResult IndexFile(string file, byte[] content)
     {
-        return File(content, file == IndexFileName ? TextContentType : GzipContentType);
+        // R reads the index on every install; its ETag lets a proxy or client revalidate it.
+        return File(
+            content,
+            file == IndexFileName ? TextContentType : GzipContentType,
+            lastModified: null,
+            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{Convert.ToHexStringLower(ContentDigests.GetSha256(content))}\""));
     }
 
     private static byte[] BuildIndexFile(string file, string index)

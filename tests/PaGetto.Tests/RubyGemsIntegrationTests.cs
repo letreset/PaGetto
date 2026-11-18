@@ -340,6 +340,31 @@ public class RubyGemsIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task IndexFilesAreCompressedButNotTheirRanges()
+    {
+        await _app.CreateRubyGemsFeedAsync(Feed);
+        using (await _client.PushGemAsync(Feed, "my_gem", "1.0.0"))
+        {
+        }
+
+        var url = RubyGemsTestClient.SourceUrl(Feed) + "versions";
+
+        using var whole = new HttpRequestMessage(HttpMethod.Get, url);
+        whole.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+        using var compressed = await _client.SendAsync(whole);
+
+        using var ranged = new HttpRequestMessage(HttpMethod.Get, url);
+        ranged.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+        ranged.Headers.Range = new RangeHeaderValue(10, null);
+        using var partial = await _client.SendAsync(ranged);
+
+        Assert.Equal(HttpStatusCode.OK, compressed.StatusCode);
+        Assert.Equal(new[] { "gzip" }, compressed.Content.Headers.ContentEncoding);
+        Assert.Equal(HttpStatusCode.PartialContent, partial.StatusCode);
+        Assert.Empty(partial.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
     public async Task UnknownGemsAndFilesAreNotFound()
     {
         await _app.CreateRubyGemsFeedAsync(Feed);

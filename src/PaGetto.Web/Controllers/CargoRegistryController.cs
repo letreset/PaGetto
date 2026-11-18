@@ -78,6 +78,7 @@ public class CargoRegistryController : Controller
 
     // GET cargo/index/{**path}
     // A crate's index file, at a path made from its lowercased name: 1/a, 2/ab, 3/a/abc, ab/cd/abcd.
+    [ContentETag]
     public async Task<IActionResult> Index(string path, CancellationToken cancellationToken)
     {
         var name = path?[(path.LastIndexOf('/') + 1)..];

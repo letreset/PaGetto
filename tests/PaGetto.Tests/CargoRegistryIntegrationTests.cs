@@ -111,6 +111,35 @@ public class CargoRegistryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task IndexFileAnswersConditionalRequests()
+    {
+        await _app.CreateCargoFeedAsync(Feed);
+        using (await _client.PublishCrateAsync(Feed, "my_crate", "1.0.0"))
+        {
+        }
+
+        var url = CargoTestClient.IndexFileUrl(Feed, "my_crate");
+        using var first = await _client.GetAsync(url);
+
+        // Cargo keeps the index files it read and asks whether they are still current.
+        using var conditional = new HttpRequestMessage(HttpMethod.Get, url);
+        conditional.Headers.IfNoneMatch.Add(first.Headers.ETag!);
+        using var notModified = await _client.SendAsync(conditional);
+
+        using (await _client.PublishCrateAsync(Feed, "my_crate", "1.1.0"))
+        {
+        }
+
+        using var changed = new HttpRequestMessage(HttpMethod.Get, url);
+        changed.Headers.IfNoneMatch.Add(first.Headers.ETag!);
+        using var modified = await _client.SendAsync(changed);
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.NotModified, notModified.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, modified.StatusCode);
+    }
+
+    [Fact]
     public async Task UnknownCrateIsNotFound()
     {
         await _app.CreateCargoFeedAsync(Feed);

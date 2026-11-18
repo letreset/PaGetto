@@ -206,13 +206,13 @@ public class RubyGemsController : Controller
     /// </summary>
     private FileContentResult IndexFile(byte[] content)
     {
-        Response.Headers["Repr-Digest"] = $"sha-256=:{Convert.ToBase64String(SHA256.HashData(content))}:";
+        Response.Headers["Repr-Digest"] = $"sha-256=:{Convert.ToBase64String(ContentDigests.GetSha256(content))}:";
 
         return File(
             content,
             TextContentType,
             lastModified: null,
-            entityTag: new EntityTagHeaderValue($"\"{RubyGemsCompactIndex.Md5(content)}\""),
+            entityTag: new EntityTagHeaderValue($"\"{ContentDigests.GetMd5Hex(content)}\""),
             enableRangeProcessing: true);
     }
 
