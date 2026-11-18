@@ -1,6 +1,10 @@
+---
+sidebar_position: 6
+---
+
 # NuGet.Server
 
-[NuGet.Server](https://github.com/NuGet/NuGet.Server) is a lightweight, standalone NuGet server for Windows and IIS. We strongly recommend moving to PaGetto if you use NuGet.Server. Feel free to open a [GitHub issue](https://github.com/letreset/PaGetto/issues) if you need help migrating.
+[NuGet.Server](https://github.com/NuGet/NuGet.Server) is a lightweight, standalone NuGet server for Windows and IIS. We strongly recommend moving to PaGetto if you use NuGet.Server. Feel free to open a [GitHub issue](https://github.com/letreset/PaGetto/issues) if you need help migrating. PaGetto [feeds](../feeds.md) can also host 14 other package formats, such as npm, Maven and Python.
 
 ## PaGetto vs NuGet.Server
 

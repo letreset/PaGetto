@@ -1,6 +1,10 @@
+---
+sidebar_position: 9
+---
+
 # Local Feeds
 
-[Local feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds), also known as "folder feeds", let you use a folder as a NuGet package source. You can share them with a team through a network share.
+[Local feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds), also known as "folder feeds", let you use a folder as a NuGet package source. You can share them with a team through a network share. PaGetto [feeds](../feeds.md) can also host 14 other package formats, such as npm, Maven and Python.
 
 ## PaGetto vs local feeds
 

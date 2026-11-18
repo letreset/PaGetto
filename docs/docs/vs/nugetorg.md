@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # nuget.org
 
 [nuget.org](https://www.nuget.org/), also known as the "Gallery", is the de facto feed for public .NET packages. Publish the packages of your open-source projects there.
@@ -13,7 +17,7 @@ As you can tell, nuget.org is a complex system. Hosting your own instance of the
 
 ## PaGetto vs nuget.org
 
-PaGetto mainly competes with nuget.org's v3 implementation ([NuGet/NuGet.Services.Metadata](https://github.com/NuGet/NuGet.Services.Metadata/)).
+PaGetto mainly competes with nuget.org's v3 implementation ([NuGet/NuGet.Services.Metadata](https://github.com/NuGet/NuGet.Services.Metadata/)). This page compares NuGet only; PaGetto [feeds](../feeds.md) can also host 14 other package formats, such as npm, Maven and Python.
 
 | | PaGetto | nuget.org |
 |---|---|---|
@@ -25,7 +29,7 @@ PaGetto mainly competes with nuget.org's v3 implementation ([NuGet/NuGet.Service
 | Write latency | A pushed package is available right away | A pushed package goes through validation and jobs before it is listed |
 | Package validation | Basic checks on push | Signing, malware scanning, reserved ID prefixes and more |
 | Access control | Private [feeds](../feeds.md) with per-feed pull, push and delete permissions | Public reads, owner-based pushes |
-| Several feeds | Yes | No |
+| Several feeds | Yes, of any of PaGetto's package formats | No |
 | Mirroring | Can [mirror](../feeds.md#mirror-read-through-cache) nuget.org into a local feed | Not applicable |
 | Adding features | Easy: one codebase, one process | Hard: changes span several services |
 

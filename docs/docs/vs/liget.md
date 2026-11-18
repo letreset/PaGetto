@@ -1,6 +1,10 @@
+---
+sidebar_position: 7
+---
+
 # LiGet
 
-[LiGet](https://github.com/ai-traders/liget) is an open-source NuGet server created with a Linux-first approach. It started as a v2 server with strong [Paket](https://fsprojects.github.io/Paket/) support. It hasn't seen active development for several years, so check its repository for its current state before choosing it.
+[LiGet](https://github.com/ai-traders/liget) is an open-source NuGet server created with a Linux-first approach. It started as a v2 server with strong [Paket](https://fsprojects.github.io/Paket/) support. It hasn't seen active development for several years, so check its repository for its current state before choosing it. PaGetto [feeds](../feeds.md) can also host 14 other package formats, such as npm, Maven and Python.
 
 ## PaGetto vs LiGet
 
