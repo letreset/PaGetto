@@ -14,8 +14,8 @@ The top bar shows these items for the current feed:
 |---|---|---|
 | Feed switcher | The user can pull from more than one feed | Jumps to another feed. Feeds are listed in the order set on **Admin > Feeds**, each with its description |
 | Packages | Always | The package list and search |
-| Connect | The user can pull from the feed | The feed's service index URL and how to authenticate |
-| Upload | The user can push to the feed | Upload from the browser, and commands to publish packages |
+| Connect | The user can pull from the feed | The feed's URL, the client configuration for its type and how to authenticate |
+| Upload | The user can push to the feed, and it is a NuGet feed | Upload from the browser, and commands to publish packages |
 | Statistics | The page is [enabled](configuration.md#statistics) and the user can pull from the feed | Counts, downloads, stored size and the most downloaded and recently published packages |
 
 A **Docs** link opens this documentation. Signed-in users also get a user menu with **My Tokens** and **Sign out**, and administrators find the **Accounts**, **Groups** and **Feeds** admin pages there.
@@ -26,7 +26,12 @@ In the `Local`, `Entra` and `Hybrid` modes, a signed-in user who opens the root 
 
 ## Search and filters
 
-The **Packages** tab lists the feed's packages, 20 per page, with numbered pages at the bottom. Type in the search box to search the feed (press `/` on any page to jump to it), and narrow the list with the filters below it. The search is case-insensitive and matches the package id, title, description, authors and tags (a tag matches when it starts with the search term). Id matches are listed first: exact, then prefix, then anywhere in the id. NuGet clients (`dotnet package search`, the Visual Studio browse tab) get the same results.
+The **Packages** tab lists the feed's packages, 20 per page, with numbered pages at the bottom. Type in the search box to search the feed (press `/` on any page to jump to it). The search is case-insensitive, and name matches are listed first: exact, then prefix, then anywhere in the name.
+
+- On a NuGet feed it matches the package id, title, description, authors and tags (a tag matches when it starts with the search term), and NuGet clients (`dotnet package search`, the Visual Studio browse tab) get the same results.
+- On feeds of the other types it matches the package name and the description of its versions. Packages that are only available from a mirror appear once a version has been downloaded.
+
+A NuGet feed also has filters below the search box:
 
 | Filter | Effect |
 |---|---|
@@ -35,17 +40,17 @@ The **Packages** tab lists the feed's packages, 20 per page, with numbered pages
 | Tag | Only packages with the chosen tag. Type in the dropdown to find a tag |
 | Prerelease | Show or hide prerelease versions |
 
-The filter values come from the packages in the current feed, so each feed offers only its own frameworks and tags.
+The filter values come from the packages in the current feed, so each NuGet feed offers only its own frameworks and tags.
 
 The buttons at the end of the filter row switch between a list and a grid view; the choice is remembered per browser. Each package has an **Install** button that copies its install command (the first snippet on the package page). On screens narrower than 760 px (phones) the list view hides it; switch to the grid view to use it there.
 
-Users who can delete from the feed also see unlisted packages in the list, so they can find and relist them. Everyone else only sees listed packages, as NuGet clients do.
+Users who can delete from the feed also see unlisted packages in the list, so they can find and relist them. Everyone else only sees listed packages, as clients do.
 
 ## Package page
 
 ![A package page with the install tabs, the readme, and the stats, About, Tags and Manage cards in the sidebar](./assets/web-ui/package.png)
 
-A package page shows:
+A package page shows the package's readme, versions, install commands for the feed's clients, and the actions for users who may change it. What else it shows depends on the feed type: the page of each [package format](Index.md#package-formats) describes its own under **In the web UI**. On a NuGet feed it shows:
 
 - Badges for the lowest target framework per family (for example ".NET 6.0" and ".NET Standard 2.0"; the package works on that framework or higher), and a **Frameworks** tab with every target framework.
 - Install snippets in tabs, with a **Copy** button: .NET CLI, Package Manager console, `PackageReference`, Central Package Management, Paket CLI, `#r` for scripts and notebooks, `#:package` for file-based apps, and Cake. .NET tools get global and local install commands, and .NET templates a single .NET CLI tab with `dotnet new --install {id}::{version}`.
@@ -74,17 +79,17 @@ Users with the **Delete** permission on the feed can manage versions on the pack
 
 On a feed in [read-only mode](feeds.md#feed-settings) the **Manage** section and the **Relist** links are hidden, and the actions are refused. The same goes for versions that are only available from a mirror.
 
-The feed's deletion behavior only applies to deletes from NuGet clients (`dotnet nuget delete`). The actions on the package page are written to the [audit log](configuration.md#audit-log) as `package_unlist_*`, `package_relist_*` and `package_delete_*` lines, and so are all changes on the **Admin** pages.
+Feeds of the other types name these actions after their ecosystem: **Yank** on Python, Rust and Ruby feeds, **Retract** on Dart feeds, **Deprecate** on npm feeds and **Retire** on Hex feeds. The feed's deletion behavior only applies to deletes from NuGet clients (`dotnet nuget delete`). The actions on the package page are written to the [audit log](configuration.md#audit-log) as `package_unlist_*`, `package_relist_*` and `package_delete_*` lines, and so are all changes on the **Admin** pages.
 
 ## Connect
 
 ![The Connect page of the Internal feed](./assets/web-ui/connect.png)
 
-The **Connect** tab shows the feed's service index URL with a copy button, and explains how to authenticate for the server's [authentication mode](authentication.md#authentication-modes): which user name and password or token to use, with commands for the .NET CLI, the NuGet CLI, `nuget.config` and Paket. In the `Local`, `Entra` and `Hybrid` modes, users must sign in to see it. See also [Connecting a client](feeds.md#connecting-a-client).
+The **Connect** tab shows the feed's URL with a copy button, the client configuration for the feed's type, and how to authenticate for the server's [authentication mode](authentication.md#authentication-modes): which user name and password or token to use. On a NuGet feed it has commands for the .NET CLI, the NuGet CLI, `nuget.config` and Paket; on the other feeds those of their clients, as on the page of each [package format](Index.md#package-formats). In the `Local`, `Entra` and `Hybrid` modes, users must sign in to see it. See also [Connecting a client](feeds.md#connecting-a-client).
 
 ## Upload
 
-The **Upload** tab publishes packages to the current feed. It only appears for users who can push to the feed, and opening it directly without push permission returns 404.
+The **Upload** tab publishes packages to the current NuGet feed. It only appears on NuGet feeds, for users who can push to the feed, and opening it directly without push permission returns 404. Feeds of the other types are published to with their own clients; their **Connect** page shows the commands.
 
 **Upload from browser** takes `.nupkg` and `.snupkg` files, several at a time: pick them with **browse** or drop them on the card. Before anything is sent, each file shows a preview read from its `.nuspec`: id, version, authors, license, description and the dependencies per target framework. The preview also warns when:
 
@@ -139,4 +144,4 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 
 ### Audit log
 
-**Audit log** lists the successful package uploads, unlists, relists and deletes, from NuGet clients and from the web UI, and every change on the **Admin** pages, newest first and 50 per page. Each row shows the time in UTC, the [event](configuration.md#audit-log), the actor, the target (the account, group or feed that was changed, or the package id and version with its feed), the detail and the client IP address. Filter by event, actor, feed, target or package id, and a range of days in UTC. Denied and failed attempts are only in the server log. Events are kept for `Audit:RetentionDays` days, 30 by default (see [Audit retention](configuration.md#audit-retention)).
+**Audit log** lists the successful package uploads, unlists, relists and deletes, from clients and from the web UI, and every change on the **Admin** pages, newest first and 50 per page. Each row shows the time in UTC, the [event](configuration.md#audit-log), the actor, the target (the account, group or feed that was changed, or the package id and version with its feed), the detail and the client IP address. Filter by event, actor, feed, target or package id, and a range of days in UTC. Denied and failed attempts are only in the server log. Events are kept for `Audit:RetentionDays` days, 30 by default (see [Audit retention](configuration.md#audit-retention)).

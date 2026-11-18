@@ -89,16 +89,16 @@ ingress:
       # Allow large packages (the default package limit is 8 GiB).
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
     hosts:
-      - host: nuget.example.com
+      - host: packages.example.com
         paths:
           - path: /
             service:
               identifier: pagetto-srv
               port: http
     tls:
-      - secretName: nuget-example-com-tls
+      - secretName: packages-example-com-tls
         hosts:
-          - nuget.example.com
+          - packages.example.com
 ```
 
 The ingress controller must forward `X-Forwarded-Proto` and `X-Forwarded-Host` (ingress-nginx does by default), so PaGetto returns `https://` URLs in its service index.
