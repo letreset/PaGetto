@@ -205,6 +205,21 @@ public class FeedServiceTests
         }
 
         [Fact]
+        public async Task DeletesTheSigningKeyOfAHexFeed()
+        {
+            var hex = AddFeed("elixir", "Elixir");
+            hex.Type = FeedType.Hex;
+            var nuget = AddFeed("tools", "Tools");
+            await Context.SaveChangesAsync(Ct);
+
+            await Target.DeleteFeedAsync(hex.Id, Ct);
+            await Target.DeleteFeedAsync(nuget.Id, Ct);
+
+            Storage.Verify(s => s.DeleteAsync("hex/elixir/registry-key", Ct), Times.Once);
+            Storage.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task ThrowsWhenDeletingDefaultFeed()
         {
             var feed = AddFeed(Feed.DefaultSlug, "Default");
@@ -220,6 +235,7 @@ public class FeedServiceTests
         protected readonly TestDbContext Context;
         protected readonly Mock<IPackageStorageService> PackageStorage;
         protected readonly Mock<IArtifactStorageService> ArtifactStorage;
+        protected readonly Mock<IStorageService> Storage;
         protected readonly FeedService Target;
         protected readonly CancellationToken Ct = CancellationToken.None;
 
@@ -228,7 +244,8 @@ public class FeedServiceTests
             Context = TestDbContext.Create();
             PackageStorage = new Mock<IPackageStorageService>();
             ArtifactStorage = new Mock<IArtifactStorageService>();
-            Target = new FeedService(Context, PackageStorage.Object, ArtifactStorage.Object, Mock.Of<ILogger<FeedService>>());
+            Storage = new Mock<IStorageService>();
+            Target = new FeedService(Context, PackageStorage.Object, ArtifactStorage.Object, Storage.Object, Mock.Of<ILogger<FeedService>>());
         }
 
         protected Feed AddFeed(string slug, string name, int sortOrder = 0)

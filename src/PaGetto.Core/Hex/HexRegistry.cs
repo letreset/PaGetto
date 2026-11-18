@@ -22,6 +22,14 @@ public static class HexRegistry
     public const int MaxUncompressedBytes = 16 * 1024 * 1024;
 
     /// <summary>
+    /// The path in the package storage of the key a Hex feed signs its registry with.
+    /// </summary>
+    public static string GetKeyPath(string feedSlug)
+    {
+        return $"hex/{feedSlug}/registry-key";
+    }
+
+    /// <summary>
     /// Writes <c>/names</c>: the name of each package, with when its newest version was published.
     /// </summary>
     /// <param name="repository">The repository name, which clients check.</param>
