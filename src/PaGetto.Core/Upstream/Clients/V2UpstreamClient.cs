@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using Microsoft.Extensions.Logging;
@@ -29,14 +30,21 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
     private readonly SourceRepository _repository;
     private readonly INuGetLogger _ngLogger;
     private readonly ILogger _logger;
+    private readonly long _maxPackageBytes;
     private static readonly char[] _tagsSeparators = { ';' };
     private static readonly char[] _authorsSeparators = new[] { ',', ';', '\t', '\n', '\r' };
 
+    /// <param name="options">The mirror.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="maxPackageBytes">The largest package downloaded, the feed's package size limit.</param>
     public V2UpstreamClient(
         IOptionsSnapshot<MirrorOptions> options,
-        ILogger logger)
+        ILogger logger,
+        long maxPackageBytes = long.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(options);
+
+        _maxPackageBytes = maxPackageBytes;
 
         if (options.Value?.PackageSource?.AbsolutePath == null)
         {
@@ -119,7 +127,7 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
         NuGetVersion version,
         CancellationToken cancellationToken)
     {
-        var packageStream = new MemoryStream();
+        var packageStream = new LimitedMemoryStream(_maxPackageBytes);
 
         try
         {
@@ -137,6 +145,13 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
             packageStream.Position = 0;
 
             return packageStream;
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            LogPackageTooLarge(id, version, _maxPackageBytes);
+
+            packageStream.Dispose();
+            return null;
         }
         catch (Exception e)
         {
@@ -234,4 +249,46 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
 
     [LoggerMessage(Level = Microsoft.Extensions.Logging.LogLevel.Error, Message = "Failed to index package {Id} {Version} from upstream")]
     private partial void LogIndexFailed(Exception exception, string id, NuGetVersion version);
+
+    [LoggerMessage(Level = Microsoft.Extensions.Logging.LogLevel.Warning, Message = "Package {PackageId} {PackageVersion} of the upstream is larger than the feed's limit of {MaxBytes} bytes")]
+    private partial void LogPackageTooLarge(string packageId, NuGetVersion packageVersion, long maxBytes);
+
+    /// <summary>
+    /// The package as the NuGet client writes it, refused once it grows past the feed's limit.
+    /// </summary>
+    private sealed class LimitedMemoryStream : MemoryStream
+    {
+        private readonly long _maxBytes;
+
+        public LimitedMemoryStream(long maxBytes)
+        {
+            _maxBytes = maxBytes;
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            EnsureRoom(count);
+            base.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            EnsureRoom(buffer.Length);
+            base.Write(buffer);
+        }
+
+        public override void WriteByte(byte value)
+        {
+            EnsureRoom(1);
+            base.WriteByte(value);
+        }
+
+        private void EnsureRoom(int count)
+        {
+            if (Position + count > _maxBytes)
+            {
+                throw new ArtifactFileTooLargeException(_maxBytes);
+            }
+        }
+    }
 }

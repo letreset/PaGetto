@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Protocol;
@@ -21,16 +22,21 @@ public partial class V3UpstreamClient : IUpstreamClient
 {
     private readonly NuGetClient _client;
     private readonly ILogger<V3UpstreamClient> _logger;
+    private readonly long _maxPackageBytes;
     private static readonly char[] _authorSeparator = [',', ';', '\t', '\n', '\r'];
     private static readonly char[] _tagSeparator = [' '];
 
-    public V3UpstreamClient(NuGetClient client, ILogger<V3UpstreamClient> logger)
+    /// <param name="client">The client of the upstream.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="maxPackageBytes">The largest package downloaded, the feed's package size limit.</param>
+    public V3UpstreamClient(NuGetClient client, ILogger<V3UpstreamClient> logger, long maxPackageBytes = long.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(logger);
 
         _client = client;
         _logger = logger;
+        _maxPackageBytes = maxPackageBytes;
     }
     public string GetServiceIndexUrl() => _client.ServiceIndexUrl;
 
@@ -42,10 +48,15 @@ public partial class V3UpstreamClient : IUpstreamClient
         try
         {
             using var downloadStream = await _client.DownloadPackageAsync(id, version, cancellationToken);
-            return await downloadStream.AsTemporaryFileStreamAsync(cancellationToken);
+            return await downloadStream.AsTemporaryFileStreamAsync(_maxPackageBytes, cancellationToken);
         }
         catch (PackageNotFoundException)
         {
+            return null;
+        }
+        catch (ArtifactFileTooLargeException)
+        {
+            LogPackageTooLarge(id, version, _maxPackageBytes);
             return null;
         }
         catch (Exception e)
@@ -203,4 +214,7 @@ public partial class V3UpstreamClient : IUpstreamClient
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to mirror {PackageId}'s upstream versions")]
     private partial void LogMirrorVersionsFailed(Exception exception, string packageId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Package {PackageId} {PackageVersion} of the upstream is larger than the feed's limit of {MaxBytes} bytes")]
+    private partial void LogPackageTooLarge(string packageId, NuGetVersion packageVersion, long maxBytes);
 }
