@@ -29,6 +29,7 @@
     <Compile Include="..\PaGetto.Core.Tests\Support\HexTarballBuilder.cs" Link="Support\HexTarballBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\ComposerZipBuilder.cs" Link="Support\ComposerZipBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\CranPackageBuilder.cs" Link="Support\CranPackageBuilder.cs" />
+    <Compile Include="..\PaGetto.Core.Tests\Support\VsixPackageBuilder.cs" Link="Support\VsixPackageBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

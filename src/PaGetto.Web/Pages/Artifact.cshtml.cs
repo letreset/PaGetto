@@ -29,6 +29,7 @@ using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Swift;
+using PaGetto.Core.Vsix;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 
@@ -176,6 +177,11 @@ public class ArtifactModel : PageModel
     public CranManifestSummary CranManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a Visual Studio extension version. Null on feeds of other types.
+    /// </summary>
+    public VsixManifest VsixManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, Ivy, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -319,6 +325,13 @@ public class ArtifactModel : PageModel
 
             // The name as published; the stored name is lowercased.
             Name = CranManifest.Name ?? Name;
+        }
+        else if (feed.Type == FeedType.Vsix)
+        {
+            VsixManifest = VsixManifest.Parse(Version.MetadataJson);
+
+            // The name Visual Studio shows; the identifier is in the About card.
+            Name = VsixManifest.DisplayName ?? VsixManifest.Id ?? Name;
         }
 
         if (Version.HasReadme)

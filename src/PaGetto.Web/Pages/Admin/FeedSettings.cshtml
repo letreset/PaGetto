@@ -30,7 +30,7 @@
                 </label>
                 <div>
                     <label for="@(idPrefix)PackageSource" class="form-label">Package source URL</label>
-                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", FeedType.RubyGems => "https://rubygems.org", FeedType.Hex => "https://repo.hex.pm", FeedType.Composer => "https://repo.packagist.org", FeedType.CocoaPods => "https://cdn.cocoapods.org", FeedType.Swift => "https://registry.example.com", FeedType.Cran => "https://cloud.r-project.org", FeedType.Ivy => "https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases", _ => "https://api.nuget.org/v3/index.json" })" required />
+                    <input id="@(idPrefix)PackageSource" name="@(prefix).PackageSource" value="@mirror.PackageSource" type="url" class="form-control mono mirror-source" placeholder="@(Model.Feed?.Type switch { FeedType.Pub => "https://pub.dev", FeedType.Npm => "https://registry.npmjs.org", FeedType.Maven => "https://repo.maven.apache.org/maven2", FeedType.PyPI => "https://pypi.org/simple", FeedType.Cargo => "https://index.crates.io", FeedType.Go => "https://proxy.golang.org", FeedType.RubyGems => "https://rubygems.org", FeedType.Hex => "https://repo.hex.pm", FeedType.Composer => "https://repo.packagist.org", FeedType.CocoaPods => "https://cdn.cocoapods.org", FeedType.Swift => "https://registry.example.com", FeedType.Cran => "https://cloud.r-project.org", FeedType.Vsix => "https://www.vsixgallery.com/feed/", FeedType.Ivy => "https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases", _ => "https://api.nuget.org/v3/index.json" })" required />
                 </div>
                 <div class="bgt-mirror-fields">
                     <div>
@@ -205,7 +205,7 @@
             <div class="bgt-setting">
                 <div class="bgt-setting-label">
                     <label asp-for="AllowPackageOverwrites">Package overwrite policy</label>
-                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.@(Model.Feed?.Type switch { FeedType.Maven or FeedType.Ivy => " Files of SNAPSHOT versions are always replaced.", FeedType.Composer => " Development versions such as dev-main are always replaced.", FeedType.Cran => " R has no prerelease versions, so only Allow all replaces a version.", _ => null })</div>
+                    <div class="bgt-setting-help">Whether pushing an existing version replaces it.@(Model.Feed?.Type switch { FeedType.Maven or FeedType.Ivy => " Files of SNAPSHOT versions are always replaced.", FeedType.Composer => " Development versions such as dev-main are always replaced.", FeedType.Cran => " R has no prerelease versions, so only Allow all replaces a version.", FeedType.Vsix => " Extensions have no prerelease versions, so only Allow all replaces a version.", _ => null })</div>
                 </div>
                 <div class="bgt-setting-control">
                     <select asp-for="AllowPackageOverwrites" class="form-select" data-global-value="@global.AllowPackageOverwrites">
@@ -377,6 +377,15 @@
                             queried in order. The first mirror whose directory listing has a module lists its revisions, and a file is
                             stored in this feed on its first download, after it is checked against the mirror's SHA-1. Snapshots are not
                             mirrored. Revisions published to this feed come first.
+                        </p>
+                    }
+                    else if (Model.Feed?.Type == FeedType.Vsix)
+                    {
+                        <p>
+                            The Atom feeds of other private galleries, such as https://www.vsixgallery.com/feed/ or the gallery of
+                            another VSIX feed, queried in order. The first mirror whose feed has an extension offers it, and its VSIX
+                            file is stored in this feed on its first download. A gallery lists one version of each extension, so only
+                            that version is mirrored. Versions uploaded to this feed come first.
                         </p>
                     }
                     else if (Model.Feed?.Type == FeedType.Cran)

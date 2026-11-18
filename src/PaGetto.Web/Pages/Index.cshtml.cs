@@ -19,6 +19,7 @@ using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Search;
 using PaGetto.Core.Swift;
+using PaGetto.Core.Vsix;
 using PaGetto.Protocol.Models;
 using PaGetto.Web.Authentication;
 using PaGetto.Web.Helper;
@@ -211,7 +212,7 @@ public class IndexModel : PageModel
         return new ArtifactListItem
         {
             // Maven coordinates, Ivy modules, Python project, crate, gem and R package names and Swift package identifiers as published,
-            // and Go module paths and pod names; the stored name is normalized or escaped.
+            // Go module paths and pod names, and the display names of Visual Studio extensions; the stored name is normalized or escaped.
             Name = feedType switch
             {
                 FeedType.Maven => MavenPomSummary.Parse(latest.MetadataJson).Coordinates,
@@ -223,6 +224,7 @@ public class IndexModel : PageModel
                 FeedType.Swift => SwiftManifest.Parse(latest.MetadataJson).Id,
                 FeedType.Cran => CranManifest.GetName(latest.MetadataJson),
                 FeedType.Ivy => IvyManifestSummary.Parse(latest.MetadataJson).Name,
+                FeedType.Vsix => VsixManifest.Parse(latest.MetadataJson).DisplayName,
                 _ => null,
             } ?? artifact.Name,
             Id = artifact.Name,

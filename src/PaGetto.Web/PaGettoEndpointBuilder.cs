@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Constraints;
+using PaGetto.Core.Vsix;
 
 namespace PaGetto.Web;
 
@@ -32,6 +33,7 @@ public class PaGettoEndpointBuilder
         MapSwiftRoutes(endpoints);
         MapCranRoutes(endpoints);
         MapIvyRoutes(endpoints);
+        MapVsixRoutes(endpoints);
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)
@@ -733,5 +735,47 @@ public class PaGettoEndpointBuilder
             pattern: "ivy/{**path}",
             defaults: new { controller = "IvyRepository", action = "Put" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT") });
+    }
+
+    /// <summary>
+    /// The gallery of VSIX feeds (the Atom feed of a private gallery of Visual Studio extensions, the
+    /// files and images it links to) and its upload of VSIX files. It is at <c>vsix/</c> under the
+    /// feed, clear of the pages of the web UI; Visual Studio adds
+    /// <c>https://server/feeds/{slug}/vsix/atom.xml</c> as an extension gallery.
+    /// See: https://learn.microsoft.com/visualstudio/extensibility/private-galleries
+    /// </summary>
+    public void MapVsixRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vsix/atom.xml",
+            defaults: new { controller = "VsixGallery", action = "AtomFeed" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vsix/extensions/{id}/{version}/icon",
+            defaults: new { controller = "VsixGallery", action = "Image", kind = VsixImageKind.Icon },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vsix/extensions/{id}/{version}/preview",
+            defaults: new { controller = "VsixGallery", action = "Image", kind = VsixImageKind.PreviewImage },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vsix/extensions/{id}/{version}/{file}",
+            defaults: new { controller = "VsixGallery", action = "Download" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vsix/upload",
+            defaults: new { controller = "VsixGallery", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT", "POST") });
     }
 }

@@ -14,6 +14,7 @@ using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Swift;
+using PaGetto.Core.Vsix;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -47,6 +48,7 @@ public static class ArtifactVersionOrder
             FeedType.CocoaPods => CocoaPodsVersion.StringComparer,
             FeedType.Swift => SwiftVersion.StringComparer,
             FeedType.Cran => CranVersion.StringComparer,
+            FeedType.Vsix => VsixVersion.StringComparer,
             _ => throw new NotSupportedException($"Feeds of type {feedType} do not store artifacts."),
         };
     }
