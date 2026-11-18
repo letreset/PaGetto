@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Diagnostics;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -50,15 +51,23 @@ public static class ArtifactPublisher
             await storage.SaveAsync(feed.Slug, name, version.Version, archive, readmeStream, cancellationToken);
         }
 
+        ArtifactAddResult result;
         try
         {
-            return await artifacts.AddVersionAsync(feed.Id, name, version, cancellationToken);
+            result = await artifacts.AddVersionAsync(feed.Id, name, version, cancellationToken);
         }
         catch (Exception) when (archive != null)
         {
             await RemoveUnusedContentAsync(artifacts, storage, feed, name, version.Version);
             throw;
         }
+
+        if (result == ArtifactAddResult.Success)
+        {
+            PaGettoMetrics.RecordPackageStored(feed.Type, mirrored: version.CachedFrom != null);
+        }
+
+        return result;
     }
 
     /// <summary>

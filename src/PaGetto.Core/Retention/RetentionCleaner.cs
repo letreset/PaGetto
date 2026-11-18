@@ -10,6 +10,7 @@ using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Core.Diagnostics;
 
 namespace PaGetto.Core.Retention;
 
@@ -62,14 +63,20 @@ public partial class RetentionCleaner
             var days = _feedSettings.GetMirrorCacheRetentionDays(feed);
             if (days > 0)
             {
-                removed += feed.Type == FeedType.NuGet
+                var unused = feed.Type == FeedType.NuGet
                     ? await RemoveUnusedMirroredPackagesAsync(feed, days, cancellationToken)
                     : await RemoveUnusedMirroredVersionsAsync(feed, days, cancellationToken);
+
+                PaGettoMetrics.RecordPackagesRemoved(unused, unusedMirror: true);
+                removed += unused;
             }
 
             if (feed.Type != FeedType.NuGet)
             {
-                removed += await ApplyVersionLimitsAsync(feed, cancellationToken);
+                var beyondLimits = await ApplyVersionLimitsAsync(feed, cancellationToken);
+
+                PaGettoMetrics.RecordPackagesRemoved(beyondLimits, unusedMirror: false);
+                removed += beyondLimits;
             }
         }
 

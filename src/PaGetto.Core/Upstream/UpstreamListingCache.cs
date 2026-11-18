@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Internal;
+using PaGetto.Core.Diagnostics;
 
 namespace PaGetto.Core.Upstream;
 
@@ -73,8 +74,12 @@ public sealed class UpstreamListingCache : IDisposable
         CancellationToken cancellationToken)
     {
         if (_cache.TryGetValue(key, out IReadOnlyList<T> cached))
+        {
+            PaGettoMetrics.RecordUpstreamListingLookup(hit: true);
             return cached;
+        }
 
+        PaGettoMetrics.RecordUpstreamListingLookup(hit: false);
         var call = _inFlight.GetOrAdd(key, k => new Lazy<Task>(() => ListAndCacheAsync(k, duration, list)));
 
         return await ((Task<IReadOnlyList<T>>)call.Value).WaitAsync(cancellationToken);
@@ -132,6 +137,8 @@ public sealed class UpstreamListingCache : IDisposable
     /// </summary>
     public static void ReportFailure()
     {
+        PaGettoMetrics.RecordUpstreamFailure();
+
         if (_currentAttempt.Value is { } attempt)
         {
             attempt.Failed = true;
