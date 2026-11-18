@@ -95,14 +95,21 @@ public partial class UpstreamClientFactory : IUpstreamClientFactory
         "Connection", "Upgrade", "Proxy-Authorization", "Set-Cookie"
     };
 
+    // One connection pool for every upstream request. Callers create and dispose an HttpClient per
+    // request, with that mirror's timeout and headers; the clients share this handler, so its
+    // connections are reused instead of being opened, and left in TIME_WAIT, for every request.
+    // Connections are renewed now and then so DNS changes of an upstream are picked up. Cookies are
+    // off: a shared cookie container would carry one feed's upstream session to another feed.
+    private static readonly SocketsHttpHandler _sharedHandler = new()
+    {
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        UseCookies = false,
+    };
+
     private HttpClient CreateHttpClient(MirrorOptions options, Guid feedId, ILogger logger, bool authenticate = true)
     {
-        var client = _handlerOverride != null
-            ? new HttpClient(_handlerOverride, disposeHandler: false)
-            : new HttpClient(new HttpClientHandler
-            {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            });
+        var client = new HttpClient(_handlerOverride ?? _sharedHandler, disposeHandler: false);
 
         if (options.PackageDownloadTimeoutSeconds > 0)
             client.Timeout = TimeSpan.FromSeconds(options.PackageDownloadTimeoutSeconds);
