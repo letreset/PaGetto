@@ -154,6 +154,7 @@
         <a href="#package-behavior">Package behavior</a>
         <a href="#retention">Retention</a>
         <a href="#mirrors">Mirrors</a>
+        <a href="#webhook">Webhook</a>
     </nav>
 
     <form method="post" class="bgt-settings-body" id="feed-settings-form">
@@ -479,6 +480,41 @@
                     </div>
                     <span asp-validation-for="MirrorCacheRetentionDays" class="text-danger"></span>
                     @{ Inherit(nameof(Model.UseGlobalMirrorCacheRetention), Model.UseGlobalMirrorCacheRetention, nameof(Model.MirrorCacheRetentionDays), global.MirrorCacheRetentionDays == 0 ? "Keep" : global.MirrorCacheRetentionDays + " days"); }
+                </div>
+            </div>
+        </section>
+
+        <section id="webhook" class="bgt-card bgt-card-clip">
+            <div class="bgt-section-head">
+                <div>
+                    <h2>Webhook</h2>
+                    <p>
+                        A URL that is sent a JSON POST for every package published, unlisted, relisted or deleted
+                        in this feed, in the background. Packages stored from a mirror are not reported.
+                    </p>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label"><label asp-for="WebhookUrl">URL</label></div>
+                <div class="bgt-setting-control">
+                    <input asp-for="WebhookUrl" type="url" class="form-control mono" maxlength="4000" placeholder="https://ci.example.com/hooks/packages" />
+                    <span asp-validation-for="WebhookUrl" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="bgt-setting">
+                <div class="bgt-setting-label">
+                    <label asp-for="WebhookSecretNew">Secret</label>
+                    <div class="bgt-setting-help">Signs each body: <code>X-PaGetto-Signature: sha256=</code> and the HMAC-SHA256 of the body in hex.</div>
+                </div>
+                <div class="bgt-setting-control">
+                    <input asp-for="WebhookSecretNew" type="password" class="form-control" maxlength="256" autocomplete="new-password" placeholder="@(Model.HasWebhookSecret ? "Leave blank to keep existing" : "Optional")" />
+                    @if (Model.HasWebhookSecret)
+                    {
+                        <label class="form-check mt-2">
+                            <input asp-for="RemoveWebhookSecret" type="checkbox" class="form-check-input" />
+                            <span class="form-check-label">Remove the secret</span>
+                        </label>
+                    }
                 </div>
             </div>
         </section>

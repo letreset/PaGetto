@@ -15,6 +15,7 @@ using PaGetto.Core.Notifications;
 using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.Storage;
+using PaGetto.Core.Webhooks;
 using PaGetto.Database.MySql;
 using PaGetto.Database.PostgreSql;
 using PaGetto.Database.Sqlite;
@@ -79,6 +80,9 @@ public class Startup
 
         // Removes unused mirrored versions and versions beyond the retention limits of artifact feeds.
         services.AddHostedService<RetentionCleanupService>();
+
+        // Sends package changes to the webhooks of their feeds.
+        services.AddHostedService<WebhookDeliveryService>();
 
         services.AddHealthChecks();
 

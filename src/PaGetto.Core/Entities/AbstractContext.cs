@@ -12,6 +12,7 @@ namespace PaGetto.Core.Entities;
 public abstract class AbstractContext<TContext> : DbContext, IContext where TContext : DbContext
 {
     public const int DefaultMaxStringLength = 4000;
+    public const int MaxWebhookSecretLength = 256;
 
     public const int MaxPackageIdLength = 128;
     public const int MaxPackageVersionLength = 64;
@@ -184,6 +185,12 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
 
         feed.Property(f => f.Description)
             .HasMaxLength(DefaultMaxStringLength);
+
+        feed.Property(f => f.WebhookUrl)
+            .HasMaxLength(DefaultMaxStringLength);
+
+        feed.Property(f => f.WebhookSecret)
+            .HasMaxLength(MaxWebhookSecretLength);
 
         feed.Property(f => f.SortOrder).IsRequired().HasDefaultValue(0);
         feed.Property(f => f.Type).IsRequired().HasDefaultValue(FeedType.NuGet);

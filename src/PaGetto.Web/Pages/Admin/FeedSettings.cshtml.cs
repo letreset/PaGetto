@@ -114,6 +114,21 @@ public class FeedSettingsModel : PageModel
     public int? MirrorCacheRetentionDays { get; set; }
 
     [BindProperty]
+    public string WebhookUrl { get; set; }
+
+    /// <summary>
+    /// A new webhook secret; empty keeps the existing one, which is never shown.
+    /// </summary>
+    [BindProperty]
+    [System.ComponentModel.DataAnnotations.MaxLength(256)]
+    public string WebhookSecretNew { get; set; }
+
+    [BindProperty]
+    public bool RemoveWebhookSecret { get; set; }
+
+    public bool HasWebhookSecret { get; set; }
+
+    [BindProperty]
     public bool UseGlobalMirrorCacheRetention { get; set; }
 
     public string SuccessMessage { get; set; }
@@ -170,6 +185,10 @@ public class FeedSettingsModel : PageModel
         UseGlobalMirrorCacheRetention = !feed.MirrorCacheRetentionDays.HasValue;
         MirrorCacheRetentionDays = feed.MirrorCacheRetentionDays;
 
+        WebhookUrl = feed.WebhookUrl;
+        WebhookSecretNew = null;
+        RemoveWebhookSecret = false;
+
         // Secrets (Password/Token) are NOT populated; use the "leave blank to keep" pattern
         Mirrors = feed.Mirrors
             .OrderBy(m => m.SortOrder)
@@ -192,6 +211,8 @@ public class FeedSettingsModel : PageModel
     // The "a password/token is set" hints come from the stored mirrors, never from the form.
     private void SetSecretIndicators(Feed feed)
     {
+        HasWebhookSecret = !string.IsNullOrEmpty(feed.WebhookSecret);
+
         foreach (var input in Mirrors)
         {
             var existing = feed.Mirrors.FirstOrDefault(m => m.Id == input.Id);
@@ -373,6 +394,16 @@ public class FeedSettingsModel : PageModel
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
         Feed.MirrorCacheRetentionDays = UseGlobalMirrorCacheRetention ? null : MirrorCacheRetentionDays;
 
+        Feed.WebhookUrl = string.IsNullOrWhiteSpace(WebhookUrl) ? null : WebhookUrl.Trim();
+        if (Feed.WebhookUrl == null || RemoveWebhookSecret)
+        {
+            Feed.WebhookSecret = null;
+        }
+        else if (!string.IsNullOrEmpty(WebhookSecretNew))
+        {
+            Feed.WebhookSecret = WebhookSecretNew;
+        }
+
         await ApplyMirrorsAsync();
 
         await _feedService.UpdateFeedAsync(Feed, cancellationToken);
@@ -404,6 +435,13 @@ public class FeedSettingsModel : PageModel
             "The upstream listing cache duration must be 0 or more seconds.");
         ValidateOverride(UseGlobalMirrorCacheRetention, nameof(MirrorCacheRetentionDays), MirrorCacheRetentionDays, 0,
             "The days to keep unused mirrored versions must be 0 or more.");
+
+        if (!string.IsNullOrWhiteSpace(WebhookUrl)
+            && (!Uri.TryCreate(WebhookUrl.Trim(), UriKind.Absolute, out var webhookUri)
+                || (webhookUri.Scheme != Uri.UriSchemeHttps && webhookUri.Scheme != Uri.UriSchemeHttp)))
+        {
+            ModelState.AddModelError(nameof(WebhookUrl), "The webhook URL must be an absolute http or https URL.");
+        }
 
         for (var i = 0; i < Mirrors.Count; i++)
         {

@@ -137,6 +137,28 @@ Mirrors are only configured per feed, in **Admin > Feeds**. The global `Mirror` 
 
 :::
 
+## Webhook
+
+A feed can tell another service about every change of its packages, for example to start a build or post to a chat. Set a **URL** in the **Webhook** section of the feed's settings page, and optionally a **Secret**. Every package that is published, unlisted, relisted or deleted in the feed, through a client or the web UI, is then sent to the URL as a JSON POST, in the background and in order:
+
+```json
+{
+  "event": "package_upload_succeeded",
+  "feed": "internal",
+  "feedType": "NuGet",
+  "packageId": "Contoso.Utils",
+  "packageVersion": "1.2.0",
+  "actor": "alice",
+  "timestamp": "2026-11-18T09:30:00Z"
+}
+```
+
+- `event` is the name of the change in the [audit log](configuration.md#package-events), one of those that end in `_succeeded`.
+- The request has the headers `X-PaGetto-Event` (the event), `X-PaGetto-Delivery` (an id of its own for every change) and, with a secret, `X-PaGetto-Signature`: `sha256=` and the HMAC-SHA256 of the body with the secret, in lowercase hex, the way GitHub signs its webhooks. Compare it with the HMAC of the body you received before trusting the body.
+- A webhook that doesn't answer with a 2xx status within 10 seconds is tried again after 5 and after 30 seconds, then the change is logged and dropped. At most 1000 changes wait; while a webhook is down, more are dropped.
+- Packages stored from a mirror, and versions the [retention cleanup](configuration.md#package-auto-deletion) removes, are not reported.
+- The secret is stored in the database, like the passwords of mirrors, and never shown again.
+
 ## Permissions
 
 With `Authentication:Mode` set to `Local`, `Entra` or `Hybrid`, access to each feed is controlled by **pull**, **push** and **delete** permissions, granted to groups on **Admin > Groups & permissions**. Administrators can do everything on every feed. Feeds a user can't pull from are hidden from them. See [Feed permissions](authentication.md#feed-permissions).

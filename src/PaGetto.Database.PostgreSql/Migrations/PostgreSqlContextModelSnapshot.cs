@@ -315,6 +315,14 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<int?>("UpstreamListingCacheSeconds")
                         .HasColumnType("integer");
 
+                    b.Property<string>("WebhookSecret")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")

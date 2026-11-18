@@ -301,6 +301,14 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Property<int?>("UpstreamListingCacheSeconds")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("WebhookSecret")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")
