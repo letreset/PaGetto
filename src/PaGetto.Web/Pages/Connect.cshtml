@@ -111,6 +111,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.Vsix)
+{
+    <partial name="_ConnectVsix" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

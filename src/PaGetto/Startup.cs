@@ -180,6 +180,9 @@ public class Startup
 
         app.UseMiddleware<FeedStaticFilePathMiddleware>();
         app.UseStaticFiles();
+
+        // Before authentication: moves the token of a VSIX gallery URL to the Authorization header.
+        app.UseMiddleware<VsixGalleryTokenMiddleware>();
         app.UseAuthentication();
 
         // After authentication so requests can be partitioned by user name.

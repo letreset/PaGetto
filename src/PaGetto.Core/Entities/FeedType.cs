@@ -86,4 +86,10 @@ public enum FeedType
     /// <c>Resolver.ivyStylePatterns</c>, stored in the <see cref="Artifact"/> tables.
     /// </summary>
     Ivy = 13,
+
+    /// <summary>
+    /// Visual Studio extensions (VSIX files), served as the Atom feed of a private gallery that
+    /// Visual Studio reads, with an upload endpoint of this server, stored in the <see cref="Artifact"/> tables.
+    /// </summary>
+    Vsix = 14,
 }

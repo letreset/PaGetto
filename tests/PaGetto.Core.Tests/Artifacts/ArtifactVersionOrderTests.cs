@@ -164,6 +164,14 @@ public class ArtifactVersionOrderTests
         }
 
         [Fact]
+        public void SortsVsixVersionsAsVisualStudioDoes()
+        {
+            var sorted = ArtifactVersionOrder.SortDescending(FeedType.Vsix, [Version("1.0"), Version("1.10"), Version("1.0.0"), Version("1.9.1"), Version("0.99")]);
+
+            Assert.Equal(new[] { "1.10", "1.9.1", "1.0.0", "1.0", "0.99" }, sorted.Select(v => v.Version));
+        }
+
+        [Fact]
         public void NuGetFeedsHaveNoArtifacts()
         {
             Assert.Throws<NotSupportedException>(() => ArtifactVersionOrder.GetComparer(FeedType.NuGet));

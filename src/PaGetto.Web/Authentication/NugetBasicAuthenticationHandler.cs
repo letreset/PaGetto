@@ -53,7 +53,7 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     {
         // The pub client only reads a Bearer challenge, and shows its message to the user. sbt
         // matches credentials to the realm, so Maven feeds have one that doesn't say NuGet, and
-        // Ivy, PyPI, Go, RubyGems, Hex, Composer, CocoaPods and CRAN feeds use it too. Cargo shows the login URL of its challenge.
+        // Ivy, PyPI, Go, RubyGems, Hex, Composer, CocoaPods, CRAN and VSIX feeds use it too. Cargo shows the login URL of its challenge.
         var endpointType = Context.GetEndpoint()?.Metadata.GetMetadata<FeedTypeAttribute>()?.Type;
 
         if (endpointType == FeedType.Swift)
@@ -72,7 +72,7 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
         Response.Headers.WWWAuthenticate = endpointType switch
         {
             FeedType.Pub => PubBearerChallenge($"Authentication is required. Add a personal access token with: dart pub token add {Request.Scheme}://{Request.Host}{Request.PathBase}"),
-            FeedType.Maven or FeedType.Ivy or FeedType.PyPI or FeedType.Go or FeedType.RubyGems or FeedType.Hex or FeedType.Composer or FeedType.CocoaPods or FeedType.Cran => $"Basic realm=\"{MavenRealm}\"",
+            FeedType.Maven or FeedType.Ivy or FeedType.PyPI or FeedType.Go or FeedType.RubyGems or FeedType.Hex or FeedType.Composer or FeedType.CocoaPods or FeedType.Cran or FeedType.Vsix => $"Basic realm=\"{MavenRealm}\"",
             FeedType.Cargo => $"Cargo login_url=\"{Request.Scheme}://{Request.Host}{Request.PathBase}/connect\"",
             _ => "Basic realm=\"NuGet Server\"",
         };
@@ -81,7 +81,7 @@ public partial class NugetBasicAuthenticationHandler : AuthenticationHandler<Aut
     }
 
     /// <summary>
-    /// The realm of the Basic challenge of Maven, Ivy, PyPI, Go, RubyGems, Hex, Composer, CocoaPods and CRAN feeds, which sbt credentials name.
+    /// The realm of the Basic challenge of Maven, Ivy, PyPI, Go, RubyGems, Hex, Composer, CocoaPods, CRAN and VSIX feeds, which sbt credentials name.
     /// </summary>
     public const string MavenRealm = "PaGetto";
 

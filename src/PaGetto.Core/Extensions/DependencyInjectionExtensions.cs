@@ -35,6 +35,7 @@ using PaGetto.Core.Swift;
 using PaGetto.Core.Upstream;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
+using PaGetto.Core.Vsix;
 using PaGetto.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -178,6 +179,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<SwiftUpstreamClient>();
         services.TryAddTransient<ICranPackageService, CranPackageService>();
         services.TryAddTransient<CranUpstreamClient>();
+        services.TryAddTransient<IVsixPackageService, VsixPackageService>();
+        services.TryAddTransient<VsixUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

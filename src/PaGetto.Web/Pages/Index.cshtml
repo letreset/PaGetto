@@ -409,7 +409,7 @@ else
                                 <span><icon name="arrow-down" size="13" />@DownloadsLabel(artifact.TotalDownloads)</span>
                             </div>
                         </div>
-                        <button type="button" class="bgt-install-btn bgt-above bgt-desktop-only" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact)">
+                        <button type="button" class="bgt-install-btn bgt-above bgt-desktop-only" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact, AuthOptions.Value.Mode != AuthenticationMode.Legacy)">
                             <icon name="copy" size="13" /><span class="bgt-copy-label">Install</span>
                         </button>
                     </div>
@@ -431,7 +431,7 @@ else
                         <p class="bgt-pkg-desc">@artifact.Description</p>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="flex-grow-1"></span>
-                            <button type="button" class="bgt-install-btn bgt-above" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact)">
+                            <button type="button" class="bgt-install-btn bgt-above" title="Copy install command" data-copy="@ArtifactInstallCommand(feed.Type, feedUrl, feed.Slug, artifact, AuthOptions.Value.Mode != AuthenticationMode.Legacy)">
                                 <icon name="copy" size="12" /><span class="bgt-copy-label">Install</span>
                             </button>
                         </div>
@@ -451,7 +451,7 @@ else
     }
 
     // The command copied by the Install button of an artifact, matching the first tab of its page.
-    private static string ArtifactInstallCommand(FeedType feedType, string feedUrl, string feedSlug, IndexModel.ArtifactListItem artifact)
+    private static string ArtifactInstallCommand(FeedType feedType, string feedUrl, string feedSlug, IndexModel.ArtifactListItem artifact, bool requiresAuth)
     {
         return feedType switch
         {
@@ -468,6 +468,8 @@ else
             FeedType.Swift => $".package(id: \"{artifact.Name}\", from: \"{artifact.Version}\")",
             FeedType.Cran => $"install.packages(\"{artifact.Name}\", repos = \"{feedUrl}/cran\")",
             FeedType.Ivy => SbtDependency(artifact.Name, artifact.Version),
+            // Visual Studio can't send credentials, so with user accounts its gallery URL has a token.
+            FeedType.Vsix => requiresAuth ? $"{feedUrl}/vsix/auth/YOUR_TOKEN/atom.xml" : $"{feedUrl}/vsix/atom.xml",
             _ => artifact.Name,
         };
     }
