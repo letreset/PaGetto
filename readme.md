@@ -21,6 +21,7 @@ PaGetto is based on [BaGetter]. It has a redesigned web UI, a reworked code base
 * **CocoaPods pods**: a feed can be a CocoaPods spec repository in the CDN format for `pod install`, with a publish endpoint for podspecs and their source archives and a mirror of cdn.cocoapods.org.
 * **Swift packages**: a feed can be a Swift package registry for Swift Package Manager and Xcode, with `swift package-registry publish`, signed packages and a mirror of another registry.
 * **R packages**: a feed can be a CRAN-like repository of source packages for `install.packages` and renv, with uploads of source packages and a mirror of CRAN.
+* **Ivy repositories for sbt**: a feed can be an Ivy repository in sbt's Ivy layout for sbt plugins and libraries, with `sbt publish`, dynamic revisions and a mirror of the sbt plugin repository.
 * **Users & permissions**: `Local`, `Entra` or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens with expiry email reminders.
 * **Admin UI** for feeds, accounts and groups.
 * **Offline support**: [mirror nuget.org or any other feed][Read through caching] per feed.
