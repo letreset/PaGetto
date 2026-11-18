@@ -161,6 +161,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<bool>("IsPrerelease")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("Listed")
                         .HasColumnType("boolean");
 
@@ -264,6 +267,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
 
                     b.Property<long?>("MaxPackageSizeMiB")
                         .HasColumnType("bigint");
+
+                    b.Property<int?>("MirrorCacheRetentionDays")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -497,6 +503,9 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<string>("Language")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LicenseExpression")
                         .HasMaxLength(500)

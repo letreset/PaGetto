@@ -108,7 +108,7 @@ Package names are stored in lowercase, so an older npmjs.org package with capita
 
 | | npm feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: `npm unpublish` always removes the version |
 | Upload from the browser | Not available. Publish with `npm publish` |
 | `npm login`, `npm audit`, signatures | Not served. `npm install` carries on without the audit |

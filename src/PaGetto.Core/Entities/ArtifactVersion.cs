@@ -48,6 +48,13 @@ public class ArtifactVersion
     public long Size { get; set; }
 
     public long Downloads { get; set; }
+
+    /// <summary>
+    /// When the version was last downloaded, or null if it hasn't been since this was recorded.
+    /// A version stored from a mirror that isn't downloaded for the feed's
+    /// <see cref="Feed.MirrorCacheRetentionDays"/> is removed.
+    /// </summary>
+    public DateTime? LastDownloadedAtUtc { get; set; }
     public bool HasReadme { get; set; }
 
     /// <summary>

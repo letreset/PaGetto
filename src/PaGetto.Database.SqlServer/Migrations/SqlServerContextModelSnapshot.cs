@@ -160,6 +160,9 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<bool>("IsPrerelease")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("Listed")
                         .HasColumnType("bit");
 
@@ -263,6 +266,9 @@ namespace PaGetto.Database.SqlServer.Migrations
 
                     b.Property<long?>("MaxPackageSizeMiB")
                         .HasColumnType("bigint");
+
+                    b.Property<int?>("MirrorCacheRetentionDays")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -498,6 +504,9 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<string>("Language")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("LicenseExpression")
                         .HasMaxLength(500)

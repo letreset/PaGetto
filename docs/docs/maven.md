@@ -160,7 +160,7 @@ Users with the **delete** permission can **unlist** a version, which leaves it o
 
 | | Maven feeds |
 |---|---|
-| Retention | Not available. Old versions and snapshot builds are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: there is no delete in the repository layout |
 | Upload from the browser | Not available. Deploy with Maven or Gradle |
 | Group metadata | The plugin prefixes of a group come from the mirrors only, not from plugins deployed to the feed |

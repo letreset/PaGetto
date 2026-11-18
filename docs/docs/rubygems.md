@@ -116,7 +116,7 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 
 | | Ruby feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available |
 | Upload from the browser | Not available. Push with `gem push` |
 | Full index (`specs.4.8.gz`) and dependency API | Not served. `gem search --remote` doesn't work |

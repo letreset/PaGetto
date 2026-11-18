@@ -62,11 +62,30 @@ public class FeedSettingsResolver : IFeedSettingsResolver
         };
     }
 
+    public RetentionOptions GetArtifactRetentionOptions(Feed feed)
+    {
+        ArgumentNullException.ThrowIfNull(feed);
+
+        return new RetentionOptions
+        {
+            MaxMajorVersions = (uint?)feed.RetentionMaxMajorVersions,
+            MaxMinorVersions = (uint?)feed.RetentionMaxMinorVersions,
+            MaxPatchVersions = (uint?)feed.RetentionMaxPatchVersions,
+            MaxPrereleaseVersions = (uint?)feed.RetentionMaxPrereleaseVersions,
+            DeletePrereleasesOfOlderMajors = feed.RetentionDeletePrereleasesOfOlderMajors == true,
+        };
+    }
+
     public TimeSpan GetUpstreamListingCacheDuration(Feed feed)
     {
         var seconds = feed?.UpstreamListingCacheSeconds ?? _options.Value.UpstreamListingCacheSeconds;
 
         return seconds > 0 ? TimeSpan.FromSeconds(seconds) : TimeSpan.Zero;
+    }
+
+    public int GetMirrorCacheRetentionDays(Feed feed)
+    {
+        return Math.Max(0, feed?.MirrorCacheRetentionDays ?? _options.Value.MirrorCacheRetentionDays);
     }
 
     public IReadOnlyList<MirrorOptions> GetMirrorOptions(Feed feed)

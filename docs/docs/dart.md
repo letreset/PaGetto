@@ -117,7 +117,7 @@ Raw HTML in a package's readme is shown as text.
 
 | | Dart feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: the setting is about the NuGet delete API. In the web UI, retracting and deleting are separate buttons |
 | Upload from the browser | Not available. Publish with `dart pub publish` |
 | Symbols, Atom feed, search API | NuGet only |

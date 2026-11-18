@@ -54,7 +54,7 @@ public class WebUiNpmFeedTests : IDisposable
 
         var settings = await admin.GetStringAsync("/Admin/Feeds/js/Settings");
         Assert.Contains("https://registry.npmjs.org", settings);
-        Assert.DoesNotContain("id=\"retention\"", settings);
+        Assert.Contains("are removed within an hour", settings);
     }
 
     [Fact]

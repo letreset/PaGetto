@@ -367,24 +367,7 @@ public class ArtifactModel : PageModel
     {
         return await ManageVersionAsync(
             "delete", id, version,
-            async (feed, name) =>
-            {
-                // The files are listed before the version and its file rows are gone.
-                var files = await _artifacts.FindFilesAsync(feed.Id, name, version, cancellationToken);
-
-                if (!await _artifacts.HardDeleteVersionAsync(feed.Id, name, version, cancellationToken))
-                {
-                    return false;
-                }
-
-                await _storage.DeleteAsync(feed.Slug, name, version, cancellationToken);
-                foreach (var file in files)
-                {
-                    await _storage.DeleteFileAsync(feed.Slug, name, version, file.FileName, cancellationToken);
-                }
-
-                return true;
-            },
+            (feed, name) => ArtifactPublisher.RemoveAsync(_artifacts, _storage, feed, name, version, cancellationToken),
             // version = null drops the ambient route value; without it the redirect would point at
             // the version that was just deleted.
             RedirectToPage(new { id = DecodeName(id), version = (string)null }),

@@ -56,13 +56,13 @@ public class WebUiDartFeedTests : IDisposable
         Assert.Contains("data-copy=\"http://localhost/feeds/dart\"", list);
         Assert.Contains("data-copy=\"http://localhost/feeds/default/v3/index.json\"", list);
 
-        // Settings that only NuGet feeds have are left out.
+        // Settings that only NuGet feeds have are left out, and retention is applied in the background.
         var dartSettings = await admin.GetStringAsync("/Admin/Feeds/dart/Settings");
         var nugetSettings = await admin.GetStringAsync("/Admin/Feeds/default/Settings");
-        Assert.DoesNotContain("id=\"retention\"", dartSettings);
+        Assert.Contains("are removed within an hour", dartSettings);
         Assert.DoesNotContain("Deletion behavior", dartSettings);
         Assert.Contains("https://pub.dev", dartSettings);
-        Assert.Contains("id=\"retention\"", nugetSettings);
+        Assert.Contains("are removed when a new version is pushed", nugetSettings);
         Assert.Contains("Deletion behavior", nugetSettings);
     }
 

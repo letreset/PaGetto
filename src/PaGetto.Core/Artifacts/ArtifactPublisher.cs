@@ -8,7 +8,7 @@ using PaGetto.Core.Entities;
 namespace PaGetto.Core.Artifacts;
 
 /// <summary>
-/// Adds a version whose content is one archive, the way every ecosystem that stores one does.
+/// Adds and removes versions with their content, the same way for every ecosystem.
 /// </summary>
 public static class ArtifactPublisher
 {
@@ -59,6 +59,39 @@ public static class ArtifactPublisher
             await RemoveUnusedContentAsync(artifacts, storage, feed, name, version.Version);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Removes a version: its row, its archive and readme, and its files.
+    /// </summary>
+    /// <returns>False if the feed doesn't have the version.</returns>
+    public static async Task<bool> RemoveAsync(
+        IArtifactDatabase artifacts,
+        IArtifactStorageService storage,
+        Feed feed,
+        string name,
+        string version,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(artifacts);
+        ArgumentNullException.ThrowIfNull(storage);
+        ArgumentNullException.ThrowIfNull(feed);
+
+        // The files are listed before the version and its file rows are gone.
+        var files = await artifacts.FindFilesAsync(feed.Id, name, version, cancellationToken);
+
+        if (!await artifacts.HardDeleteVersionAsync(feed.Id, name, version, cancellationToken))
+        {
+            return false;
+        }
+
+        await storage.DeleteAsync(feed.Slug, name, version, cancellationToken);
+        foreach (var file in files)
+        {
+            await storage.DeleteFileAsync(feed.Slug, name, version, file.FileName, cancellationToken);
+        }
+
+        return true;
     }
 
     private static async Task RemoveUnusedContentAsync(

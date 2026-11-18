@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Entities;
+using PaGetto.Core.Extensions;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Versioning;
 
@@ -12,10 +13,12 @@ namespace PaGetto.Core;
 public class PackageDatabase : IPackageDatabase
 {
     private readonly IContext _context;
+    private readonly SystemTime _time;
 
-    public PackageDatabase(IContext context)
+    public PackageDatabase(IContext context, SystemTime time)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _time = time ?? throw new ArgumentNullException(nameof(time));
     }
 
     public async Task<PackageAddResult> AddAsync(Package package, CancellationToken cancellationToken)
@@ -102,10 +105,13 @@ public class PackageDatabase : IPackageDatabase
     public async Task AddDownloadAsync(Guid feedId, string id, NuGetVersion version, CancellationToken cancellationToken)
     {
         // A single UPDATE statement, so concurrent downloads don't overwrite each other's increments.
+        var now = _time.UtcNow;
         await _context.Packages
             .Where(p => p.FeedId == feedId && p.Id == id)
             .Where(p => p.NormalizedVersionString == version.ToNormalizedString())
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Downloads, p => p.Downloads + 1), cancellationToken);
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(p => p.Downloads, p => p.Downloads + 1).SetProperty(p => p.LastDownloadedAtUtc, now),
+                cancellationToken);
     }
 
     public async Task<bool> HardDeletePackageAsync(Guid feedId, string id, NuGetVersion version, CancellationToken cancellationToken)

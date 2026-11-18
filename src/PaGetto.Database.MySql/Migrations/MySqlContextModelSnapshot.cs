@@ -162,6 +162,9 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Property<bool>("IsPrerelease")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("Listed")
                         .HasColumnType("tinyint(1)");
 
@@ -265,6 +268,9 @@ namespace PaGetto.Database.MySql.Migrations
 
                     b.Property<uint?>("MaxPackageSizeMiB")
                         .HasColumnType("int unsigned");
+
+                    b.Property<int?>("MirrorCacheRetentionDays")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -498,6 +504,9 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Property<string>("Language")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("LastDownloadedAtUtc")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("LicenseExpression")
                         .HasMaxLength(500)

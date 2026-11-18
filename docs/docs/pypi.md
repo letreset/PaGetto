@@ -128,7 +128,7 @@ Users with the **delete** permission can **yank** a version, **unyank** it, or d
 
 | | Python feeds |
 |---|---|
-| Retention | Not available. Old versions are only removed by hand |
+| Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available: the upload API has no delete |
 | Upload from the browser | Not available. Upload with twine, uv or Poetry |
 | Search | Only the web UI searches; the simple API has no search (`pip search` was removed from PyPI too) |
