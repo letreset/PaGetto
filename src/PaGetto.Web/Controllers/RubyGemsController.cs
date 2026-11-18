@@ -277,13 +277,6 @@ public class RubyGemsController : Controller
 
     private async Task AuditAsync(LogLevel level, string eventName, string packageName, string packageVersion)
     {
-        var actor = User.Identity?.Name;
-        if (string.IsNullOrEmpty(actor))
-        {
-            // Config mode API keys are shared and carry no user identity.
-            actor = GetApiKey() == null ? "anonymous" : "api-key";
-        }
-
-        await _audit.PackageAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, actor);
+        await _audit.PackageApiAsync(HttpContext, level, eventName, _feedContext.CurrentFeed.Slug, packageName, packageVersion, GetApiKey());
     }
 }

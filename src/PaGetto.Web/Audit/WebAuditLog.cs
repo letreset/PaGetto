@@ -56,6 +56,25 @@ public partial class WebAuditLog
     }
 
     /// <summary>
+    /// Logs a package change through the API of a package client. A caller without a user name is
+    /// <c>api-key</c> when it sent an API key (the keys of the <c>Legacy</c> mode are shared and
+    /// carry no user identity) and <c>anonymous</c> otherwise. <c>apiKey</c> is the key as the
+    /// caller's client sends it, or null.
+    /// </summary>
+    public async Task PackageApiAsync(HttpContext httpContext, LogLevel level, string eventName, string feed, string packageId, string packageVersion, string apiKey)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var actor = httpContext.User.Identity?.Name;
+        if (string.IsNullOrEmpty(actor))
+        {
+            actor = string.IsNullOrEmpty(apiKey) ? "anonymous" : "api-key";
+        }
+
+        await PackageAsync(httpContext, level, eventName, feed, packageId, packageVersion, actor);
+    }
+
+    /// <summary>
     /// Logs a symbol package upload through the NuGet API, e.g. <c>symbol_upload_too_large</c>.
     /// </summary>
     public async Task SymbolAsync(HttpContext httpContext, LogLevel level, string eventName, string feed, string actor)
