@@ -91,6 +91,7 @@ public partial class CargoUpstreamClient
 
         if (!response.IsSuccessStatusCode)
         {
+            UpstreamListingCache.ReportFailure(response);
             LogCrateDownloadFailed(version.DownloadUrl, (int)response.StatusCode);
             return null;
         }
@@ -118,6 +119,7 @@ public partial class CargoUpstreamClient
             catch (Exception e) when (e is HttpRequestException or JsonException or InvalidDataException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogListingFailed(e, name, mirror.PackageSource);
             }

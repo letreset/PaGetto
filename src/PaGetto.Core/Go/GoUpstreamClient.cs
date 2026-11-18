@@ -102,7 +102,7 @@ public partial class GoUpstreamClient
     /// <returns>The file's content, or null if no mirror has the version.</returns>
     public virtual async Task<string> GetModOrNullAsync(Feed feed, string escapedPath, string escapedVersion, CancellationToken cancellationToken)
     {
-        return await FirstFromMirrorsAsync(
+        return await FirstDocumentFromMirrorsAsync(
             feed,
             $"{escapedPath}/@v/{escapedVersion}.mod",
             (response, _, token) => ReadTextAsync(response, token),
@@ -132,7 +132,7 @@ public partial class GoUpstreamClient
 
     private async Task<GoUpstreamInfo> GetInfoOrNullAsync(Feed feed, string relativeUrl, CancellationToken cancellationToken)
     {
-        return await FirstFromMirrorsAsync(
+        return await FirstDocumentFromMirrorsAsync(
             feed,
             relativeUrl,
             async (response, mirror, token) =>
@@ -195,6 +195,35 @@ public partial class GoUpstreamClient
         return [];
     }
 
+    /// <summary>
+    /// Like <see cref="FirstFromMirrorsAsync{T}"/>, for the small documents <c>.info</c>, <c>.mod</c>
+    /// and <c>@latest</c>, which are kept like a listing: the go command asks for the <c>go.mod</c>
+    /// of every module in the build graph, and most of them are never downloaded and stored.
+    /// </summary>
+    private async Task<T> FirstDocumentFromMirrorsAsync<T>(
+        Feed feed,
+        string relativeUrl,
+        Func<HttpResponseMessage, MirrorOptions, CancellationToken, Task<T>> read,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        var cacheDuration = _feedSettings.GetUpstreamListingCacheDuration(feed);
+        if (cacheDuration <= TimeSpan.Zero || _feedSettings.GetMirrorOptions(feed).Count == 0)
+        {
+            return await FirstFromMirrorsAsync(feed, relativeUrl, read, cancellationToken);
+        }
+
+        // Saving a feed (including its mirrors) updates UpdatedAtUtc, which invalidates its entries.
+        var key = ("go-document", feed.Id, feed.UpdatedAtUtc.Ticks, relativeUrl);
+        var found = await _cache.GetOrListAsync<T>(
+            key,
+            cacheDuration,
+            async token => await FirstFromMirrorsAsync(feed, relativeUrl, read, token) is { } document ? [document] : [],
+            cancellationToken);
+
+        return found.Count == 0 ? null : found[0];
+    }
+
     private async Task<T> FirstFromMirrorsAsync<T>(
         Feed feed,
         string relativeUrl,
@@ -239,6 +268,7 @@ public partial class GoUpstreamClient
 
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return default;
             }
@@ -248,6 +278,7 @@ public partial class GoUpstreamClient
         catch (Exception e) when (e is HttpRequestException or JsonException or InvalidDataException or ArtifactFileTooLargeException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return default;

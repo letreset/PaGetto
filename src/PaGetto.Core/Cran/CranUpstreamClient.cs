@@ -138,6 +138,7 @@ public partial class CranUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -158,6 +159,7 @@ public partial class CranUpstreamClient
         catch (Exception e) when (e is HttpRequestException or ArtifactFileTooLargeException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogRequestFailed(e, url);
             return null;
         }
@@ -168,24 +170,17 @@ public partial class CranUpstreamClient
     /// </summary>
     private async Task<List<IReadOnlyDictionary<string, CranUpstreamVersion>>> GetMirrorIndexesAsync(Feed feed, CancellationToken cancellationToken)
     {
-        var indexes = new List<IReadOnlyDictionary<string, CranUpstreamVersion>>();
-        foreach (var mirror in _feedSettings.GetMirrorOptions(feed))
-        {
-            // One entry per mirror, so the cache counts this large listing as small. It is kept
-            // once per feed, and only for the listing cache duration.
-            var index = await CachedAsync<IReadOnlyDictionary<string, CranUpstreamVersion>>(
+        // One entry per mirror, so the cache counts this large listing as small. It is kept once
+        // per feed, and only for the listing cache duration. The mirrors are asked at once; their
+        // indexes are kept in the mirrors' order.
+        var indexes = await Task.WhenAll(_feedSettings.GetMirrorOptions(feed).Select(mirror =>
+            CachedAsync<IReadOnlyDictionary<string, CranUpstreamVersion>>(
                 feed,
                 ("cran-index", feed.Id, feed.UpdatedAtUtc.Ticks, mirror.PackageSource.AbsoluteUri),
                 async token => await TryReadIndexAsync(mirror, feed.Id, token) is { } read ? [read] : [],
-                cancellationToken);
+                cancellationToken)));
 
-            if (index.Count > 0)
-            {
-                indexes.Add(index[0]);
-            }
-        }
-
-        return indexes;
+        return indexes.Where(index => index.Count > 0).Select(index => index[0]).ToList();
     }
 
     /// <summary>
@@ -202,6 +197,7 @@ public partial class CranUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -245,6 +241,7 @@ public partial class CranUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return null;
@@ -298,6 +295,7 @@ public partial class CranUpstreamClient
 
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -331,6 +329,7 @@ public partial class CranUpstreamClient
         catch (Exception e) when (e is HttpRequestException or InvalidDataException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogRequestFailed(e, url);
             return null;
         }

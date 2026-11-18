@@ -111,6 +111,7 @@ public partial class PyPIUpstreamClient
 
         if (!response.IsSuccessStatusCode)
         {
+            UpstreamListingCache.ReportFailure(response);
             LogDownloadFailed(file.Url, (int)response.StatusCode);
             return null;
         }
@@ -150,6 +151,7 @@ public partial class PyPIUpstreamClient
             catch (Exception e) when (e is HttpRequestException or JsonException or InvalidDataException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogListingFailed(e, name, mirror.PackageSource);
             }

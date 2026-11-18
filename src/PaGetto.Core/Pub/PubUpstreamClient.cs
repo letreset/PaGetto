@@ -87,6 +87,7 @@ public partial class PubUpstreamClient
 
         if (!response.IsSuccessStatusCode)
         {
+            UpstreamListingCache.ReportFailure(response);
             LogArchiveDownloadFailed(version.ArchiveUrl, (int)response.StatusCode);
             return null;
         }
@@ -114,6 +115,7 @@ public partial class PubUpstreamClient
             catch (Exception e) when (e is HttpRequestException or JsonException
                 || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                UpstreamListingCache.ReportFailure();
                 // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
                 LogListingFailed(e, name, mirror.PackageSource);
             }

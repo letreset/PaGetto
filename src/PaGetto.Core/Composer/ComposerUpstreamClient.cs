@@ -115,6 +115,7 @@ public partial class ComposerUpstreamClient
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url.AbsoluteUri, (int)response.StatusCode);
                 return null;
             }
@@ -134,6 +135,7 @@ public partial class ComposerUpstreamClient
         catch (Exception e) when (e is HttpRequestException or ArtifactFileTooLargeException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             LogRequestFailed(e, url.AbsoluteUri);
             return null;
         }
@@ -206,6 +208,7 @@ public partial class ComposerUpstreamClient
 
             if (!response.IsSuccessStatusCode)
             {
+                UpstreamListingCache.ReportFailure(response);
                 LogUpstreamFailed(url, (int)response.StatusCode);
                 return null;
             }
@@ -246,6 +249,7 @@ public partial class ComposerUpstreamClient
         catch (Exception e) when (e is HttpRequestException or JsonException or InvalidDataException
             || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
+            UpstreamListingCache.ReportFailure();
             // A mirror that is down or answers with something else is skipped, like a NuGet mirror.
             LogRequestFailed(e, url);
             return null;

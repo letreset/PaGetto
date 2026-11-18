@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -18,6 +20,17 @@ public sealed class UpstreamListingCache : IDisposable
     // Each entry's size is the number of versions or packages it holds, so the limit bounds the
     // number of cached listing items across all feeds rather than the number of package ids.
     private const long SizeLimit = 100_000;
+
+    /// <summary>
+    /// How long a listing that found nothing is kept at most. Build tools ask for many names no
+    /// mirror has, such as the go command trying each prefix of a module path, or pip asking every
+    /// index for every package; a short time keeps those from reaching the upstreams on every
+    /// request, while a package newly published upstream still shows up soon.
+    /// </summary>
+    public static readonly TimeSpan MissDuration = TimeSpan.FromSeconds(30);
+
+    // The listing running in the current async flow, which upstream clients mark as failed.
+    private static readonly AsyncLocal<ListingAttempt> _currentAttempt = new();
 
     private readonly MemoryCache _cache;
 
@@ -42,8 +55,9 @@ public sealed class UpstreamListingCache : IDisposable
     /// <summary>
     /// Returns the cached listing for <paramref name="key"/>, or runs <paramref name="list"/> and
     /// caches its result for <paramref name="duration"/>. Concurrent callers for the same key share
-    /// one run of <paramref name="list"/>. Empty listings are not cached: upstream clients return an
-    /// empty list both for unknown packages and for failed requests.
+    /// one run of <paramref name="list"/>. An empty listing is kept for <see cref="MissDuration"/>
+    /// at most, unless a mirror failed while it ran (see <see cref="ReportFailure()"/>): upstream
+    /// clients return an empty list both for unknown packages and for failed requests.
     /// </summary>
     /// <param name="key">The cache key.</param>
     /// <param name="duration">How long a non-empty listing is cached.</param>
@@ -78,6 +92,9 @@ public sealed class UpstreamListingCache : IDisposable
             if (_cache.TryGetValue(key, out IReadOnlyList<T> cached))
                 return cached;
 
+            var attempt = new ListingAttempt();
+            _currentAttempt.Value = attempt;
+
             var result = await list(CancellationToken.None);
 
             if (result.Count > 0)
@@ -86,6 +103,14 @@ public sealed class UpstreamListingCache : IDisposable
                 {
                     AbsoluteExpirationRelativeToNow = duration,
                     Size = result.Count,
+                });
+            }
+            else if (!attempt.Failed)
+            {
+                _cache.Set(key, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = duration < MissDuration ? duration : MissDuration,
+                    Size = 1,
                 });
             }
 
@@ -99,8 +124,41 @@ public sealed class UpstreamListingCache : IDisposable
         }
     }
 
+    /// <summary>
+    /// Records that a mirror failed while the current listing ran, so that if the listing finds
+    /// nothing, the next request asks the upstreams again rather than finding a cached miss.
+    /// Upstream clients call it where they skip a mirror that failed. Outside a cached listing it
+    /// does nothing.
+    /// </summary>
+    public static void ReportFailure()
+    {
+        if (_currentAttempt.Value is { } attempt)
+        {
+            attempt.Failed = true;
+        }
+    }
+
+    /// <summary>
+    /// Records a failed answer of a mirror, see <see cref="ReportFailure()"/>. A 404 is not a
+    /// failure: the mirror doesn't have what was asked for.
+    /// </summary>
+    public static void ReportFailure(HttpResponseMessage response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        if (response.StatusCode != HttpStatusCode.NotFound)
+        {
+            ReportFailure();
+        }
+    }
+
     public void Dispose()
     {
         _cache.Dispose();
+    }
+
+    private sealed class ListingAttempt
+    {
+        public bool Failed { get; set; }
     }
 }

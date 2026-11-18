@@ -50,6 +50,7 @@ public partial class V3UpstreamClient : IUpstreamClient
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogDownloadFailed(e, id, version);
             return null;
         }
@@ -67,6 +68,7 @@ public partial class V3UpstreamClient : IUpstreamClient
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogMirrorMetadataFailed(e, id);
             return new List<Package>();
         }
@@ -82,6 +84,7 @@ public partial class V3UpstreamClient : IUpstreamClient
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogMirrorVersionsFailed(e, id);
             return new List<NuGetVersion>();
         }

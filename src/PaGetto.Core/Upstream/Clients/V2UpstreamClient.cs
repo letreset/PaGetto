@@ -83,6 +83,7 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogMirrorVersionsFailed(e, id);
             return new List<NuGetVersion>();
         }
@@ -107,6 +108,7 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogMirrorVersionsFailed(e, id);
             return new List<Package>();
         }
@@ -138,6 +140,7 @@ public partial class V2UpstreamClient : IUpstreamClient, IDisposable
         }
         catch (Exception e)
         {
+            UpstreamListingCache.ReportFailure();
             LogIndexFailed(e, id, version);
 
             packageStream.Dispose();
