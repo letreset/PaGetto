@@ -33,6 +33,15 @@ public class ArtifactDatabase : IArtifactDatabase
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ArtifactVersion>> FindAllVersionsAsync(Guid feedId, CancellationToken cancellationToken)
+    {
+        return await _context.ArtifactVersions
+            .AsNoTracking()
+            .Include(v => v.Artifact)
+            .Where(v => v.Artifact.FeedId == feedId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<ArtifactVersion> FindVersionOrNullAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
         return await Versions(feedId, name, version)

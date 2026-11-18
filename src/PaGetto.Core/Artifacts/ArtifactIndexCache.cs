@@ -52,10 +52,26 @@ public sealed class ArtifactIndexCache : IDisposable
     /// </param>
     /// <param name="duration">How long the index is kept at most.</param>
     /// <param name="build">Builds the index.</param>
-    public async Task<byte[]> GetOrBuildAsync(Feed feed, string index, TimeSpan duration, Func<Task<byte[]>> build)
+    public Task<byte[]> GetOrBuildAsync(Feed feed, string index, TimeSpan duration, Func<Task<byte[]>> build)
+    {
+        return GetOrBuildAsync(feed, index, duration, build, content => content.Length);
+    }
+
+    /// <summary>
+    /// Returns the cached result named <paramref name="index"/> of <paramref name="feed"/>, or builds
+    /// and caches it for <paramref name="duration"/>, for results that are not a file, such as a lookup
+    /// table built from all of a feed's packages.
+    /// </summary>
+    /// <param name="feed">The feed, as read for the current request.</param>
+    /// <param name="index">The result's name, with whatever else it depends on.</param>
+    /// <param name="duration">How long the result is kept at most.</param>
+    /// <param name="build">Builds the result, which callers must not change.</param>
+    /// <param name="getSize">The result's size in bytes, roughly, which the cache is bounded by.</param>
+    public async Task<T> GetOrBuildAsync<T>(Feed feed, string index, TimeSpan duration, Func<Task<T>> build, Func<T, long> getSize)
     {
         ArgumentNullException.ThrowIfNull(feed);
         ArgumentNullException.ThrowIfNull(build);
+        ArgumentNullException.ThrowIfNull(getSize);
 
         if (duration <= TimeSpan.Zero)
         {
@@ -63,7 +79,7 @@ public sealed class ArtifactIndexCache : IDisposable
         }
 
         var key = (feed.Id, index, feed.ArtifactRevision, feed.UpdatedAtUtc);
-        if (_cache.TryGetValue(key, out byte[] cached))
+        if (_cache.TryGetValue(key, out T cached))
         {
             return cached;
         }
@@ -75,7 +91,7 @@ public sealed class ArtifactIndexCache : IDisposable
         _cache.Set(key, content, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = duration,
-            Size = content.Length,
+            Size = getSize(content),
         });
 
         return content;
