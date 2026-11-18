@@ -131,7 +131,7 @@ public partial class CranPackageService : ICranPackageService
         }
 
         var key = CranPackageName.Normalize(name);
-        var stored = await FindStoredVersionOrNullAsync(feed, key, version.Normalized, cancellationToken)
+        var stored = await FindStoredVersionOrNullAsync(feed, key, version, cancellationToken)
             ?? await MirrorAsync(feed, name, version, cancellationToken);
         if (stored == null)
         {
@@ -191,7 +191,7 @@ public partial class CranPackageService : ICranPackageService
             }
 
             var key = CranPackageName.Normalize(name);
-            var existing = await FindStoredVersionOrNullAsync(feed, key, version.Normalized, cancellationToken);
+            var existing = await FindStoredVersionOrNullAsync(feed, key, version, cancellationToken);
             if (existing != null)
             {
                 // R has no prereleases, so only a feed that allows every overwrite replaces a version.
@@ -255,11 +255,19 @@ public partial class CranPackageService : ICranPackageService
     /// <summary>
     /// The stored version of a normalized form, whichever way it is written.
     /// </summary>
-    private async Task<ArtifactVersion> FindStoredVersionOrNullAsync(Feed feed, string key, string normalized, CancellationToken cancellationToken)
+    private async Task<ArtifactVersion> FindStoredVersionOrNullAsync(Feed feed, string key, CranVersion version, CancellationToken cancellationToken)
     {
+        // Clients ask for the spelling the index gave them, which is the stored one: that is one
+        // indexed lookup. Other spellings of the same version are matched against every version.
+        var exact = await _artifacts.FindVersionOrNullAsync(feed.Id, key, version.Text, cancellationToken);
+        if (exact != null && CranVersion.TryParse(exact.Version, out var exactParsed) && exactParsed.Normalized == version.Normalized)
+        {
+            return exact;
+        }
+
         var versions = await _artifacts.FindVersionsAsync(feed.Id, key, cancellationToken);
 
-        return versions.FirstOrDefault(v => CranVersion.TryParse(v.Version, out var parsed) && parsed.Normalized == normalized);
+        return versions.FirstOrDefault(v => CranVersion.TryParse(v.Version, out var parsed) && parsed.Normalized == version.Normalized);
     }
 
     /// <summary>
@@ -272,7 +280,7 @@ public partial class CranPackageService : ICranPackageService
         using var mirrorLock = await _mirrorLock.AcquireAsync(feed.Id, key, version.Normalized, cancellationToken);
 
         // A concurrent request may have mirrored the version while we waited for the lock.
-        var stored = await FindStoredVersionOrNullAsync(feed, key, version.Normalized, cancellationToken);
+        var stored = await FindStoredVersionOrNullAsync(feed, key, version, cancellationToken);
         if (stored != null)
         {
             return stored;
@@ -316,7 +324,7 @@ public partial class CranPackageService : ICranPackageService
             LogMirrored(upstream.Name, upstream.Version.Text, upstream.Mirror.PackageSource, result);
 
             // AlreadyExists means another instance stored the version meanwhile, so it is available.
-            return await FindStoredVersionOrNullAsync(feed, key, version.Normalized, cancellationToken);
+            return await FindStoredVersionOrNullAsync(feed, key, version, cancellationToken);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

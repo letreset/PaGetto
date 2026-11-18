@@ -120,7 +120,7 @@ public partial class ComposerPackageService : IComposerPackageService
         name = name.ToLowerInvariant();
 
         // Development versions of mirrors change, so they are not stored.
-        var stored = await FindStoredVersionOrNullAsync(feed, name, parsed.Normalized, cancellationToken)
+        var stored = await FindStoredVersionOrNullAsync(feed, name, parsed, cancellationToken)
             ?? (parsed.IsDev ? null : await MirrorAsync(feed, name, parsed, cancellationToken));
         if (stored == null)
         {
@@ -188,7 +188,7 @@ public partial class ComposerPackageService : IComposerPackageService
                 return Invalid($"The composer.json file has the version {declaredVersion}, not {version}.");
             }
 
-            var existing = await FindStoredVersionOrNullAsync(feed, name, parsed.Normalized, cancellationToken);
+            var existing = await FindStoredVersionOrNullAsync(feed, name, parsed, cancellationToken);
             if (existing != null)
             {
                 // Development versions follow a branch, so they can always be replaced, like Maven snapshots.
@@ -226,11 +226,19 @@ public partial class ComposerPackageService : IComposerPackageService
     /// <summary>
     /// The stored version of a normalized form, whichever way it is written.
     /// </summary>
-    private async Task<ArtifactVersion> FindStoredVersionOrNullAsync(Feed feed, string name, string normalized, CancellationToken cancellationToken)
+    private async Task<ArtifactVersion> FindStoredVersionOrNullAsync(Feed feed, string name, ComposerVersion version, CancellationToken cancellationToken)
     {
+        // Clients ask for the spelling the index gave them, which is the stored one: that is one
+        // indexed lookup. Other spellings of the same version are matched against every version.
+        var exact = await _artifacts.FindVersionOrNullAsync(feed.Id, name, version.Text, cancellationToken);
+        if (exact != null && ComposerVersion.TryParse(exact.Version, out var exactParsed) && exactParsed.Normalized == version.Normalized)
+        {
+            return exact;
+        }
+
         var versions = await _artifacts.FindVersionsAsync(feed.Id, name, cancellationToken);
 
-        return versions.FirstOrDefault(v => ComposerVersion.TryParse(v.Version, out var parsed) && parsed.Normalized == normalized);
+        return versions.FirstOrDefault(v => ComposerVersion.TryParse(v.Version, out var parsed) && parsed.Normalized == version.Normalized);
     }
 
     /// <summary>
@@ -242,7 +250,7 @@ public partial class ComposerPackageService : IComposerPackageService
         using var mirrorLock = await _mirrorLock.AcquireAsync(feed.Id, name, version.Normalized, cancellationToken);
 
         // A concurrent request may have mirrored the version while we waited for the lock.
-        var stored = await FindStoredVersionOrNullAsync(feed, name, version.Normalized, cancellationToken);
+        var stored = await FindStoredVersionOrNullAsync(feed, name, version, cancellationToken);
         if (stored != null)
         {
             return stored;
@@ -292,7 +300,7 @@ public partial class ComposerPackageService : IComposerPackageService
             LogMirrored(name, upstream.Version, upstream.Mirror.PackageSource, result);
 
             // AlreadyExists means another instance stored the version meanwhile, so it is available.
-            return await FindStoredVersionOrNullAsync(feed, name, version.Normalized, cancellationToken);
+            return await FindStoredVersionOrNullAsync(feed, name, version, cancellationToken);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

@@ -185,12 +185,9 @@ public partial class NpmPackageService : INpmPackageService
             return Invalid("The tarball must be sent as base64 data.");
         }
 
-        // Base64 takes 4 characters for 3 bytes, so the size is known before decoding.
-        if (data.GetString().Length / 4L * 3 > maxTarballBytes + 2)
-        {
-            return Failure(NpmStatus.TooLarge, $"The package is larger than the feed's limit of {maxTarballBytes / 1024 / 1024} MiB.", version);
-        }
-
+        // Decoded straight from the request's UTF-8, without a string copy of the base64, which
+        // would take twice the room of the request. The request is already limited to what a
+        // tarball of the feed's size takes as base64.
         if (!data.TryGetBytesFromBase64(out var bytes) || bytes.Length == 0)
         {
             return Invalid("The tarball is not valid base64 data.");
