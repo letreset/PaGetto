@@ -413,6 +413,7 @@
                 <p class="bgt-copyright">@package.Copyright</p>
             }
             <a href="@Model.PackageDownloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download .nupkg</a>
+            <a href="@Url.RouteUrl(Routes.SbomRouteName, new { id = package.Id, version = package.Version.ToNormalizedString() })" class="btn btn-secondary btn-block" title="A software bill of materials of this version in CycloneDX JSON"><icon name="arrow-down" size="15" />Download SBOM</a>
         </div>
 
         @if (package.Tags.Any())

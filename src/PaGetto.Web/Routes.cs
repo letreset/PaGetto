@@ -5,6 +5,7 @@ public class Routes
     public const string IndexRouteName = "index";
     public const string UploadPackageRouteName = "upload-package";
     public const string PromoteRouteName = "promote";
+    public const string SbomRouteName = "sbom";
     public const string UploadSymbolRouteName = "upload-symbol";
     public const string DeleteRouteName = "delete";
     public const string RelistRouteName = "relist";

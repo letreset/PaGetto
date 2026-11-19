@@ -13,6 +13,8 @@
     <!-- Lifts the transitive SQLitePCLRaw.lib.e_sqlite3 past 2.1.11 (GHSA-2m69-gcr7-jv3q). -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <!-- Validates the SBOMs against the CycloneDX schema. -->
+    <PackageReference Include="CycloneDX.Core" />
   </ItemGroup>
 
   <ItemGroup>
