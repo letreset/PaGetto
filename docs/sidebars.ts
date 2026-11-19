@@ -50,6 +50,7 @@ const sidebars: SidebarsConfig = {
         'cran',
         'ivy',
         'vsix',
+        'vscode',
       ],
     },
     {

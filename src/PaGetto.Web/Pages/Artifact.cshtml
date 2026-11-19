@@ -14,6 +14,7 @@
 @using PaGetto.Core.PyPI
 @using PaGetto.Core.RubyGems
 @using PaGetto.Core.Swift
+@using PaGetto.Core.VsCode
 @using PaGetto.Core.Vsix
 @using PaGetto.Web.Extensions
 @using PaGetto.Web.Helper
@@ -83,6 +84,7 @@
     var isSwift = feed.Type == FeedType.Swift;
     var isCran = feed.Type == FeedType.Cran;
     var isVsix = feed.Type == FeedType.Vsix;
+    var isVsCode = feed.Type == FeedType.VsCode;
     var isYanked = isPyPI || isCargo || isRubyGems;
 
     // A Maven package is named groupId:artifactId.
@@ -99,6 +101,10 @@
     // A Visual Studio extension is shown by its display name; its files are named by its identifier.
     var vsixId = isVsix ? Model.VsixManifest.Id ?? Model.Id : null;
 
+    // A VS Code extension is shown by its display name too; it is installed by its identifier, publisher.name.
+    var vsCode = isVsCode ? Model.VsCodeManifest.Main : null;
+    var vsCodeId = vsCode?.Id ?? (isVsCode ? Model.Id : null);
+
     // A Swift package identifier is scope.name.
     var swiftScope = isSwift ? name[..name.IndexOf('.')] : null;
     var swiftName = isSwift ? name[(name.IndexOf('.') + 1)..] : null;
@@ -113,7 +119,7 @@
             : Model.ComposerManifest?.Php is { } phpVersion ? [KeyValuePair.Create("PHP", phpVersion)]
             : Model.CocoaPodsManifest?.Platforms
             ?? (Model.SwiftManifest?.ToolsVersion is { } toolsVersion ? [KeyValuePair.Create("Swift tools", toolsVersion)]
-            : Model.CranManifest?.RVersion is { } rVersion ? [KeyValuePair.Create("R", rVersion)] : IvyEnvironment(Model.IvyManifest) ?? VsixEnvironment(Model.VsixManifest)));
+            : Model.CranManifest?.RVersion is { } rVersion ? [KeyValuePair.Create("R", rVersion)] : IvyEnvironment(Model.IvyManifest) ?? VsixEnvironment(Model.VsixManifest) ?? VsCodeEnvironment(vsCode)));
     var dependencies = Model.Pubspec?.Dependencies ?? Model.NpmManifest?.Dependencies ?? Model.MavenPom?.Dependencies ?? Model.PyPIManifest?.Dependencies
         ?? Model.CargoManifest?.Dependencies
         ?? Model.GoMod?.Requires.Where(r => !r.Indirect).Select(r => KeyValuePair.Create(r.Path, r.Version)).ToList()
@@ -123,11 +129,12 @@
         ?? Model.CocoaPodsManifest?.Dependencies
         ?? Model.CranManifest?.Dependencies
         ?? Model.IvyManifest?.Dependencies
-        ?? Model.VsixManifest?.Dependencies.Select(d => KeyValuePair.Create(d.Id, d.Version ?? "")).ToList();
+        ?? Model.VsixManifest?.Dependencies.Select(d => KeyValuePair.Create(d.Id, d.Version ?? "")).ToList()
+        ?? VsCodeDependencies(vsCode);
     var links = Model.Pubspec?.Links ?? Model.NpmManifest?.Links ?? Model.MavenPom?.Links ?? Model.PyPIManifest?.Links ?? Model.CargoManifest?.Links
         ?? Model.RubyGemsManifest?.Links ?? Model.HexManifest?.Links ?? Model.ComposerManifest?.Links
         ?? Model.CocoaPodsManifest?.Links ?? Model.SwiftManifest?.Links ?? Model.CranManifest?.Links
-        ?? Model.IvyManifest?.Links ?? VsixLinks(Model.VsixManifest);
+        ?? Model.IvyManifest?.Links ?? VsixLinks(Model.VsixManifest) ?? VsCodeLinks(vsCode);
     var license = Model.NpmManifest?.License ?? Model.MavenPom?.License ?? Model.PyPIManifest?.License ?? Model.CargoManifest?.License
         ?? Model.RubyGemsManifest?.License
         ?? (Model.HexManifest?.Licenses.Count > 0 ? string.Join(", ", Model.HexManifest.Licenses) : null)
@@ -136,7 +143,8 @@
         ?? Model.CranManifest?.License
         ?? Model.IvyManifest?.License;
     var topics = Model.Pubspec?.Topics ?? Model.NpmManifest?.Keywords ?? Model.PyPIManifest?.Keywords ?? Model.CargoManifest?.Keywords
-        ?? Model.ComposerManifest?.Keywords ?? Model.VsixManifest?.Tags;
+        ?? Model.ComposerManifest?.Keywords ?? Model.VsixManifest?.Tags
+        ?? vsCode?.Tags.Where(t => !t.StartsWith("__", StringComparison.Ordinal)).ToList();
 
     string DownloadUrl(string rowVersion) => isPub
         ? Url.RouteUrl(Routes.PubArchiveRouteName, new { name, version = rowVersion })
@@ -148,11 +156,18 @@
         : isCocoaPods ? PodSourceUrl(Model.Versions.First(v => v.Version == rowVersion))
         : isSwift ? Url.SwiftArchive(swiftScope, swiftName, rowVersion)
         : isCran ? Url.CranPackage(name, rowVersion)
-        : isVsix ? Url.VsixDownload(vsixId, rowVersion) : null;
+        : isVsix ? Url.VsixDownload(vsixId, rowVersion)
+        : isVsCode ? VsCodeDownloadUrl(Model.Versions.First(v => v.Version == rowVersion)) : null;
 
     // A version's source archive, when it was published with one.
     string PodSourceUrl(ArtifactVersion row) => row.ContentHash != null && CocoaPodsPodspec.GetStoredArchiveType(row.MetadataJson) is { } archiveType
         ? Url.CocoaPodsSource(name, row.Version, archiveType)
+        : null;
+
+    // The VSIX file of a version: the universal one, or else the first platform's.
+    string VsCodeDownloadUrl(ArtifactVersion row) => VsCodeVersionManifest.Parse(row.MetadataJson).Main is { } file
+        ? $"{Url.VsCodeGallery()}/asset/{Uri.EscapeDataString(file.Publisher)}/{Uri.EscapeDataString(file.Name)}/{Uri.EscapeDataString(row.Version)}/{VsCodeGalleryApi.VsixPackageAsset}"
+            + (file.TargetPlatform == VsCodeTargetPlatform.Universal ? "" : $"?targetPlatform={file.TargetPlatform}")
         : null;
 
     var downloadUrl = DownloadUrl(version);
@@ -250,6 +265,12 @@
         // credentials, so with user accounts the gallery URL has a token. A downloaded file installs with VSIXInstaller.
         installTabs.Add(new InstallTab { Name = "Gallery", Content = [requiresAuth ? Url.VsixAtomFeedWithToken("YOUR_TOKEN") : Url.VsixAtomFeed()] });
         installTabs.Add(new InstallTab { Name = "VSIXInstaller", Content = [$"VSIXInstaller.exe {VsixGalleryPaths.GetFileName(vsixId, version)}"] });
+    }
+    else if (isVsCode)
+    {
+        // An editor pointed at the gallery (see Connect) installs by identifier; a downloaded file installs anywhere.
+        installTabs.Add(new InstallTab { Name = "CLI", Content = [$"code --install-extension {vsCodeId}@{version}"] });
+        installTabs.Add(new InstallTab { Name = "VSIX", Content = [$"code --install-extension {VsCodeManifest.GetFileName(vsCodeId, version, vsCode?.TargetPlatform ?? VsCodeTargetPlatform.Universal)}"] });
     }
 }
 
@@ -465,7 +486,7 @@
                                     </td>
                                     <td class="bgt-date">@Html.DisplayDate(row.Published)</td>
                                     <td class="text-end">
-                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || isSwift || isCran || isVsix || (isCocoaPods && PodSourceUrl(row) != null))
+                                        @if (isPub || isNpm || isCargo || isGo || isHex || isComposer || isSwift || isCran || isVsix || isVsCode || (isCocoaPods && PodSourceUrl(row) != null))
                                         {
                                             <a href="@DownloadUrl(row.Version)" class="text-muted" style="font-size: 13px">Download</a>
                                         }
@@ -565,6 +586,15 @@
                 {
                     <div><span>Preview</span><span>Yes</span></div>
                 }
+                @if (isVsCode)
+                {
+                    <div><span>Extension ID</span><span class="mono">@vsCodeId</span></div>
+                    <div><span>Platforms</span><span>@string.Join(", ", Model.VsCodeManifest.Files.Select(f => f.TargetPlatform))</span></div>
+                }
+                @if (isVsCode && vsCode?.IsPreRelease == true)
+                {
+                    <div><span>Pre-release</span><span>Yes</span></div>
+                }
                 @if (!string.IsNullOrEmpty(license))
                 {
                     <div><span>License</span><span>@license</span></div>
@@ -585,7 +615,7 @@
             }
             @if (downloadUrl != null)
             {
-                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex || isCran ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : isVsix ? "VSIX" : "archive")</a>
+                <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex || isCran ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : isVsix || isVsCode ? "VSIX" : "archive")</a>
             }
         </div>
 
@@ -694,6 +724,32 @@
             .Distinct(StringComparer.Ordinal)
             .Select(v => KeyValuePair.Create("Visual Studio", v))
             .ToList();
+    }
+
+    // The VS Code versions a VS Code extension needs.
+    private static IReadOnlyList<KeyValuePair<string, string>> VsCodeEnvironment(VsCodeManifest manifest)
+    {
+        return manifest?.GetProperty(VsCodeGalleryApi.EngineProperty) is { } engine ? [KeyValuePair.Create("VS Code", engine)] : null;
+    }
+
+    // The extensions a VS Code extension depends on, and those of its extension pack.
+    private static IReadOnlyList<KeyValuePair<string, string>> VsCodeDependencies(VsCodeManifest manifest)
+    {
+        return manifest == null
+            ? null
+            : $"{manifest.GetProperty(VsCodeGalleryApi.ExtensionDependenciesProperty)},{manifest.GetProperty(VsCodeGalleryApi.ExtensionPackProperty)}"
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(id => KeyValuePair.Create(id, ""))
+                .ToList();
+    }
+
+    // The source repository of a VS Code extension, when it is an http or https URL.
+    private static IReadOnlyDictionary<string, string> VsCodeLinks(VsCodeManifest manifest)
+    {
+        return VsixManifest.GetLink(manifest?.GetProperty(VsCodeGalleryApi.SourceLinkProperty)) is { } link
+            ? new Dictionary<string, string> { ["repository"] = link }
+            : null;
     }
 
     // The links of an extension's manifest that are http or https URLs.

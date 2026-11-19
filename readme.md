@@ -1,6 +1,6 @@
 ![PaGetto: a lightweight, self-hosted package server](docs/static/img/social-preview.png)
 
-A lightweight package server written in C#: self-hosted, cross-platform and cloud ready. One server hosts the packages of 15 ecosystems, from [NuGet] (with a [symbol] server) and npm to Maven, Python, Rust and Go, each in its own feeds and with a read-through mirror of its public registry.
+A lightweight package server written in C#: self-hosted, cross-platform and cloud ready. One server hosts the packages of 16 ecosystems, from [NuGet] (with a [symbol] server) and npm to Maven, Python, Rust and Go, each in its own feeds and with a read-through mirror of its public registry.
 
 PaGetto started as a fork of [BaGetter], a NuGet server. It has a redesigned web UI, a reworked code base and new features such as more package formats, multiple feeds, user and permission management, and Microsoft Entra ID sign-in. Coming from BaGetter? The [migration guide][Migration] shows how to move an existing installation over.
 
@@ -27,6 +27,7 @@ Each feed hosts one package format and speaks its protocol, so the standard clie
 | R | [CRAN][Docs CRAN] (source packages) | `install.packages`, renv | CRAN |
 | Scala (sbt) | [Ivy][Docs Ivy] (sbt's Ivy layout) | sbt | the sbt plugin repository |
 | Visual Studio extensions | [VSIX][Docs VSIX] (private extension gallery) | Visual Studio | other extension galleries |
+| VS Code extensions | [VS Code][Docs VS Code] (extension gallery API) | VSCodium, code-server, Code - OSS | Open VSX |
 
 ## 📦 Features
 
@@ -100,6 +101,7 @@ Releases are cut by pushing a `vX.Y.Z` tag on `main`. Each release publishes the
 [Docs CRAN]: https://letreset.github.io/PaGetto/docs/cran
 [Docs Ivy]: https://letreset.github.io/PaGetto/docs/ivy
 [Docs VSIX]: https://letreset.github.io/PaGetto/docs/vsix
+[Docs VS Code]: https://letreset.github.io/PaGetto/docs/vscode
 
 [CI badge]: https://img.shields.io/github/actions/workflow/status/letreset/PaGetto/ci.yml?branch=main&logo=github&label=CI
 [CI link]: https://github.com/letreset/PaGetto/actions/workflows/ci.yml

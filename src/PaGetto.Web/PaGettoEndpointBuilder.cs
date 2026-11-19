@@ -34,6 +34,7 @@ public class PaGettoEndpointBuilder
         MapCranRoutes(endpoints);
         MapIvyRoutes(endpoints);
         MapVsixRoutes(endpoints);
+        MapVsCodeRoutes(endpoints);
         MapPromotionRoutes(endpoints);
     }
 
@@ -792,6 +793,48 @@ public class PaGettoEndpointBuilder
             name: null,
             pattern: "vsix/upload",
             defaults: new { controller = "VsixGallery", action = "Upload" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT", "POST") });
+    }
+
+    /// <summary>
+    /// The gallery of VS Code feeds (the gallery API that VS Code and the editors built on it query:
+    /// queries, the latest versions of an extension, the files of a version, the extension's page) and
+    /// its upload of VSIX files. It is at <c>vscode/</c> under the feed, clear of the pages of the web
+    /// UI; <c>product.json</c> points <c>extensionsGallery.serviceUrl</c> at
+    /// <c>https://server/feeds/{slug}/vscode/gallery</c>.
+    /// </summary>
+    public void MapVsCodeRoutes(IEndpointRouteBuilder endpoints)
+    {
+        var get = new { httpMethod = new HttpMethodRouteConstraint("GET") };
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vscode/gallery/extensionquery",
+            defaults: new { controller = "VsCodeGallery", action = "Query" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vscode/gallery/vscode/{publisher}/{name}/latest",
+            defaults: new { controller = "VsCodeGallery", action = "Latest" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vscode/asset/{publisher}/{name}/{version}/{assetType}",
+            defaults: new { controller = "VsCodeGallery", action = "Asset" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vscode/item",
+            defaults: new { controller = "VsCodeGallery", action = "Item" },
+            constraints: get);
+
+        endpoints.MapControllerRoute(
+            name: null,
+            pattern: "vscode/upload",
+            defaults: new { controller = "VsCodeGallery", action = "Upload" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("PUT", "POST") });
     }
 }

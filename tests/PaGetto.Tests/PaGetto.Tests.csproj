@@ -30,6 +30,7 @@
     <Compile Include="..\PaGetto.Core.Tests\Support\ComposerZipBuilder.cs" Link="Support\ComposerZipBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\CranPackageBuilder.cs" Link="Support\CranPackageBuilder.cs" />
     <Compile Include="..\PaGetto.Core.Tests\Support\VsixPackageBuilder.cs" Link="Support\VsixPackageBuilder.cs" />
+    <Compile Include="..\PaGetto.Core.Tests\Support\VsCodePackageBuilder.cs" Link="Support\VsCodePackageBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

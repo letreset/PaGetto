@@ -13,7 +13,7 @@ A version is blocked when all of these are true:
 
 Versions published to a feed are never blocked. Dependency confusion attacks publish public packages under the names of private ones, so the data often lists names that are also the names of your own packages.
 
-The data covers the ecosystems of these feed types, with package names matched as for [vulnerability scanning](vulnerabilities.md#what-is-scanned): NuGet, npm, Maven, Ivy, Python, Rust, Go, Ruby, Hex, PHP, Dart and R. It has no data for CocoaPods, Swift or VSIX feeds, so they are not checked.
+The data covers the ecosystems of these feed types, with package names matched as for [vulnerability scanning](vulnerabilities.md#what-is-scanned): NuGet, npm, Maven, Ivy, Python, Rust, Go, Ruby, Hex, PHP, Dart and R. It has no data for CocoaPods, Swift, VSIX or VS Code feeds, so they are not checked.
 
 ## What clients see
 

@@ -21,7 +21,7 @@ Every stored version of a feed whose ecosystem OSV knows:
 | Dart | `Pub` | The package name |
 | R | `CRAN` | The package name as published |
 
-CocoaPods, Swift and VSIX feeds are not scanned: OSV has no advisories for CocoaPods pods or Visual Studio extensions, and it knows Swift packages by their repository URL, not by their registry identifier.
+CocoaPods, Swift, VSIX and VS Code feeds are not scanned: OSV has no advisories for CocoaPods pods or Visual Studio and VS Code extensions, and it knows Swift packages by their repository URL, not by their registry identifier.
 
 Versions that are only available from a mirror are scanned once they are stored in the feed, which happens on their first download.
 

@@ -29,6 +29,7 @@ Each feed has a type, chosen when the feed is created. A feed of a type speaks t
 | [R](cran.md) | `install.packages`, renv | CRAN |
 | [Ivy](ivy.md) | sbt (Ivy layout) | the sbt plugin repository |
 | [VSIX](vsix.md) | Visual Studio (private extension gallery) | other extension galleries |
+| [VS Code](vscode.md) | VSCodium, code-server, Code - OSS (extension gallery API) | Open VSX |
 
 ## Features
 

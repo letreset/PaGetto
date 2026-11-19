@@ -23,6 +23,7 @@ Every feed has a **type**, the kind of packages it serves, and speaks that ecosy
 | R | [R packages](cran.md) | `https://your-server/feeds/{slug}/cran` |
 | Ivy | [Ivy repositories for sbt](ivy.md) | `https://your-server/feeds/{slug}/ivy` |
 | VSIX | [Visual Studio extensions](vsix.md) | `https://your-server/feeds/{slug}/vsix/atom.xml` |
+| VS Code | [VS Code extensions](vscode.md) | `https://your-server/feeds/{slug}/vscode/gallery` |
 
 ## Feed URLs
 
@@ -44,7 +45,7 @@ There is also a small JSON API at `/api/v1/feeds`. It only accepts the web UI's 
 | Request | Effect |
 |---|---|
 | `GET /api/v1/feeds`, `GET /api/v1/feeds/{slug}` | List all feeds, or get one |
-| `POST /api/v1/feeds` | Create a feed from `slug`, `name`, `description` and `type` (`"NuGet"`, the default, `"Pub"` for a Dart feed, `"Npm"` for an npm feed, `"Maven"` for a Maven feed, `"PyPI"` for a Python feed, `"Cargo"` for a Rust feed, `"Go"` for a Go feed, `"RubyGems"` for a Ruby feed, `"Hex"` for a Hex feed, `"Composer"` for a PHP feed, `"CocoaPods"` for a CocoaPods feed, `"Swift"` for a Swift feed, `"Cran"` for an R feed, `"Ivy"` for an Ivy feed or `"Vsix"` for a VSIX feed) |
+| `POST /api/v1/feeds` | Create a feed from `slug`, `name`, `description` and `type` (`"NuGet"`, the default, `"Pub"` for a Dart feed, `"Npm"` for an npm feed, `"Maven"` for a Maven feed, `"PyPI"` for a Python feed, `"Cargo"` for a Rust feed, `"Go"` for a Go feed, `"RubyGems"` for a Ruby feed, `"Hex"` for a Hex feed, `"Composer"` for a PHP feed, `"CocoaPods"` for a CocoaPods feed, `"Swift"` for a Swift feed, `"Cran"` for an R feed, `"Ivy"` for an Ivy feed, `"Vsix"` for a VSIX feed or `"VsCode"` for a VS Code feed) |
 | `PUT /api/v1/feeds/{slug}` | Change only the `name` and `description` |
 | `DELETE /api/v1/feeds/{slug}` | Delete the feed and its packages. The default feed returns `409 Conflict` |
 
@@ -96,6 +97,7 @@ Every feed can mirror upstream registries of its type, such as nuget.org for a N
 | R | CRAN-like repositories ([details](cran.md#mirror-cran)) | `https://cloud.r-project.org` |
 | Ivy | Ivy repositories ([details](ivy.md#mirror-the-sbt-plugin-repository)) | `https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases` |
 | VSIX | Atom feeds of other extension galleries ([details](vsix.md#mirror-another-gallery)) | `https://www.vsixgallery.com/feed/` |
+| VS Code | Galleries of the extension gallery API ([details](vscode.md#mirror-another-gallery)) | `https://open-vsx.org/vscode/gallery` |
 
 Mirrors are listed on each feed's settings page, under **Mirrors**. Use **Add mirror** to add one; each mirror has these settings:
 

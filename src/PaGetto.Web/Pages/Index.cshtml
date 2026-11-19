@@ -470,6 +470,8 @@ else
             FeedType.Ivy => SbtDependency(artifact.Name, artifact.Version),
             // Visual Studio can't send credentials, so with user accounts its gallery URL has a token.
             FeedType.Vsix => requiresAuth ? $"{feedUrl}/vsix/auth/YOUR_TOKEN/atom.xml" : $"{feedUrl}/vsix/atom.xml",
+            // An editor pointed at the gallery (see Connect) installs by identifier.
+            FeedType.VsCode => $"code --install-extension {artifact.Id}",
             _ => artifact.Name,
         };
     }

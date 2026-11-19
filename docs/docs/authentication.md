@@ -313,6 +313,7 @@ How the token reaches PaGetto depends on the client. The **Connect** page of eac
 | R (`install.packages`, renv) | `__token__` (or the owner's username) and token in the repository URL: `https://__token__:<token>@your-server/feeds/{slug}/cran` | [R packages](cran.md#authentication) |
 | sbt with the Ivy layout | The credentials of the realm `PaGetto` and the server's host, with the token as the password | [Ivy repositories for sbt](ivy.md#authentication) |
 | Visual Studio extension gallery | Visual Studio only sends Windows credentials, so it reads `https://your-server/feeds/{slug}/vsix/auth/<token>/atom.xml`, a URL with the token in its path that can only read; uploads use Basic authentication with the token as the password | [Visual Studio extensions](vsix.md#authentication) |
+| VS Code-based editors (VSCodium, code-server) | The editors send no credentials to a gallery, so `product.json` uses `https://your-server/feeds/{slug}/vscode/auth/<token>/gallery`, a URL with the token in its path that can only read and query; uploads use Basic authentication with the token as the password | [VS Code extensions](vscode.md#authentication) |
 
 :::note
 

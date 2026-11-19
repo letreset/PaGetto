@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Artifactory
 
-[JFrog Artifactory](https://jfrog.com/artifactory/) is a commercial, universal artifact repository. It hosts packages and files for a long list of ecosystems, including container images, and is available self-hosted or as a JFrog cloud service. PaGetto is a smaller, open-source package server for 15 package formats, one per [feed](../feeds.md).
+[JFrog Artifactory](https://jfrog.com/artifactory/) is a commercial, universal artifact repository. It hosts packages and files for a long list of ecosystems, including container images, and is available self-hosted or as a JFrog cloud service. PaGetto is a smaller, open-source package server for 16 package formats, one per [feed](../feeds.md).
 
 ## PaGetto vs Artifactory
 
@@ -12,7 +12,7 @@ sidebar_position: 1
 |---|---|---|
 | License and cost | Open source (MIT), free | Commercial editions and JFrog cloud plans. NuGet and most other formats need a paid edition or a cloud plan; the open-source edition is limited to Java build tools and generic repositories |
 | Hosting | Self-hosted: Docker, Kubernetes (Helm), IIS, any ASP.NET Core 10 host | Self-hosted or JFrog cloud |
-| Package formats | 15 package formats, NuGet with a symbol server (see [below](#package-formats)) | Almost every package format, plus Docker and OCI images, Helm charts, generic files and Linux packages |
+| Package formats | 16 package formats, NuGet with a symbol server (see [below](#package-formats)) | Almost every package format, plus Docker and OCI images, Helm charts, generic files and Linux packages |
 | Separate package sources | [Feeds](../feeds.md) of one format each, with their own settings, mirrors and permissions. A feed serves its own and its mirrors' packages from one URL; there are no virtual feeds that combine several feeds | Local, remote and virtual repositories |
 | Proxy of public registries | Per-feed [mirrors](../feeds.md#mirror-read-through-cache) for every format (nuget.org, npmjs, Maven Central, PyPI, crates.io, proxy.golang.org, rubygems.org, hex.pm, Packagist, CRAN, ...), several per feed in order, with optional upstream authentication | Remote repositories, combined with virtual repositories |
 | Authentication | Local accounts, Microsoft Entra ID, groups, personal access tokens that can be limited to read-only or to one feed. No LDAP or SAML | Local users, LDAP, SAML, OpenID Connect, access tokens (depending on edition) |
@@ -42,6 +42,7 @@ sidebar_position: 1
 | [R (CRAN)](../cran.md) | Yes | Yes |
 | [Ivy (sbt)](../ivy.md) | Yes | Yes |
 | [Visual Studio extensions (VSIX)](../vsix.md) | Yes | Not among its package types (VS Code extensions are) |
+| [VS Code extensions](../vscode.md) | Yes | Yes |
 | Docker and OCI images, Helm charts | No | Yes |
 | Generic files, Debian, RPM, Alpine | No | Yes |
 | Conda, Conan, Terraform, Hugging Face and others | No | Yes |

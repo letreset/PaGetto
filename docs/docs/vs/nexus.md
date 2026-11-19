@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Nexus
 
-[Sonatype Nexus Repository](https://www.sonatype.com/products/sonatype-nexus-repository) is a universal repository manager. It hosts packages for many ecosystems, including container images, and comes as a free Community Edition with usage limits and a commercial Pro edition. PaGetto is a smaller, open-source package server for 15 package formats, one per [feed](../feeds.md).
+[Sonatype Nexus Repository](https://www.sonatype.com/products/sonatype-nexus-repository) is a universal repository manager. It hosts packages for many ecosystems, including container images, and comes as a free Community Edition with usage limits and a commercial Pro edition. PaGetto is a smaller, open-source package server for 16 package formats, one per [feed](../feeds.md).
 
 ## PaGetto vs Nexus
 
@@ -12,7 +12,7 @@ sidebar_position: 4
 |---|---|---|
 | License and cost | Open source (MIT), free, no usage limits | Free Community Edition with limits on components and requests per day, commercial Pro edition |
 | Hosting | Self-hosted: Docker, Kubernetes (Helm), IIS, any ASP.NET Core 10 host | Self-hosted; Pro also as a Sonatype cloud service |
-| Package formats | 15 package formats, NuGet with a symbol server (see [below](#package-formats)) | Most language package formats, plus Docker and OCI images, Helm charts, raw files and Linux packages |
+| Package formats | 16 package formats, NuGet with a symbol server (see [below](#package-formats)) | Most language package formats, plus Docker and OCI images, Helm charts, raw files and Linux packages |
 | Separate package sources | [Feeds](../feeds.md) of one format each, with their own settings, mirrors and permissions. A feed serves its own and its mirrors' packages from one URL; there are no group feeds that combine several feeds | Hosted, proxy and group repositories |
 | Proxy of public registries | Per-feed [mirrors](../feeds.md#mirror-read-through-cache) for every format (nuget.org, npmjs, Maven Central, PyPI, crates.io, proxy.golang.org, rubygems.org, hex.pm, Packagist, CRAN, ...), several per feed in order, with optional upstream authentication | Proxy repositories, one upstream each, combined with group repositories |
 | Authentication | Local accounts, Microsoft Entra ID, groups, personal access tokens that can be limited to read-only or to one feed. No LDAP or SAML | Local users, LDAP, API keys; SAML and OpenID Connect in Pro |
@@ -44,6 +44,7 @@ sidebar_position: 4
 | [R (CRAN)](../cran.md) | Yes | Yes |
 | [Ivy (sbt)](../ivy.md) | Yes | No Ivy format (sbt can use Maven repositories) |
 | [Visual Studio extensions (VSIX)](../vsix.md) | Yes | No |
+| [VS Code extensions](../vscode.md) | Yes | No |
 | Docker and OCI images, Helm charts | No | Yes |
 | Raw files, APT, Yum, Alpine | No | Yes |
 | Conda, Conan, Terraform, Ansible, Git LFS, Hugging Face (proxy) and others | No | Yes |
