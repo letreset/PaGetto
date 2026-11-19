@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Versioning;
@@ -171,7 +172,11 @@ public class PromotionService
 
         var files = await _artifacts.FindFilesAsync(source.Id, name, stored.Version, cancellationToken);
 
-        using (var archive = await CopyToTempFileAsync(await _artifactStorage.GetArchiveStreamAsync(source.Slug, name, stored.Version, cancellationToken), cancellationToken))
+        // Only a version with a content hash has an archive; the versions of Maven, Ivy, PyPI,
+        // RubyGems and VS Code have files instead, and a CocoaPods pod may have neither.
+        using (var archive = stored.ContentHash == null
+            ? null
+            : await CopyToTempFileAsync(await _artifactStorage.GetArchiveStreamAsync(source.Slug, name, stored.Version, cancellationToken), cancellationToken))
         {
             if (archive == null && files.Count == 0)
             {
@@ -182,6 +187,13 @@ public class PromotionService
             if (added == ArtifactAddResult.AlreadyExists)
             {
                 return PromotionResult.AlreadyExists;
+            }
+
+            // The readme is stored with the archive; without one it is stored on its own.
+            if (archive == null && readme != null)
+            {
+                using var readmeStream = new MemoryStream(Encoding.UTF8.GetBytes(readme));
+                await _artifactStorage.SaveReadmeAsync(target.Slug, name, stored.Version, readmeStream, cancellationToken);
             }
         }
 
