@@ -29,6 +29,7 @@ using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Swift;
+using PaGetto.Core.VsCode;
 using PaGetto.Core.Vsix;
 using PaGetto.Core.Vulnerabilities;
 using PaGetto.Web.Audit;
@@ -191,6 +192,11 @@ public class ArtifactModel : PageModel
     public VsixManifest VsixManifest { get; private set; }
 
     /// <summary>
+    /// The manifest of a VS Code extension version, with the manifest of the file of each platform. Null on feeds of other types.
+    /// </summary>
+    public VsCodeVersionManifest VsCodeManifest { get; private set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven, Ivy, PyPI, RubyGems). Empty
     /// otherwise. The core metadata stored next to a wheel is left out.
     /// </summary>
@@ -342,6 +348,13 @@ public class ArtifactModel : PageModel
 
             // The name Visual Studio shows; the identifier is in the About card.
             Name = VsixManifest.DisplayName ?? VsixManifest.Id ?? Name;
+        }
+        else if (feed.Type == FeedType.VsCode)
+        {
+            VsCodeManifest = VsCodeVersionManifest.Parse(Version.MetadataJson);
+
+            // The name VS Code shows; the identifier is in the About card.
+            Name = VsCodeManifest.Main?.DisplayName ?? VsCodeManifest.Main?.Id ?? Name;
         }
 
         if (Version.HasReadme)

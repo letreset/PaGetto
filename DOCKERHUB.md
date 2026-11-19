@@ -1,6 +1,6 @@
 # PaGetto
 
-A lightweight, self-hosted **package server** for 15 ecosystems. Each feed hosts one package format and speaks its protocol, so the standard clients work with nothing more than the feed's URL and a token, and every feed can mirror the public registry of its ecosystem.
+A lightweight, self-hosted **package server** for 16 ecosystems. Each feed hosts one package format and speaks its protocol, so the standard clients work with nothing more than the feed's URL and a token, and every feed can mirror the public registry of its ecosystem.
 
 ## Package formats
 
@@ -21,6 +21,7 @@ A lightweight, self-hosted **package server** for 15 ecosystems. Each feed hosts
 | R | [CRAN](https://letreset.github.io/PaGetto/docs/cran) (source packages) | `install.packages`, renv | CRAN |
 | Scala (sbt) | [Ivy](https://letreset.github.io/PaGetto/docs/ivy) (sbt's Ivy layout) | sbt | the sbt plugin repository |
 | Visual Studio extensions | [VSIX](https://letreset.github.io/PaGetto/docs/vsix) (private extension gallery) | Visual Studio | other extension galleries |
+| VS Code extensions | [VS Code](https://letreset.github.io/PaGetto/docs/vscode) (extension gallery API) | VSCodium, code-server, Code - OSS | Open VSX |
 
 ## Features
 

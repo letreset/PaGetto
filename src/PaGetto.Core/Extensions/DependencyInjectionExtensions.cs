@@ -38,6 +38,7 @@ using PaGetto.Core.Upstream;
 using PaGetto.Core.Webhooks;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
+using PaGetto.Core.VsCode;
 using PaGetto.Core.Vsix;
 using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Vulnerabilities;
@@ -202,6 +203,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<CranUpstreamClient>();
         services.TryAddTransient<IVsixPackageService, VsixPackageService>();
         services.TryAddTransient<VsixUpstreamClient>();
+        services.TryAddTransient<IVsCodePackageService, VsCodePackageService>();
+        services.TryAddTransient<VsCodeUpstreamClient>();
 
         services.TryAddTransient<DatabaseSearchService>();
         services.TryAddTransient<FileStorageService>();

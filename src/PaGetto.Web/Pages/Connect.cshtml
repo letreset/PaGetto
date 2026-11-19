@@ -117,6 +117,12 @@
     return;
 }
 
+@if (FeedContext.CurrentFeed.Type == FeedType.VsCode)
+{
+    <partial name="_ConnectVsCode" />
+    return;
+}
+
 @{
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 }

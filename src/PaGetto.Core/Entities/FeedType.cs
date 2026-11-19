@@ -92,4 +92,11 @@ public enum FeedType
     /// Visual Studio reads, with an upload endpoint of this server, stored in the <see cref="Artifact"/> tables.
     /// </summary>
     Vsix = 14,
+
+    /// <summary>
+    /// VS Code extensions (VSIX files), served through the gallery API that VS Code and the editors
+    /// built on it query, with an upload endpoint of this server, stored in the <see cref="Artifact"/>
+    /// tables with the VSIX file of each platform of a version in <see cref="ArtifactFile"/>.
+    /// </summary>
+    VsCode = 15,
 }

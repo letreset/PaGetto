@@ -37,7 +37,7 @@ public static class ArtifactVersionOrder
         return feedType switch
         {
             FeedType.Pub => PubVersion.StringComparer,
-            FeedType.Npm => NpmVersion.StringComparer,
+            FeedType.Npm or FeedType.VsCode => NpmVersion.StringComparer,
             FeedType.Maven or FeedType.Ivy => MavenVersion.StringComparer,
             FeedType.PyPI => PyPIVersion.StringComparer,
             FeedType.Cargo => CargoVersion.StringComparer,

@@ -2,7 +2,7 @@
 
 A feed of the type **VSIX** is a [private extension gallery](https://learn.microsoft.com/visualstudio/extensibility/private-galleries) for Visual Studio extensions: Visual Studio lists its extensions in **Manage Extensions**, installs them and offers their updates, VSIX files are uploaded to it with a plain HTTP request, and it can mirror other galleries.
 
-A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards. VS Code extensions are not hosted yet: VS Code has no setting for a private gallery that works without an enterprise policy.
+A feed serves one kind of package. Its type is chosen when the feed is created and can't be changed afterwards. VS Code extensions go to a [VS Code feed](vscode.md).
 
 ## Create a VSIX feed
 
@@ -60,7 +60,7 @@ Invoke-RestMethod -Method Put -InFile .\MyExtension.vsix -Uri https://your-serve
 With the `Legacy` mode, the password is one of the configured API keys and the username is not checked. PaGetto reads the extension's identifier and version from the file and checks each upload:
 
 - The file must be a VSIX file as the VSIX project of the Visual Studio SDK builds it: a zip with `extension.vsixmanifest` and `[Content_Types].xml` at its root.
-- The manifest must have the format of Visual Studio 2012 and later (`PackageManifest` version 2.0.0), a `DisplayName`, and at least one `InstallationTarget`. Manifests of Visual Studio 2010 (version 1.0.0) and VS Code extensions, which target `Microsoft.VisualStudio.Code`, are refused.
+- The manifest must have the format of Visual Studio 2012 and later (`PackageManifest` version 2.0.0), a `DisplayName`, and at least one `InstallationTarget`. Manifests of Visual Studio 2010 (version 1.0.0) and VS Code extensions, which target `Microsoft.VisualStudio.Code` and go to a [VS Code feed](vscode.md), are refused.
 - The `Id` of the manifest's `Identity` must have letters, digits, dots, dashes and underscores, start and end with a letter or digit, and have at most 128 characters. Identifiers are compared regardless of case, as Visual Studio does, and keep the case they were uploaded with.
 - The `Version` must be two to four numbers separated by dots, such as `1.2.0`, as Visual Studio compares them. Leading zeros don't count, so `1.02` is `1.2`. `1.0` and `1.0.0` are different versions, the second being newer.
 - The file must not be larger than the feed's **Max package size**.
@@ -108,7 +108,7 @@ Most [feed settings](feeds.md#feed-settings) apply to VSIX feeds as to any other
 | Retention | The feed's own version limits, applied within an hour, and the removal of unused mirrored versions. See [auto-deletion](configuration.md#package-auto-deletion) |
 | Deletion behavior | Not available |
 | Upload from the browser | Not available. Upload with `curl` or another HTTP client |
-| VS Code extensions | Not hosted |
+| VS Code extensions | Hosted by [VS Code feeds](vscode.md) |
 | Extension packs | Hosted, but the gallery doesn't list the extensions they contain |
 | Ratings, reviews, the Marketplace's API | Not available |
 

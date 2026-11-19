@@ -1,0 +1,138 @@
+@* The Connect page of a VS Code feed: how to point an editor's extension gallery at it and upload extensions to it. *@
+@using Microsoft.Extensions.Options
+@using PaGetto.Core.Authentication
+@using PaGetto.Core.Configuration
+@using PaGetto.Core.Feeds
+@using PaGetto.Web.Extensions
+@inject IOptionsSnapshot<NugetAuthenticationOptions> AuthOptions
+@inject IFeedContext FeedContext
+
+@{
+    var feed = FeedContext.CurrentFeed;
+    var authMode = AuthOptions.Value.Mode;
+
+    // The editors send no credentials to a gallery, so with user accounts they read it through the
+    // URL with a personal access token in its path.
+    var gallery = authMode == AuthenticationMode.Legacy ? Url.VsCodeGallery() : Url.VsCodeGalleryWithToken("YOUR_TOKEN");
+    var serviceUrl = gallery + "/gallery";
+    var itemUrl = Url.VsCodeGallery() + "/item";
+    var extensionUrlTemplate = serviceUrl + "/vscode/{publisher}/{name}/latest";
+    var uploadUrl = Url.VsCodeGallery() + "/upload";
+    var username = authMode == AuthenticationMode.Legacy ? "USERNAME" : FeedAuthenticationService.TokenUsername;
+    var password = authMode == AuthenticationMode.Legacy ? "API_KEY" : "YOUR_TOKEN";
+
+    var tabs = new[]
+    {
+        new
+        {
+            name = "product.json",
+            content = new[]
+            {
+                "\"extensionsGallery\": {",
+                $"  \"serviceUrl\": \"{serviceUrl}\",",
+                $"  \"itemUrl\": \"{itemUrl}\",",
+                $"  \"extensionUrlTemplate\": \"{extensionUrlTemplate}\"",
+                "}",
+            },
+            documentation = "https://github.com/VSCodium/vscodium/blob/master/docs/extensions.md#howto-switch-marketplace",
+        },
+        new
+        {
+            name = "code-server",
+            content = new[]
+            {
+                $"export EXTENSIONS_GALLERY='{{\"serviceUrl\": \"{serviceUrl}\", \"itemUrl\": \"{itemUrl}\", \"extensionUrlTemplate\": \"{extensionUrlTemplate}\"}}'",
+                "code-server --install-extension publisher.name",
+            },
+            documentation = "https://github.com/coder/code-server/blob/main/docs/FAQ.md#how-do-i-use-my-own-extensions-marketplace",
+        },
+        new
+        {
+            name = "Upload",
+            content = new[]
+            {
+                "# The VSIX file that vsce package builds",
+                $"curl --fail-with-body -u {username}:{password} -T my-extension-1.0.0.vsix \\",
+                $"  {uploadUrl}",
+            },
+            documentation = "https://code.visualstudio.com/api/working-with-extensions/publishing-extension#packaging-extensions",
+        },
+        new
+        {
+            name = "PowerShell",
+            content = new[]
+            {
+                $"$credentials = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(\"{username}:{password}\"))",
+                $"Invoke-RestMethod -Method Put -InFile .\\my-extension-1.0.0.vsix -Uri {uploadUrl} `",
+                "  -Headers @{ Authorization = \"Basic $credentials\" }",
+            },
+            documentation = "https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/invoke-restmethod",
+        },
+    };
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Connect</h1>
+        <p class="bgt-lead">Use this feed as the extension gallery of VS Code-based editors.</p>
+    </div>
+
+    <div class="bgt-card bgt-card-body" style="padding: 16px">
+        <div class="form-label" style="margin-bottom: 8px">Gallery service URL · @feed.Name@(authMode == AuthenticationMode.Legacy ? null : " · replace YOUR_TOKEN with a personal access token")</div>
+        <div class="bgt-cmd bgt-cmd-value">
+            <code id="feed-gallery-url">@serviceUrl</code>
+            <button type="button" class="bgt-cmd-btn" title="Copy feed URL" data-copy-target="#feed-gallery-url">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bgt-callout">
+        <icon name="info" size="18" />
+        <div>
+            <div class="bgt-callout-title">Point the editor at the gallery</div>
+            <div class="bgt-callout-body">
+                <p>Editors built from VS Code's open source code read their extension gallery from the <code>extensionsGallery</code> of <code>product.json</code>: VSCodium (from a <code>product.json</code> in its user data folder), Code - OSS, and code-server (from the <code>EXTENSIONS_GALLERY</code> environment variable). Set it as shown below, and the Extensions view searches this feed and installs and updates extensions from it.</p>
+                <p>VS Code from Microsoft only uses the Visual Studio Marketplace, or a private marketplace that its enterprise policy signs in to. It can install a VSIX file downloaded from this feed with <code>code --install-extension</code>.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (authMode != AuthenticationMode.Legacy)
+    {
+        <div class="bgt-callout">
+            <icon name="lock" size="18" />
+            <div>
+                <div class="bgt-callout-title">Authentication required</div>
+                <div class="bgt-callout-body">
+                    <p>The editors can't sign in to an extension gallery. So the gallery URL above has a personal access token (PAT) in its path, which reads the gallery and its files, and nothing else. The token is stored in <code>product.json</code> and may appear in the logs of servers and proxies, so use the token of an account that can only pull from this feed, and give it an expiry.</p>
+                    <p>Uploads send the username @FeedAuthenticationService.TokenUsername (or your username) and a token as the password. Accounts without web sign-in get their token from an administrator.</p>
+                </div>
+                <a asp-page="/Account/Tokens" class="d-inline-block mt-2 fw-medium">Create a personal access token &rarr;</a>
+            </div>
+        </div>
+    }
+
+    <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: tabs, active: tabs[0] }">
+        <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Client">
+            <template x-for="tab in tabs" :key="tab.name">
+                <button type="button" class="bgt-tab" role="tab" x-bind:class="{ active: active.name === tab.name }"
+                        x-bind:aria-selected="active.name === tab.name" x-text="tab.name" @@click="active = tab"></button>
+            </template>
+        </div>
+        <div class="bgt-cmd">
+            <code x-text="active.content.join('\n')"></code>
+            <button type="button" class="bgt-cmd-btn" @@click="window.pagetto.copy(active.content.join('\n'), $el)">
+                <icon name="copy" size="13" /><span class="bgt-copy-label">Copy</span>
+            </button>
+        </div>
+        <div class="bgt-card-foot">
+            For more information, see the
+            <a target="_blank" rel="noopener noreferrer" x-bind:href="active.documentation">documentation &#x2197;</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let tabs = @Json.Serialize(tabs);
+</script>
