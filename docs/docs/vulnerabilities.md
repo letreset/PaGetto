@@ -49,6 +49,7 @@ An advisory can have several severities. PaGetto uses:
 - **Package page**: a version with known vulnerabilities has a card above the install commands that lists each advisory with its severity, its CVSS score, its aliases (such as the CVE id), a link to it on osv.dev, the affected versions and the lowest version above the shown one that fixes it.
 - **Admin > Vulnerabilities**: every finding across feeds, most severe first, filtered by feed, severity (a severity and everything above it) and package name or advisory id. **Export CSV** and **Export JSON** download every finding that matches the filters. See [Web UI](web-ui.md#vulnerabilities).
 - **Webhook**: a new **Critical** finding is sent to the feed's [webhook](feeds.md#webhook) as the event `vulnerability_found`, with the advisory id in `advisory`.
+- **SBOM**: the [SBOM](sbom.md) of a version lists its findings as CycloneDX vulnerabilities.
 - **npm audit**: on npm feeds, `npm audit` is answered from the findings of the versions stored in the feed. See [npm audit](npm.md#npm-audit).
 
 ## Configuration
