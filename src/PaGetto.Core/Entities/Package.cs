@@ -48,6 +48,23 @@ public class Package
     /// been yet. Versions that were never scanned, or not for a while, are scanned in the background.
     /// </summary>
     public DateTime? VulnerabilitiesScannedAtUtc { get; set; }
+
+    /// <summary>
+    /// When the version was quarantined, or null if it is not. A quarantined version is stored but
+    /// neither served nor listed (see <see cref="Quarantine.QuarantineService"/>).
+    /// </summary>
+    public DateTime? QuarantinedAtUtc { get; set; }
+
+    /// <summary>
+    /// Why the version is quarantined, e.g. the advisory of the policy it fails.
+    /// </summary>
+    public string QuarantineReason { get; set; }
+
+    /// <summary>
+    /// When an administrator released the version from quarantine. The feed's policies are no
+    /// longer applied to a released version.
+    /// </summary>
+    public DateTime? QuarantineReleasedAtUtc { get; set; }
     public bool HasReadme { get; set; }
     public bool HasEmbeddedIcon { get; set; }
     public bool IsPrerelease { get; set; }

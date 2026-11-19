@@ -602,6 +602,8 @@
             </div>
         }
 
+        @{ await Html.RenderPartialAsync("_PromoteCard", (Model.Id, (string)version)); }
+
         @if (Model.CanManage)
         {
             <div class="bgt-danger-zone">

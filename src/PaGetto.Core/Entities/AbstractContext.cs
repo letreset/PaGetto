@@ -242,6 +242,10 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         package.HasIndex(p => new { p.FeedId, p.Id, p.NormalizedVersionString })
             .IsUnique();
         package.HasIndex(p => p.VulnerabilitiesScannedAtUtc);
+        package.Property(p => p.QuarantineReason).HasMaxLength(DefaultMaxStringLength);
+
+        // A quarantined version is neither served nor listed; code that must see it says IgnoreQueryFilters.
+        package.HasQueryFilter(p => p.QuarantinedAtUtc == null);
 
         package.Property(p => p.Id)
             .HasMaxLength(MaxPackageIdLength)
@@ -373,6 +377,10 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         version.Property(v => v.ContentHash).HasMaxLength(MaxContentHashLength);
         version.Property(v => v.CachedFrom).HasMaxLength(DefaultMaxStringLength);
         version.HasIndex(v => v.VulnerabilitiesScannedAtUtc);
+        version.Property(v => v.QuarantineReason).HasMaxLength(DefaultMaxStringLength);
+
+        // A quarantined version is neither served nor listed; code that must see it says IgnoreQueryFilters.
+        version.HasQueryFilter(v => v.QuarantinedAtUtc == null);
 
         version.HasMany(v => v.Files)
             .WithOne(f => f.ArtifactVersion)
@@ -394,6 +402,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         file.Property(f => f.Sha256).HasMaxLength(64).IsRequired();
         file.Property(f => f.Sha512).HasMaxLength(128).IsRequired();
         file.Property(f => f.CreatedAtUtc).IsRequired();
+
+        // Matches the filter of its version, so a quarantined version's files are left out with it.
+        file.HasQueryFilter(f => f.ArtifactVersion.QuarantinedAtUtc == null);
     }
 
     private void BuildPackageDependencyEntity(EntityTypeBuilder<PackageDependency> dependency)
@@ -413,6 +424,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
 
         type.Property(d => d.Name).HasMaxLength(MaxPackageTypeNameLength);
         type.Property(d => d.Version).HasMaxLength(MaxPackageTypeVersionLength);
+
+        // Matches the filter of its package (see BuildPackageEntity).
+        type.HasQueryFilter(d => d.Package.QuarantinedAtUtc == null);
     }
 
     private void BuildTargetFrameworkEntity(EntityTypeBuilder<TargetFramework> targetFramework)
@@ -421,6 +435,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         targetFramework.HasIndex(f => f.Moniker);
 
         targetFramework.Property(f => f.Moniker).HasMaxLength(MaxTargetFrameworkLength);
+
+        // Matches the filter of its package (see BuildPackageEntity).
+        targetFramework.HasQueryFilter(f => f.Package.QuarantinedAtUtc == null);
     }
 
     private void BuildUserEntity(EntityTypeBuilder<User> user)

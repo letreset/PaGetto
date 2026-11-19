@@ -34,6 +34,16 @@ public class PaGettoEndpointBuilder
         MapCranRoutes(endpoints);
         MapIvyRoutes(endpoints);
         MapVsixRoutes(endpoints);
+        MapPromotionRoutes(endpoints);
+    }
+
+    public void MapPromotionRoutes(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllerRoute(
+            name: Routes.PromoteRouteName,
+            pattern: "api/v1/promote",
+            defaults: new { controller = "Promotion", action = "Promote" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)

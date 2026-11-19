@@ -179,6 +179,16 @@ namespace PaGetto.Database.MySql.Migrations
                     b.Property<DateTime>("Published")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
@@ -286,6 +296,12 @@ namespace PaGetto.Database.MySql.Migrations
                         .HasColumnType("varchar(256)");
 
                     b.Property<int?>("PackageDeletionBehavior")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("QuarantineMaliciousPackages")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("QuarantineSeverity")
                         .HasColumnType("int");
 
                     b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
@@ -661,6 +677,16 @@ namespace PaGetto.Database.MySql.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Published")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("ReleaseNotes")

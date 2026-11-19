@@ -1,0 +1,57 @@
+@page
+@model PaGetto.Web.Pages.PromoteModel
+@using PaGetto.Web.Middleware
+
+@{
+    ViewData["Title"] = $"Promote {Model.Id} {Model.Version}";
+    var packagePage = Model.Feed.Type == PaGetto.Core.Entities.FeedType.NuGet ? "/Package" : "/Artifact";
+    var rootBase = FeedResolutionMiddleware.GetRootPathBase(HttpContext).Value ?? string.Empty;
+}
+
+<div class="bgt-narrow bgt-stack">
+    <div>
+        <h1>Promote @Model.Id @Model.Version</h1>
+        <p class="bgt-lead">
+            Copy this version from feed @Model.Feed.Name to another @Model.Feed.Type feed, or move it there. The content is
+            copied as stored, so its hashes stay the same. The target feed's quarantine policies apply to the copy.
+        </p>
+    </div>
+
+    @if (Model.PromotedTo != null)
+    {
+        <div class="bgt-card bgt-card-body" role="status">
+            <p class="mb-2"><icon name="check" /> @Model.Id @Model.Version is @(Model.Move ? "moved" : "copied") to feed @Model.PromotedTo.Name.</p>
+            <a class="btn btn-secondary btn-sm" href="@($"{rootBase}/feeds/{Model.PromotedTo.Slug}/{(packagePage == "/Package" ? "packages" : "artifacts")}/{Uri.EscapeDataString(Model.Id)}/{Uri.EscapeDataString(Model.Version)}")">Open it in @Model.PromotedTo.Name</a>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mb-0" role="alert">@Model.ErrorMessage</div>
+        }
+
+        <form method="post" class="bgt-card bgt-card-body bgt-stack" aria-label="Promote the version">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Version" />
+            <div>
+                <label asp-for="TargetFeed" class="form-label">Target feed</label>
+                <select asp-for="TargetFeed" class="form-select" required>
+                    @foreach (var feed in Model.Targets)
+                    {
+                        <option value="@feed.Slug">@feed.Name (@feed.Slug)</option>
+                    }
+                </select>
+            </div>
+            <label class="form-check">
+                <input asp-for="Move" class="form-check-input" />
+                <span class="form-check-label">Move: remove the version from @Model.Feed.Name afterwards</span>
+            </label>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Promote</button>
+                <a class="btn btn-secondary" asp-page="@packagePage" asp-route-id="@Model.Id" asp-route-version="@Model.Version">Cancel</a>
+            </div>
+        </form>
+    }
+</div>

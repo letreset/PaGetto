@@ -503,6 +503,42 @@
                         @{ Inherit(nameof(Model.UseGlobalBlockMaliciousPackages), Model.UseGlobalBlockMaliciousPackages, nameof(Model.BlockMaliciousPackages), global.MaliciousPackages.Enabled ? "Enabled" : "Disabled"); }
                     </div>
                 </div>
+
+                <div class="bgt-setting">
+                    <div class="bgt-setting-label">
+                        <label asp-for="QuarantineSeverity">Quarantine vulnerable versions</label>
+                        <div class="bgt-setting-help">
+                            Versions with a known vulnerability of this severity or higher are kept in quarantine:
+                            stored, but neither served nor listed until an administrator releases them. New versions
+                            wait in quarantine for their first vulnerability scan.
+                        </div>
+                    </div>
+                    <div class="bgt-setting-control">
+                        <select asp-for="QuarantineSeverity" class="form-select">
+                            <option value="">Off</option>
+                            <option value="Critical">Critical</option>
+                            <option value="High">High or above</option>
+                            <option value="Moderate">Moderate or above</option>
+                            <option value="Low">Any severity</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bgt-setting">
+                    <div class="bgt-setting-label">
+                        <span class="title">Quarantine malicious packages</span>
+                        <div class="bgt-setting-help">
+                            New versions that the malicious packages data lists are kept in quarantine, including
+                            versions published to this feed.
+                        </div>
+                    </div>
+                    <div class="bgt-setting-control">
+                        <label class="form-check form-switch">
+                            <input asp-for="QuarantineMaliciousPackages" class="form-check-input" role="switch" />
+                            <span class="form-check-label">Quarantine</span>
+                        </label>
+                    </div>
+                </div>
             }
         </section>
 

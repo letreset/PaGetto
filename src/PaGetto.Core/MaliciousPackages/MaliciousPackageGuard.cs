@@ -108,8 +108,17 @@ public partial class MaliciousPackageGuard
             return null;
         }
 
-        var ecosystem = OsvEcosystem.GetName(feed.Type);
-        var osvName = ecosystem == null ? null : MaliciousPackageName.GetOsvName(feed.Type, name);
+        return await FindListingOrNullAsync(feed.Type, name, version, cancellationToken);
+    }
+
+    /// <summary>
+    /// Finds the listing of a version that is listed and not allowed, whatever the feed's settings.
+    /// </summary>
+    /// <returns>The listing, or null when the version is not listed or is allowed.</returns>
+    public async Task<MaliciousPackage> FindListingOrNullAsync(FeedType feedType, string name, string version, CancellationToken cancellationToken)
+    {
+        var ecosystem = OsvEcosystem.GetName(feedType);
+        var osvName = ecosystem == null ? null : MaliciousPackageName.GetOsvName(feedType, name);
         if (osvName == null)
         {
             return null;
@@ -125,7 +134,7 @@ public partial class MaliciousPackageGuard
             return null;
         }
 
-        var comparer = GetComparer(feed.Type);
+        var comparer = GetComparer(feedType);
         var listing = listings
             .OrderBy(p => p.AdvisoryId, StringComparer.Ordinal)
             .FirstOrDefault(p => MaliciousVersions.IsAffected(p.AffectedVersions, version, comparer));

@@ -124,6 +124,7 @@ Administrators open these pages from the user menu. They share a tab row, so you
 | Feeds | Create, reorder and delete [feeds](feeds.md#managing-feeds), copy each feed's service index URL, and open each feed's [settings](feeds.md#feed-settings) (including its display name, description and mirrors) |
 | Vulnerabilities | The stored versions with known vulnerabilities across feeds, with filters and an export |
 | Malicious packages | The local copy of the malicious packages data, a lookup of a package in it, and the packages allowed although it lists them |
+| Quarantine | The versions that fail their feed's quarantine policy, to release or delete |
 | Audit log | The successful package actions and administration changes, with who made them, when and from which IP address |
 
 ### Feeds
@@ -153,6 +154,10 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 ### Malicious packages
 
 **Malicious packages** shows the local copy of the [malicious packages data](malicious-packages.md): each ecosystem with how many packages it lists, when it was last refreshed and the error of a failed refresh. **Look up a package** lists the advisories that name a package (linked to osv.dev). **Allowed packages** lists the packages and versions served although the data lists them, with the reason, who allowed them and when; **Remove** blocks one again. The form below allows a package of an ecosystem, either every version or the one given, and needs a reason. **Blocked downloads** opens the audit log filtered to `malicious_package_blocked`.
+
+### Quarantine
+
+**Quarantine** lists the versions of every feed that are held back by the feed's [quarantine policies](quarantine.md), newest first, with the package, version, feed, reason and date. **Release** serves a version again and **Delete** removes it; both ask for confirmation. **Quarantine history** opens the audit log filtered to `package_quarantined`.
 
 ### Audit log
 
