@@ -36,6 +36,7 @@ public class PaGettoEndpointBuilder
         MapVsixRoutes(endpoints);
         MapVsCodeRoutes(endpoints);
         MapPromotionRoutes(endpoints);
+        MapSbomRoutes(endpoints);
     }
 
     public void MapPromotionRoutes(IEndpointRouteBuilder endpoints)
@@ -45,6 +46,15 @@ public class PaGettoEndpointBuilder
             pattern: "api/v1/promote",
             defaults: new { controller = "Promotion", action = "Promote" },
             constraints: new { httpMethod = new HttpMethodRouteConstraint("POST") });
+    }
+
+    public void MapSbomRoutes(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapControllerRoute(
+            name: Routes.SbomRouteName,
+            pattern: "api/v1/sbom/{id}/{version}",
+            defaults: new { controller = "Sbom", action = "CycloneDx" },
+            constraints: new { httpMethod = new HttpMethodRouteConstraint("GET") });
     }
 
     public void MapServiceIndexRoutes(IEndpointRouteBuilder endpoints)

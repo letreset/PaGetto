@@ -225,7 +225,7 @@ public class ArtifactModel : PageModel
 
         Name = id = DecodeName(id);
 
-        var versions = await _artifacts.FindVersionsAsync(feed.Id, GetStoredName(feed.Type, id), cancellationToken);
+        var versions = await _artifacts.FindVersionsAsync(feed.Id, ArtifactNames.GetStoredName(feed.Type, id), cancellationToken);
         if (versions.Count == 0)
         {
             return Page();
@@ -431,7 +431,7 @@ public class ArtifactModel : PageModel
             return StatusCode(StatusCodes.Status403Forbidden);
         }
 
-        var found = await operation(feed, GetStoredName(feed.Type, id));
+        var found = await operation(feed, ArtifactNames.GetStoredName(feed.Type, id));
         await _audit.PackageAsync(
             HttpContext,
             found ? LogLevel.Information : LogLevel.Warning,
@@ -439,24 +439,6 @@ public class ArtifactModel : PageModel
             feed.Slug, id, version);
 
         return found ? success : NotFound();
-    }
-
-    /// <summary>
-    /// The name a package is stored under: lowercased, and for Python projects normalized as well,
-    /// so <c>My_Package</c> is <c>my-package</c>. A Go module path is case-sensitive, so it is
-    /// escaped instead: <c>example.com/My</c> is <c>example.com/!my</c>, and an escaped path, which
-    /// the links of the web UI use, is taken as it is. Pod names are case-sensitive too, and escaped
-    /// the same way.
-    /// </summary>
-    private static string GetStoredName(FeedType feedType, string id)
-    {
-        return feedType switch
-        {
-            FeedType.PyPI => PyPIPackageName.Normalize(id),
-            FeedType.Go => GoModulePath.TryUnescape(id, out _) ? id : GoModulePath.Escape(id),
-            FeedType.CocoaPods => CocoaPodsPodName.TryUnescape(id, out _) ? id : CocoaPodsPodName.Escape(id),
-            _ => id.ToLowerInvariant(),
-        };
     }
 
     /// <summary>

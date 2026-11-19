@@ -29,6 +29,7 @@ using PaGetto.Core.Pub;
 using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Retention;
+using PaGetto.Core.Sbom;
 using PaGetto.Core.Search;
 using PaGetto.Core.ServiceIndex;
 using PaGetto.Core.Statistics;
@@ -158,6 +159,7 @@ public static partial class DependencyInjectionExtensions
         services.TryAddScoped<QuarantinePolicy>();
         services.TryAddScoped<QuarantineService>();
         services.TryAddScoped<PromotionService>();
+        services.TryAddScoped<SbomService>();
         services.TryAddScoped<MaliciousPackageService>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();

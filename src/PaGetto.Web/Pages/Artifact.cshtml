@@ -617,6 +617,7 @@
             {
                 <a href="@downloadUrl" class="btn btn-secondary btn-block"><icon name="arrow-down" size="15" />Download @(isNpm || isHex || isCran ? "tarball" : isCargo ? "crate" : isGo || isComposer || isSwift ? "zip" : isCocoaPods ? "source" : isVsix || isVsCode ? "VSIX" : "archive")</a>
             }
+            <a href="@Url.RouteUrl(Routes.SbomRouteName, new { id = Model.Id, version })" class="btn btn-secondary btn-block" title="A software bill of materials of this version in CycloneDX JSON"><icon name="arrow-down" size="15" />Download SBOM</a>
         </div>
 
         @if (topics?.Count > 0)
