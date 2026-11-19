@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
     'vulnerabilities',
     'malicious-packages',
     'quarantine',
+    'sbom',
     {
       type: 'category',
       label: 'Package formats',

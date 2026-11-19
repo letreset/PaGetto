@@ -77,6 +77,7 @@ For every page you open, the browser console should show no errors.
 | P16 | `admin` | **About** card of Internal > Contoso.Logging | The license link reads "MIT license" and opens `https://licenses.nuget.org/MIT`; **Size** shows the package size, e.g. "8.21 KB" |
 | P17 | `carol` | Pack a package with `<Copyright>Copyright (c) Contoso</Copyright>` and push it to Experimental, then open it | The copyright text in the **About** card |
 | P18 | `admin` | Contoso.Logging > **Atom feed** in the sidebar; then `curl -u carol:<password> http://localhost:5000/feeds/internal/packages/Contoso.Logging/atom.xml` | The link points to `/feeds/internal/packages/contoso.logging/atom.xml` and the page head has a `<link rel="alternate" type="application/atom+xml">`; curl returns an Atom feed with 2.0.0 and 1.5.0 (not the unlisted 1.4.0), and without `-u` it gets 401 |
+| P19 | `admin` | Contoso.Logging > **Download SBOM** in the sidebar; then `curl -u carol:<password> http://localhost:5000/feeds/internal/api/v1/sbom/Contoso.Logging/2.0.0` | Downloads `contoso.logging-2.0.0.cdx.json`, a CycloneDX 1.6 document whose `metadata.component` is Contoso.Logging 2.0.0 (`pkg:nuget/Contoso.Logging@2.0.0`) and whose `components` include Contoso.Core with its version range per target framework; curl returns the same document, and without `-u` it gets 401 |
 
 ## Package management
 
