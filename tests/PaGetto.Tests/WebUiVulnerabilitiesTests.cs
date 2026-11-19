@@ -57,6 +57,7 @@ public class WebUiVulnerabilitiesTests : IDisposable
         using var json = JsonDocument.Parse(await admin.GetStringAsync("/Admin/Vulnerabilities?handler=Export&format=json"));
         Assert.Equal(2, json.RootElement.GetArrayLength());
         Assert.Equal("GHSA-crit", json.RootElement[0].GetProperty("advisory").GetString());
+        Assert.Equal("2020-01-01T00:00:00Z", json.RootElement[0].GetProperty("foundAtUtc").GetString());
     }
 
     [Fact]
