@@ -23,6 +23,7 @@ public interface IContext
     DbSet<UserGroup> UserGroups { get; set; }
     DbSet<FeedPermission> FeedPermissions { get; set; }
     DbSet<AuditEvent> AuditEvents { get; set; }
+    DbSet<PackageVulnerability> PackageVulnerabilities { get; set; }
 
     /// <summary>
     /// Check whether a <see cref="DbUpdateException"/> is due to a SQL unique constraint violation.

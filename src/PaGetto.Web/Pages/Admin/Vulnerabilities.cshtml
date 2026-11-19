@@ -1,0 +1,174 @@
+@page
+@using System.Globalization
+@using PaGetto.Core.Entities
+@model PaGetto.Web.Pages.Admin.VulnerabilitiesModel
+
+@{
+    ViewData["Title"] = "Vulnerabilities";
+    var severities = new[] { VulnerabilitySeverity.Critical, VulnerabilitySeverity.High, VulnerabilitySeverity.Moderate, VulnerabilitySeverity.Low };
+}
+
+@await Html.PartialAsync("_AdminTabs", "Vulnerabilities")
+
+<div class="bgt-page-head">
+    <div>
+        <h1>Vulnerabilities</h1>
+        <p class="bgt-lead">
+            @Model.TotalCount.ToString("N0", CultureInfo.InvariantCulture) @(Model.TotalCount == 1 ? "finding" : "findings"):
+            stored package versions with a known advisory in the OSV database, most severe first.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-secondary" href="@ExportLink("csv")">Export CSV</a>
+        <a class="btn btn-secondary" href="@ExportLink("json")">Export JSON</a>
+    </div>
+</div>
+
+@if (!Model.ScanningEnabled)
+{
+    <div class="bgt-card bgt-card-body mb-3">
+        Vulnerability scanning is turned off (<code>VulnerabilityScanning:Enabled</code>). The findings below are from before it was.
+    </div>
+}
+
+<form method="get" class="bgt-card bgt-card-body mb-3" aria-label="Filter the vulnerabilities">
+    <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr))">
+        <div>
+            <label for="vuln-feed" class="form-label">Feed</label>
+            <select id="vuln-feed" name="feed" class="form-select">
+                <option value="">Any feed</option>
+                @foreach (var feed in Model.Feeds)
+                {
+                    <option value="@feed.Slug" selected="@(feed.Slug == Model.Feed)">@feed.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="vuln-severity" class="form-label">Severity</label>
+            <select id="vuln-severity" name="severity" class="form-select">
+                <option value="">Any severity</option>
+                @foreach (var severity in severities)
+                {
+                    <option value="@severity" selected="@(severity == Model.Severity)">@severity@(severity == VulnerabilitySeverity.Critical ? "" : " and above")</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="vuln-query" class="form-label">Package or advisory</label>
+            <input id="vuln-query" name="q" value="@Model.Query" class="form-control" autocomplete="off" />
+        </div>
+    </div>
+    <div class="bgt-form-actions">
+        <a asp-page="/Admin/Vulnerabilities" class="btn btn-secondary">Clear</a>
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+
+<div class="bgt-card">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="bgt-empty-row">@(Model.PageIndex > 1 ? $"Page {Model.PageIndex} is past the last page." : "No known vulnerabilities found.")</div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="bgt-audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Severity</th>
+                        <th scope="col">Package</th>
+                        <th scope="col">Advisory</th>
+                        <th scope="col">Fixed in</th>
+                        <th scope="col">Found (UTC)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vulnerability in Model.Items)
+                    {
+                        Model.FeedsById.TryGetValue(vulnerability.FeedId, out var feed);
+                        <tr>
+                            <td><span class="bgt-badge @(vulnerability.Severity >= VulnerabilitySeverity.High ? "bgt-badge-danger" : vulnerability.Severity == VulnerabilitySeverity.Moderate ? "bgt-badge-warn" : null)">@vulnerability.Severity</span></td>
+                            <td>
+                                @if (feed != null)
+                                {
+                                    <a href="@PackageLink(feed, vulnerability)">@vulnerability.PackageName @vulnerability.PackageVersion</a>
+                                    <span class="bgt-slug ms-1">@feed.Slug</span>
+                                }
+                                else
+                                {
+                                    <text>@vulnerability.PackageName @vulnerability.PackageVersion</text>
+                                }
+                            </td>
+                            <td class="bgt-audit-detail">
+                                <a href="https://osv.dev/vulnerability/@Uri.EscapeDataString(vulnerability.AdvisoryId)" target="_blank" rel="noopener noreferrer">@vulnerability.AdvisoryId</a>
+                                @if (vulnerability.Summary != null)
+                                {
+                                    <div>@vulnerability.Summary</div>
+                                }
+                            </td>
+                            <td>@(vulnerability.FixedVersion ?? "None known")</td>
+                            <td class="text-nowrap">@Html.DisplayDate(vulnerability.FoundAtUtc)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="bgt-pager" aria-label="Vulnerabilities page navigation">
+        @if (Model.PageIndex <= 1)
+        {
+            <span class="disabled" aria-disabled="true">&larr; Prev</span>
+        }
+        else
+        {
+            <a href="@PageLink(Model.PageIndex - 1)" rel="prev">&larr; Prev</a>
+        }
+
+        <span class="num current" aria-current="page">Page @Model.PageIndex of @Model.TotalPages</span>
+
+        @if (Model.PageIndex >= Model.TotalPages)
+        {
+            <span class="disabled" aria-disabled="true">Next &rarr;</span>
+        }
+        else
+        {
+            <a href="@PageLink(Model.PageIndex + 1)" rel="next">Next &rarr;</a>
+        }
+    </nav>
+}
+
+@functions {
+    private string PageLink(int page)
+    {
+        return Url.Page("/Admin/Vulnerabilities", new
+        {
+            feed = Model.Feed,
+            severity = Model.Severity?.ToString(),
+            q = Model.Query,
+            p = page == 1 ? (int?)null : page,
+        });
+    }
+
+    private string ExportLink(string format)
+    {
+        return Url.Page("/Admin/Vulnerabilities", "Export", new
+        {
+            feed = Model.Feed,
+            severity = Model.Severity?.ToString(),
+            q = Model.Query,
+            format,
+        });
+    }
+
+    private string PackageLink(Feed feed, PackageVulnerability vulnerability)
+    {
+        var root = Url.Content("~/");
+        var feedBase = feed.Slug == Feed.DefaultSlug ? root.TrimEnd('/') : $"{root.TrimEnd('/')}/feeds/{Uri.EscapeDataString(feed.Slug)}";
+        var page = feed.Type == FeedType.NuGet ? "packages" : "artifacts";
+        return $"{feedBase}/{page}/{Uri.EscapeDataString(vulnerability.PackageName)}/{Uri.EscapeDataString(vulnerability.PackageVersion)}";
+    }
+}

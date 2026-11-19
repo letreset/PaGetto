@@ -15,6 +15,7 @@ using PaGetto.Core.Notifications;
 using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.Storage;
+using PaGetto.Core.Vulnerabilities;
 using PaGetto.Core.Webhooks;
 using PaGetto.Database.MySql;
 using PaGetto.Database.PostgreSql;
@@ -83,6 +84,9 @@ public class Startup
 
         // Sends package changes to the webhooks of their feeds.
         services.AddHostedService<WebhookDeliveryService>();
+
+        // Matches stored versions against the OSV vulnerability database.
+        services.AddHostedService<VulnerabilityScanService>();
 
         services.AddHealthChecks();
 

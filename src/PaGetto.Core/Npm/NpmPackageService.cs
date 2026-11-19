@@ -9,11 +9,14 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PaGetto.Core.Artifacts;
+using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Upstream;
+using PaGetto.Core.Vulnerabilities;
 
 namespace PaGetto.Core.Npm;
 
@@ -40,6 +43,8 @@ public partial class NpmPackageService : INpmPackageService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly IVulnerabilityService _vulnerabilities;
+    private readonly IOptionsSnapshot<VulnerabilityScanningOptions> _scanningOptions;
     private readonly ILogger<NpmPackageService> _logger;
 
     public NpmPackageService(
@@ -49,6 +54,8 @@ public partial class NpmPackageService : INpmPackageService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        IVulnerabilityService vulnerabilities,
+        IOptionsSnapshot<VulnerabilityScanningOptions> scanningOptions,
         ILogger<NpmPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -57,6 +64,8 @@ public partial class NpmPackageService : INpmPackageService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _vulnerabilities = vulnerabilities ?? throw new ArgumentNullException(nameof(vulnerabilities));
+        _scanningOptions = scanningOptions ?? throw new ArgumentNullException(nameof(scanningOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -142,6 +151,19 @@ public partial class NpmPackageService : INpmPackageService
     {
         ArgumentNullException.ThrowIfNull(feed);
         ArgumentNullException.ThrowIfNull(request);
+
+        if (_scanningOptions.Value.Enabled)
+        {
+            // Answered from the findings of the versions stored in the feed, published or mirrored.
+            var requested = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (name, _) in request)
+            {
+                requested.TryAdd(NpmPackageName.Normalize(name), name);
+            }
+
+            var findings = await _vulnerabilities.FindByPackageNamesAsync(feed.Id, requested.Keys, cancellationToken);
+            return JsonSerializer.SerializeToUtf8Bytes(NpmAuditAdvisories.Create(requested, findings));
+        }
 
         var published = (await _artifacts.FindPublishedNamesAsync(feed.Id, cancellationToken)).ToHashSet(StringComparer.Ordinal);
         foreach (var name in request.Select(p => p.Key).ToList())

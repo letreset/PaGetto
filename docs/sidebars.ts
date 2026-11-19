@@ -22,6 +22,7 @@ const sidebars: SidebarsConfig = {
     'feeds',
     'authentication',
     'web-ui',
+    'vulnerabilities',
     {
       type: 'category',
       label: 'Package formats',

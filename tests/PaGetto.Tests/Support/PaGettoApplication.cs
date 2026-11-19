@@ -95,6 +95,9 @@ public class PaGettoApplication : WebApplicationFactory<Startup>
                     { "Storage:Path", storagePath },
                     { "Search:Type", "Database" },
                     { "Authentication:Mode", "Legacy" },
+
+                    // Tests that scan turn it on, with a fake database.
+                    { "VulnerabilityScanning:Enabled", "false" },
                 };
                 _inMemoryConfiguration?.Invoke(dict);
 

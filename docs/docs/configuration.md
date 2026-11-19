@@ -604,6 +604,27 @@ PaGetto compresses JSON, CSS, JavaScript and SVG responses with Brotli or gzip, 
 
 HTML pages aren't compressed on purpose: compressing pages that carry anti-forgery tokens over HTTPS enables [BREACH](https://en.wikipedia.org/wiki/BREACH)-style attacks. Package downloads (`.nupkg`, `.tgz`, `.jar`, wheels and the other archives) are already compressed and are sent as they are.
 
+## Vulnerability scanning
+
+Stored package versions are matched against the [OSV](https://osv.dev) vulnerability database in the background, which needs access to `https://api.osv.dev/`. On servers without it, turn scanning off or point it at a mirror:
+
+```json
+{
+    ...
+
+    "VulnerabilityScanning": {
+        "Enabled": true,
+        "ApiUrl": "https://api.osv.dev/",
+        "RescanIntervalHours": 24,
+        "TimeoutSeconds": 30
+    },
+
+    ...
+}
+```
+
+See [Vulnerability scanning](vulnerabilities.md#configuration) for what each setting does and what is sent to the database.
+
 ## Audit log
 
 PaGetto writes one log line for every package upload, unlist, delete and relist, from the clients of every package format and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.

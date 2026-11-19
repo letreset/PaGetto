@@ -749,6 +749,17 @@ textarea.form-control { padding: 10px 12px; resize: vertical; }
 .bgt-badge-warn { color: var(--bgt-warn); background: var(--bgt-warn-bg); }
 .bgt-badge-danger { color: var(--bgt-danger); background: var(--bgt-danger-bg); }
 
+/* Known vulnerabilities of a package version */
+.bgt-vuln-card { border-color: var(--bgt-danger-border); }
+.bgt-vuln-title { display: flex; align-items: center; gap: 6px; color: var(--bgt-danger); }
+.bgt-vuln-list { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
+.bgt-vuln-list > li { padding: 10px 0; border-top: 1px solid var(--bgt-divider); }
+.bgt-vuln-list > li:first-child { border-top: 0; padding-top: 0; }
+.bgt-vuln-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 2px; }
+.bgt-vuln-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px; font-size: 12.5px; color: var(--bgt-muted); }
+.bgt-vuln-meta code { overflow-wrap: anywhere; }
+.bgt-muted { color: var(--bgt-muted); }
+
 .bgt-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--bgt-subtle); color: var(--bgt-text-2); white-space: nowrap; }
 .bgt-pill-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .bgt-pill-ok { background: var(--bgt-ok-bg); color: var(--bgt-ok); }

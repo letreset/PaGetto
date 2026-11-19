@@ -42,6 +42,12 @@ public class Package
     /// <see cref="Feed.MirrorCacheRetentionDays"/> is removed.
     /// </summary>
     public DateTime? LastDownloadedAtUtc { get; set; }
+
+    /// <summary>
+    /// When the version was last matched against the vulnerability database, or null if it hasn't
+    /// been yet. Versions that were never scanned, or not for a while, are scanned in the background.
+    /// </summary>
+    public DateTime? VulnerabilitiesScannedAtUtc { get; set; }
     public bool HasReadme { get; set; }
     public bool HasEmbeddedIcon { get; set; }
     public bool IsPrerelease { get; set; }

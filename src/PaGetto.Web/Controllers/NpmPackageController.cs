@@ -73,6 +73,7 @@ public class NpmPackageController : Controller
 
     // POST npm/-/npm/v1/security/advisories/bulk
     // npm audit: the package names and versions in use, usually gzipped. The advisories come from
+    // the vulnerability findings of the feed's stored versions, or, while scanning is off, from
     // the feed's mirrors; the feed's own packages are not sent to them.
     public async Task<IActionResult> Audit(CancellationToken cancellationToken)
     {

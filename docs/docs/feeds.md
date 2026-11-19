@@ -184,10 +184,10 @@ A feed can tell another service about every change of its packages, for example 
 }
 ```
 
-- `event` is the name of the change in the [audit log](configuration.md#package-events), one of those that end in `_succeeded`.
+- `event` is the name of the change in the [audit log](configuration.md#package-events), one of those that end in `_succeeded`, or `vulnerability_found` for a new critical finding of the [vulnerability scan](vulnerabilities.md) in a stored version (published or mirrored); that event has the advisory id in an extra `advisory` field and the actor `vulnerability-scanner`. `advisory` is `null` for the other events.
 - The request has the headers `X-PaGetto-Event` (the event), `X-PaGetto-Delivery` (an id of its own for every change) and, with a secret, `X-PaGetto-Signature`: `sha256=` and the HMAC-SHA256 of the body with the secret, in lowercase hex, the way GitHub signs its webhooks. Compare it with the HMAC of the body you received before trusting the body.
 - A webhook that doesn't answer with a 2xx status within 10 seconds is tried again after 5 and after 30 seconds, then the change is logged and dropped. At most 1000 changes wait; while a webhook is down, more are dropped.
-- Packages stored from a mirror, and versions the [retention cleanup](configuration.md#package-auto-deletion) removes, are not reported.
+- Packages stored from a mirror, and versions the [retention cleanup](configuration.md#package-auto-deletion) removes, are not reported (a critical vulnerability in a mirrored version is).
 - The secret is stored in the database, like the passwords of mirrors, and never shown again.
 
 ## Permissions

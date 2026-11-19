@@ -187,7 +187,12 @@ namespace PaGetto.Database.MySql.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
 
+                    b.Property<DateTime?>("VulnerabilitiesScannedAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("Key");
+
+                    b.HasIndex("VulnerabilitiesScannedAtUtc");
 
                     b.HasIndex("ArtifactKey", "NormalizedVersion")
                         .IsUnique();
@@ -587,7 +592,12 @@ namespace PaGetto.Database.MySql.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
 
+                    b.Property<DateTime?>("VulnerabilitiesScannedAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("Key");
+
+                    b.HasIndex("VulnerabilitiesScannedAtUtc");
 
                     b.HasIndex("FeedId", "Id");
 
@@ -655,6 +665,76 @@ namespace PaGetto.Database.MySql.Migrations
                     b.HasIndex("PackageKey");
 
                     b.ToTable("PackageTypes");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.PackageVulnerability", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("AdvisoryId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("AffectedVersions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("Aliases")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int?>("ArtifactVersionKey")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("CvssScore")
+                        .HasColumnType("double");
+
+                    b.Property<Guid>("FeedId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("FixedVersion")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTime>("FoundAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("PackageKey")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PackageName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("PackageVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("ArtifactVersionKey", "AdvisoryId")
+                        .IsUnique();
+
+                    b.HasIndex("FeedId", "Severity");
+
+                    b.HasIndex("PackageKey", "AdvisoryId")
+                        .IsUnique();
+
+                    b.ToTable("PackageVulnerabilities");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.PersonalAccessToken", b =>
@@ -936,6 +1016,23 @@ namespace PaGetto.Database.MySql.Migrations
                         .HasForeignKey("PackageKey")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Package");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.PackageVulnerability", b =>
+                {
+                    b.HasOne("PaGetto.Core.Entities.ArtifactVersion", "ArtifactVersion")
+                        .WithMany()
+                        .HasForeignKey("ArtifactVersionKey")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PaGetto.Core.Entities.Package", "Package")
+                        .WithMany()
+                        .HasForeignKey("PackageKey")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("ArtifactVersion");
 
                     b.Navigation("Package");
                 });

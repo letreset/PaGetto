@@ -32,6 +32,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public const int MaxContentHashLength = 128;
     public const int MaxArtifactFileNameLength = 256;
 
+    public const int MaxAdvisoryIdLength = 128;
+    public const int MaxAdvisorySummaryLength = 1000;
+
     public const int MaxUsernameLength = 256;
     public const int MaxDisplayNameLength = 256;
     public const int MaxEntraObjectIdLength = 128;
@@ -76,6 +79,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<UserGroup> UserGroups { get; set; }
     public DbSet<FeedPermission> FeedPermissions { get; set; }
     public DbSet<AuditEvent> AuditEvents { get; set; }
+    public DbSet<PackageVulnerability> PackageVulnerabilities { get; set; }
 
     public Task<int> SaveChangesAsync() => SaveChangesAsync(default);
 
@@ -168,6 +172,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<UserGroup>(BuildUserGroupEntity);
         builder.Entity<FeedPermission>(BuildFeedPermissionEntity);
         builder.Entity<AuditEvent>(BuildAuditEventEntity);
+        builder.Entity<PackageVulnerability>(BuildPackageVulnerabilityEntity);
     }
 
     private void BuildFeedEntity(EntityTypeBuilder<Feed> feed)
@@ -228,6 +233,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         package.HasIndex(p => new { p.FeedId, p.Id });
         package.HasIndex(p => new { p.FeedId, p.Id, p.NormalizedVersionString })
             .IsUnique();
+        package.HasIndex(p => p.VulnerabilitiesScannedAtUtc);
 
         package.Property(p => p.Id)
             .HasMaxLength(MaxPackageIdLength)
@@ -358,6 +364,7 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         version.Property(v => v.Description).HasMaxLength(DefaultMaxStringLength);
         version.Property(v => v.ContentHash).HasMaxLength(MaxContentHashLength);
         version.Property(v => v.CachedFrom).HasMaxLength(DefaultMaxStringLength);
+        version.HasIndex(v => v.VulnerabilitiesScannedAtUtc);
 
         version.HasMany(v => v.Files)
             .WithOne(f => f.ArtifactVersion)
@@ -565,5 +572,32 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         auditEvent.Property(e => e.Detail).HasMaxLength(DefaultMaxStringLength);
         auditEvent.Property(e => e.PackageId).HasMaxLength(MaxPackageIdLength);
         auditEvent.Property(e => e.PackageVersion).HasMaxLength(MaxPackageVersionLength);
+    }
+
+    private void BuildPackageVulnerabilityEntity(EntityTypeBuilder<PackageVulnerability> vulnerability)
+    {
+        vulnerability.HasKey(v => v.Key);
+        vulnerability.HasIndex(v => new { v.FeedId, v.Severity });
+        vulnerability.HasIndex(v => new { v.PackageKey, v.AdvisoryId }).IsUnique();
+        vulnerability.HasIndex(v => new { v.ArtifactVersionKey, v.AdvisoryId }).IsUnique();
+
+        vulnerability.Property(v => v.PackageName).HasMaxLength(MaxPackageIdLength).IsRequired();
+        vulnerability.Property(v => v.PackageVersion).HasMaxLength(MaxArtifactVersionLength).IsRequired();
+        vulnerability.Property(v => v.AdvisoryId).HasMaxLength(MaxAdvisoryIdLength).IsRequired();
+        vulnerability.Property(v => v.Aliases).HasMaxLength(MaxAdvisorySummaryLength);
+        vulnerability.Property(v => v.Summary).HasMaxLength(MaxAdvisorySummaryLength);
+        vulnerability.Property(v => v.AffectedVersions).HasMaxLength(MaxAdvisorySummaryLength);
+        vulnerability.Property(v => v.FixedVersion).HasMaxLength(MaxArtifactVersionLength);
+        vulnerability.Property(v => v.FoundAtUtc).IsRequired();
+
+        vulnerability.HasOne(v => v.Package)
+            .WithMany()
+            .HasForeignKey(v => v.PackageKey)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        vulnerability.HasOne(v => v.ArtifactVersion)
+            .WithMany()
+            .HasForeignKey(v => v.ArtifactVersionKey)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

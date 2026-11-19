@@ -1,0 +1,65 @@
+@using System.Globalization
+@using PaGetto.Core.Entities
+@model IReadOnlyList<PackageVulnerability>
+@* The known vulnerabilities of the version a package page shows. Renders nothing when there are none. *@
+
+@if (Model != null && Model.Count > 0)
+{
+    <section class="bgt-card bgt-vuln-card" aria-labelledby="vulnerabilities-title">
+        <div class="bgt-card-body">
+            <h2 id="vulnerabilities-title" class="bgt-card-label bgt-vuln-title">
+                <icon name="warning" size="15" />
+                @Model.Count known @(Model.Count == 1 ? "vulnerability" : "vulnerabilities") in this version
+            </h2>
+            <ul class="bgt-vuln-list">
+                @foreach (var vulnerability in Model)
+                {
+                    <li>
+                        <div class="bgt-vuln-head">
+                            <span class="bgt-badge @SeverityClass(vulnerability.Severity)">@vulnerability.Severity</span>
+                            <a href="https://osv.dev/vulnerability/@Uri.EscapeDataString(vulnerability.AdvisoryId)" target="_blank" rel="noopener noreferrer">@vulnerability.AdvisoryId</a>
+                            @if (vulnerability.Aliases != null)
+                            {
+                                <span class="bgt-muted">@vulnerability.Aliases</span>
+                            }
+                            @if (vulnerability.CvssScore.HasValue)
+                            {
+                                <span class="bgt-muted">CVSS @vulnerability.CvssScore.Value.ToString("0.0", CultureInfo.InvariantCulture)</span>
+                            }
+                        </div>
+                        @if (vulnerability.Summary != null)
+                        {
+                            <div>@vulnerability.Summary</div>
+                        }
+                        <div class="bgt-vuln-meta">
+                            @if (vulnerability.FixedVersion != null)
+                            {
+                                <span>Fixed in <strong>@vulnerability.FixedVersion</strong></span>
+                            }
+                            else
+                            {
+                                <span>No fixed version is known.</span>
+                            }
+                            @if (vulnerability.AffectedVersions != null)
+                            {
+                                <span>Affected: <code>@vulnerability.AffectedVersions</code></span>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </section>
+}
+
+@functions {
+    private static string SeverityClass(VulnerabilitySeverity severity)
+    {
+        return severity switch
+        {
+            VulnerabilitySeverity.Critical or VulnerabilitySeverity.High => "bgt-badge-danger",
+            VulnerabilitySeverity.Moderate => "bgt-badge-warn",
+            _ => null,
+        };
+    }
+}
