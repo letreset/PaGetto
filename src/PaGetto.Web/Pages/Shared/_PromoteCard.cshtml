@@ -1,0 +1,17 @@
+@model (string Id, string Version)
+@inject PaGetto.Core.Feeds.IFeedContext FeedContext
+@inject PaGetto.Web.Authentication.PromotionAuthorizer Promotion
+@* The Promote card of a package page: shown when the user can push the version to another feed of this type. *@
+
+@{
+    var targets = await Promotion.GetTargetsAsync(User, FeedContext.CurrentFeed, Context.RequestAborted);
+}
+
+@if (targets.Count > 0)
+{
+    <div class="bgt-card bgt-side-card">
+        <div class="bgt-card-label">Promote</div>
+        <p class="mb-2">Copy or move this version to another feed, with its content unchanged.</p>
+        <a class="btn btn-secondary btn-sm" asp-page="/Promote" asp-route-id="@Model.Id" asp-route-version="@Model.Version">Promote @Model.Version</a>
+    </div>
+}

@@ -1,0 +1,86 @@
+@page
+@model PaGetto.Web.Pages.Admin.QuarantineModel
+
+@{
+    ViewData["Title"] = "Quarantine";
+}
+
+@await Html.PartialAsync("_AdminTabs", "Quarantine")
+
+<div class="bgt-page-head">
+    <div>
+        <h1>Quarantine</h1>
+        <p class="bgt-lead">
+            Versions that fail their feed's quarantine policy are stored, but neither served nor listed until
+            they are released. A released version is served, and its feed's policies are no longer applied to it.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-secondary" asp-page="/Admin/Audit" asp-route-event="package_quarantined">Quarantine history</a>
+    </div>
+</div>
+
+<section class="bgt-card mb-3" aria-labelledby="quarantined-versions">
+    <div class="bgt-section-head">
+        <div>
+            <h2 id="quarantined-versions">Quarantined versions</h2>
+            <p>The policies are set per feed, in the feed's settings.</p>
+        </div>
+    </div>
+    @if (Model.Versions.Count == 0)
+    {
+        <div class="bgt-empty-row">No version is in quarantine.</div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="bgt-audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Package</th>
+                        <th scope="col">Version</th>
+                        <th scope="col">Feed</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Since</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var version in Model.Versions)
+                    {
+                        <tr>
+                            <td>@version.Name</td>
+                            <td>@version.Version</td>
+                            <td>@version.Feed.Name <span class="bgt-slug ms-1">@version.Feed.Type</span>@(version.CachedFrom == null ? null : " (mirrored)")</td>
+                            <td class="bgt-audit-detail">@version.Reason</td>
+                            <td class="text-nowrap">@Html.DisplayDate(version.QuarantinedAtUtc)</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <form method="post" asp-page-handler="Release" class="m-0"
+                                          data-confirm="@($"Release {version.Name} {version.Version}? It will be served from feed {version.Feed.Name}.")">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="isNuGet" value="@(version.IsNuGet ? "true" : "false")" />
+                                        <input type="hidden" name="key" value="@version.Key" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="Release @version.Name @version.Version">Release</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Delete" class="m-0"
+                                          data-confirm="@($"Delete {version.Name} {version.Version} from feed {version.Feed.Name}? This can't be undone.")">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="isNuGet" value="@(version.IsNuGet ? "true" : "false")" />
+                                        <input type="hidden" name="key" value="@version.Key" />
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Delete @version.Name @version.Version">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bgt-toast" role="status"><icon name="check" />@Model.SuccessMessage</div>
+}

@@ -24,6 +24,7 @@ const sidebars: SidebarsConfig = {
     'web-ui',
     'vulnerabilities',
     'malicious-packages',
+    'quarantine',
     {
       type: 'category',
       label: 'Package formats',

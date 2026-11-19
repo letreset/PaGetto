@@ -177,6 +177,16 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<DateTime>("Published")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
@@ -284,6 +294,12 @@ namespace PaGetto.Database.SqlServer.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<int?>("PackageDeletionBehavior")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("QuarantineMaliciousPackages")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("QuarantineSeverity")
                         .HasColumnType("int");
 
                     b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
@@ -661,6 +677,16 @@ namespace PaGetto.Database.SqlServer.Migrations
                         .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime>("Published")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ReleaseNotes")

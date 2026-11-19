@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WebAuditLog>();
         services.AddSingleton<HexRegistryKeyStore>();
         services.AddScoped<FeedChangeAuthorizer>();
+        services.AddScoped<PromotionAuthorizer>();
 
         services.AddSingleton(ApplicationVersionHelper.GetVersion());
 

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
+using PaGetto.Core.Quarantine;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Versioning;
 
@@ -14,20 +15,45 @@ public class PackageDatabase : IPackageDatabase
 {
     private readonly IContext _context;
     private readonly SystemTime _time;
+    private readonly QuarantinePolicy _quarantine;
 
     public PackageDatabase(IContext context, SystemTime time)
+        : this(context, time, quarantine: null)
+    {
+    }
+
+    /// <param name="context">The database.</param>
+    /// <param name="time">The clock.</param>
+    /// <param name="quarantine">The feeds' quarantine policies, applied to added versions; null for none.</param>
+    public PackageDatabase(IContext context, SystemTime time, QuarantinePolicy quarantine)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _quarantine = quarantine;
     }
 
     public async Task<PackageAddResult> AddAsync(Package package, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(package);
+
+        var version = package.Version?.ToNormalizedString() ?? package.NormalizedVersionString;
+        var quarantine = _quarantine == null ? null : await _quarantine.CheckNewVersionAsync(package.FeedId, package.Id, version, cancellationToken);
+        if (quarantine != null)
+        {
+            package.QuarantinedAtUtc = _time.UtcNow;
+            package.QuarantineReason = quarantine.Reason;
+        }
+
         try
         {
             _context.Packages.Add(package);
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            if (quarantine != null)
+            {
+                await _quarantine.RecordQuarantinedAsync(quarantine, package.Id, version, cancellationToken);
+            }
 
             return PackageAddResult.Success;
         }
@@ -116,7 +142,9 @@ public class PackageDatabase : IPackageDatabase
 
     public async Task<bool> HardDeletePackageAsync(Guid feedId, string id, NuGetVersion version, CancellationToken cancellationToken)
     {
+        // A quarantined version can be deleted too.
         var package = await _context.Packages
+            .IgnoreQueryFilters()
             .Where(p => p.FeedId == feedId && p.Id == id)
             .Where(p => p.NormalizedVersionString == version.ToNormalizedString())
             .Include(p => p.Dependencies)

@@ -178,6 +178,16 @@ namespace PaGetto.Database.PostgreSql.Migrations
                     b.Property<DateTime>("Published")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
@@ -285,6 +295,12 @@ namespace PaGetto.Database.PostgreSql.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<int?>("PackageDeletionBehavior")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("QuarantineMaliciousPackages")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("QuarantineSeverity")
                         .HasColumnType("integer");
 
                     b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
@@ -660,6 +676,16 @@ namespace PaGetto.Database.PostgreSql.Migrations
                         .HasColumnType("character varying(4000)");
 
                     b.Property<DateTime>("Published")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ReleaseNotes")

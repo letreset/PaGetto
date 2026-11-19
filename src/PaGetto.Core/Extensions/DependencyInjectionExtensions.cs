@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using PaGetto.Core.Artifacts;
 using PaGetto.Core.Audit;
+using PaGetto.Core.Quarantine;
 using PaGetto.Core.Authentication;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
@@ -153,6 +154,9 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<OsvDataClient>();
         services.TryAddScoped<MaliciousPackageUpdater>();
         services.TryAddScoped<MaliciousPackageGuard>();
+        services.TryAddScoped<QuarantinePolicy>();
+        services.TryAddScoped<QuarantineService>();
+        services.TryAddScoped<PromotionService>();
         services.TryAddScoped<MaliciousPackageService>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();

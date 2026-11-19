@@ -184,6 +184,19 @@ M1 and M2 need internet access to osv-vulnerabilities.storage.googleapis.com, an
 | M4 | `admin` | Admin > Feeds > Default > settings, **Mirrors** section | A **Block malicious packages** switch with "Use global default · Enabled"; the Dart feed has it too; saving with the default unchecked and the switch off keeps it off after a reload |
 | M5 | `alice` | Open `/admin/maliciouspackages` | Redirected to the package list |
 
+## Admin > Quarantine and promotion
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| Q1 | `admin` | Admin > Feeds > Internal > settings, **Mirrors** section | **Quarantine vulnerable versions** (Off, Critical, High or above, Moderate or above, Any severity) and a **Quarantine malicious packages** switch; both keep their values after **Save** and a reload |
+| Q2 | `admin` | Turn **Quarantine malicious packages** on for Internal; on Malicious packages allow nothing; add a listing for a test package through the database or pick one the data lists; push that package to Internal | The push succeeds, but the package is not in Internal's list and its URL answers 404. **Quarantine** in the admin tabs (also in the user menu) lists it with feed Internal and the reason `Listed as a malicious package (MAL-…)` |
+| Q3 | `admin` | On **Quarantine**, **Release** the version of Q2 and confirm; push another listed version and **Delete** it | The toast says it is released, the row disappears and the package is listed and downloads again. After **Delete** the row disappears and the version is gone. **Quarantine history** opens the audit log with `package_quarantined`; the log also has `package_released` and `package_quarantine_deleted` |
+| Q4 | `admin` | Set **Quarantine vulnerable versions** to High or above on Internal and push a new version of Contoso.Logging; wait a minute and reload **Quarantine** | First the version is listed with "Waiting for its first vulnerability scan."; after the scan it is gone from the list and served |
+| Q5 | `alice` | Open Internal > Contoso.Logging, then **Promote** on the side; choose Experimental, **Promote**; promote it again | The card "Promote" is shown (alice can push to Experimental); the form lists only NuGet feeds alice can push to. "is copied to feed Experimental" with a link to the copy, which has the same version. The second time: "already has version" |
+| Q6 | `carol` | Open Experimental > Contoso.Preview.Ai | No **Promote** card (carol can't push to another NuGet feed) |
+| Q7 | `carol` | Internal > Contoso.Core > **Promote**, choose Experimental, check **Move**, **Promote** | "moving it needs the delete permission on this feed"; nothing changes |
+| Q8 | `alice` | Open `/admin/quarantine` | Redirected to the package list |
+
 ## Admin > Audit log
 
 | # | Account | Steps | Expected |

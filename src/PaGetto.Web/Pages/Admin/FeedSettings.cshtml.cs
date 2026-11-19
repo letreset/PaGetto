@@ -137,6 +137,15 @@ public class FeedSettingsModel : PageModel
     [BindProperty]
     public bool UseGlobalBlockMaliciousPackages { get; set; }
 
+    /// <summary>
+    /// Versions with a vulnerability of this severity or higher are quarantined; null for none.
+    /// </summary>
+    [BindProperty]
+    public VulnerabilitySeverity? QuarantineSeverity { get; set; }
+
+    [BindProperty]
+    public bool QuarantineMaliciousPackages { get; set; }
+
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
 
@@ -193,6 +202,8 @@ public class FeedSettingsModel : PageModel
 
         UseGlobalBlockMaliciousPackages = !feed.BlockMaliciousPackages.HasValue;
         BlockMaliciousPackages = feed.BlockMaliciousPackages;
+        QuarantineSeverity = feed.QuarantineSeverity;
+        QuarantineMaliciousPackages = feed.QuarantineMaliciousPackages;
 
         WebhookUrl = feed.WebhookUrl;
         WebhookSecretNew = null;
@@ -403,6 +414,8 @@ public class FeedSettingsModel : PageModel
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
         Feed.MirrorCacheRetentionDays = UseGlobalMirrorCacheRetention ? null : MirrorCacheRetentionDays;
         Feed.BlockMaliciousPackages = UseGlobalBlockMaliciousPackages ? null : BlockMaliciousPackages;
+        Feed.QuarantineSeverity = QuarantineSeverity is VulnerabilitySeverity.Unknown ? null : QuarantineSeverity;
+        Feed.QuarantineMaliciousPackages = QuarantineMaliciousPackages;
 
         Feed.WebhookUrl = string.IsNullOrWhiteSpace(WebhookUrl) ? null : WebhookUrl.Trim();
         if (Feed.WebhookUrl == null || RemoveWebhookSecret)

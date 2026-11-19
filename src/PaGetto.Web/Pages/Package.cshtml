@@ -428,6 +428,11 @@
             </div>
         }
 
+        @if (Model.IsStoredLocally)
+        {
+            await Html.RenderPartialAsync("_PromoteCard", (package.Id, version));
+        }
+
         @if (Model.CanManage && Model.IsStoredLocally)
         {
             <div class="bgt-danger-zone">

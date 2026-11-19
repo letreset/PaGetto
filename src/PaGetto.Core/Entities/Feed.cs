@@ -46,6 +46,18 @@ public class Feed
     public bool? BlockMaliciousPackages { get; set; }
 
     /// <summary>
+    /// Versions with a known vulnerability of this severity or higher are quarantined, and new
+    /// versions wait in quarantine for their first scan; null for no such policy.
+    /// </summary>
+    public VulnerabilitySeverity? QuarantineSeverity { get; set; }
+
+    /// <summary>
+    /// Whether versions that the malicious packages data lists are quarantined, including versions
+    /// published to the feed.
+    /// </summary>
+    public bool QuarantineMaliciousPackages { get; set; }
+
+    /// <summary>
     /// The URL that is sent a POST for every package published, unlisted, relisted or deleted in
     /// the feed, or null for none.
     /// </summary>

@@ -164,6 +164,16 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Property<DateTime>("Published")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("Size")
                         .HasColumnType("INTEGER");
 
@@ -271,6 +281,12 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("PackageDeletionBehavior")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("QuarantineMaliciousPackages")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("QuarantineSeverity")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool?>("RetentionDeletePrereleasesOfOlderMajors")
@@ -638,6 +654,16 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Published")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("QuarantineReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("QuarantineReleasedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("QuarantinedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ReleaseNotes")

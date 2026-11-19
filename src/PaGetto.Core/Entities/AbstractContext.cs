@@ -242,6 +242,10 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         package.HasIndex(p => new { p.FeedId, p.Id, p.NormalizedVersionString })
             .IsUnique();
         package.HasIndex(p => p.VulnerabilitiesScannedAtUtc);
+        package.Property(p => p.QuarantineReason).HasMaxLength(DefaultMaxStringLength);
+
+        // A quarantined version is neither served nor listed; code that must see it says IgnoreQueryFilters.
+        package.HasQueryFilter(p => p.QuarantinedAtUtc == null);
 
         package.Property(p => p.Id)
             .HasMaxLength(MaxPackageIdLength)
@@ -373,6 +377,10 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         version.Property(v => v.ContentHash).HasMaxLength(MaxContentHashLength);
         version.Property(v => v.CachedFrom).HasMaxLength(DefaultMaxStringLength);
         version.HasIndex(v => v.VulnerabilitiesScannedAtUtc);
+        version.Property(v => v.QuarantineReason).HasMaxLength(DefaultMaxStringLength);
+
+        // A quarantined version is neither served nor listed; code that must see it says IgnoreQueryFilters.
+        version.HasQueryFilter(v => v.QuarantinedAtUtc == null);
 
         version.HasMany(v => v.Files)
             .WithOne(f => f.ArtifactVersion)

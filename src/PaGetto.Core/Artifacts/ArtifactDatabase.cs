@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
+using PaGetto.Core.Quarantine;
 
 namespace PaGetto.Core.Artifacts;
 
@@ -17,11 +18,21 @@ public class ArtifactDatabase : IArtifactDatabase
 {
     private readonly IContext _context;
     private readonly SystemTime _time;
+    private readonly QuarantinePolicy _quarantine;
 
     public ArtifactDatabase(IContext context, SystemTime time)
+        : this(context, time, quarantine: null)
+    {
+    }
+
+    /// <param name="context">The database.</param>
+    /// <param name="time">The clock.</param>
+    /// <param name="quarantine">The feeds' quarantine policies, applied to added versions; null for none.</param>
+    public ArtifactDatabase(IContext context, SystemTime time, QuarantinePolicy quarantine)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _quarantine = quarantine;
     }
 
     public async Task<IReadOnlyList<ArtifactVersion>> FindVersionsAsync(Guid feedId, string name, CancellationToken cancellationToken)
@@ -45,6 +56,7 @@ public class ArtifactDatabase : IArtifactDatabase
     public async Task<ArtifactVersion> FindVersionOrNullAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
         return await Versions(feedId, name, version)
+            .Where(v => v.QuarantinedAtUtc == null)
             .AsNoTracking()
             .Include(v => v.Artifact)
             .FirstOrDefaultAsync(cancellationToken);
@@ -53,6 +65,13 @@ public class ArtifactDatabase : IArtifactDatabase
     public async Task<ArtifactAddResult> AddVersionAsync(Guid feedId, string name, ArtifactVersion version, CancellationToken cancellationToken)
     {
         version.NormalizedVersion = Normalize(version.Version);
+
+        var quarantine = _quarantine == null ? null : await _quarantine.CheckNewVersionAsync(feedId, name, version.Version, cancellationToken);
+        if (quarantine != null)
+        {
+            version.QuarantinedAtUtc = _time.UtcNow;
+            version.QuarantineReason = quarantine.Reason;
+        }
 
         // The second attempt is for two first versions of one package added at the same time: the
         // loser fails on the package's unique index, and then finds the package the winner created.
@@ -75,6 +94,11 @@ public class ArtifactDatabase : IArtifactDatabase
             {
                 await _context.SaveChangesAsync(cancellationToken);
                 await RaiseRevisionAsync(feedId);
+
+                if (quarantine != null)
+                {
+                    await _quarantine.RecordQuarantinedAsync(quarantine, name, version.Version, cancellationToken);
+                }
 
                 return ArtifactAddResult.Success;
             }
@@ -197,7 +221,9 @@ public class ArtifactDatabase : IArtifactDatabase
 
     public async Task<bool> HardDeleteVersionAsync(Guid feedId, string name, string version, CancellationToken cancellationToken)
     {
+        // Quarantined versions too: they can be deleted, and the package is only removed with its last version.
         var artifact = await _context.Artifacts
+            .IgnoreQueryFilters()
             .Include(a => a.Versions)
             .Include(a => a.Tags)
             .AsSplitQuery()
@@ -248,8 +274,9 @@ public class ArtifactDatabase : IArtifactDatabase
 
     public async Task<IReadOnlyList<string>> FindNamesAsync(Guid feedId, CancellationToken cancellationToken)
     {
+        // A package whose versions are all quarantined is left out.
         return await _context.Artifacts
-            .Where(a => a.FeedId == feedId)
+            .Where(a => a.FeedId == feedId && a.Versions.Any())
             .OrderBy(a => a.Name)
             .Select(a => a.Name)
             .ToListAsync(cancellationToken);
@@ -257,7 +284,7 @@ public class ArtifactDatabase : IArtifactDatabase
 
     public async Task<ArtifactSearchResult> SearchAsync(Guid feedId, string query, int skip, int take, CancellationToken cancellationToken)
     {
-        var artifacts = _context.Artifacts.AsNoTracking().Where(a => a.FeedId == feedId);
+        var artifacts = _context.Artifacts.AsNoTracking().Where(a => a.FeedId == feedId && a.Versions.Any());
 
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -293,6 +320,10 @@ public class ArtifactDatabase : IArtifactDatabase
         return await _context.ArtifactTags
             .AsNoTracking()
             .Where(t => t.Artifact.FeedId == feedId && t.Artifact.Name == name)
+#pragma warning disable CA1862 // Not for EF queries: StringComparison overloads aren't translated to SQL.
+            // A tag of a quarantined version is left out with it.
+            .Where(t => _context.ArtifactVersions.Any(v => v.ArtifactKey == t.ArtifactKey && v.NormalizedVersion == t.Version.ToLower()))
+#pragma warning restore CA1862
             .OrderBy(t => t.Name)
             .ToListAsync(cancellationToken);
     }
@@ -371,11 +402,16 @@ public class ArtifactDatabase : IArtifactDatabase
         return changed;
     }
 
+    /// <summary>
+    /// The stored version, quarantined or not: a version that waits in quarantine still gets the
+    /// files, tags and changes its client sends after adding it.
+    /// </summary>
     private IQueryable<ArtifactVersion> Versions(Guid feedId, string name, string version)
     {
         var normalizedVersion = Normalize(version);
 
         return _context.ArtifactVersions
+            .IgnoreQueryFilters()
             .Where(v => v.Artifact.FeedId == feedId && v.Artifact.Name == name)
             .Where(v => v.NormalizedVersion == normalizedVersion);
     }
