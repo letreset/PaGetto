@@ -130,6 +130,8 @@ A VS Code feed lists the extensions stored in it by their display names, with se
 
 Users with the **delete** permission can **unlist** a version, which leaves it out of the gallery while its files can still be downloaded, **relist** it, or delete it for good with all its platforms.
 
+A version can be [promoted](quarantine.md#promotion) to another VS Code feed with the files of all its platforms. A version that came from a mirror becomes one of the target feed's own extensions there: it is offered as a private extension without the mirror's signature, and the target feed no longer looks that extension up on its mirrors.
+
 ## Feed settings and limits
 
 Most [feed settings](feeds.md#feed-settings) apply to VS Code feeds as to any other feed. These differ:

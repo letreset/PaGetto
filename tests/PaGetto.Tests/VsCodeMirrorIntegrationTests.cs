@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,6 +85,27 @@ public class VsCodeMirrorIntegrationTests : IDisposable
         Assert.Equal(version.AssetUri, again.AssetUri);
         Assert.Equal(vsix, await _downstreamClient.GetByteArrayAsync(again.GetAssetUrl(VsCodeGalleryApi.VsixPackageAsset)));
         Assert.Equal(VsCodePackageBuilder.Icon, await _downstreamClient.GetByteArrayAsync(again.GetAssetUrl(VsCodeGalleryApi.IconAsset)));
+    }
+
+    [Fact]
+    public async Task PromotedMirroredVersionIsTheTargetFeedsOwn()
+    {
+        await SetUpAsync();
+        var vsix = await UploadUpstreamAsync("1.0.0");
+        var version = Assert.Single((await _downstreamClient.FindVsCodeExtensionAsync(MirrorFeed, Id)).Versions);
+        Assert.Equal(vsix, await _downstreamClient.GetByteArrayAsync(version.GetAssetUrl(VsCodeGalleryApi.VsixPackageAsset)));
+        await _downstream.CreateVsCodeFeedAsync("release");
+
+        using var promote = await _downstreamClient.PostAsJsonAsync(
+            $"feeds/{MirrorFeed}/api/v1/promote",
+            new { packageId = "contoso.hello-world", version = "1.0.0", targetFeed = "release", move = false });
+        Assert.Equal(HttpStatusCode.OK, promote.StatusCode);
+
+        // Copied as published to the target, so it is offered as one of its own extensions.
+        var promoted = Assert.Single((await _downstreamClient.FindVsCodeExtensionAsync("release", Id)).Versions);
+        Assert.Contains(promoted.Properties, p => p.Key == VsCodeGalleryApi.PrivateProperty && p.Value == "true");
+        Assert.Equal(vsix, await _downstreamClient.GetByteArrayAsync(promoted.GetAssetUrl(VsCodeGalleryApi.VsixPackageAsset)));
+        Assert.Contains(await GetStoredVersionsAsync(), v => v.CachedFrom == null && v.Artifact.FeedId != Guid.Empty);
     }
 
     [Fact]

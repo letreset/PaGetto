@@ -261,6 +261,43 @@ public class VsCodeGalleryIntegrationTests : IDisposable
         Assert.Contains("extensionsGallery", connect);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PromotesAVersionWithTheFileOfEachPlatform(bool move)
+    {
+        await _app.CreateVsCodeFeedAsync(Feed);
+        await _app.CreateVsCodeFeedAsync("release");
+        var linux = VsCodePackageBuilder.Create("Contoso", "hello-world", "1.0.0", "linux-x64");
+        var windows = VsCodePackageBuilder.Create("Contoso", "hello-world", "1.0.0", "win32-x64");
+        await UploadAsync("1.0.0", linux);
+        await UploadAsync("1.0.0", windows);
+
+        using var promote = await _client.PostAsJsonAsync(
+            $"feeds/{Feed}/api/v1/promote",
+            new { packageId = "contoso.hello-world", version = "1.0.0", targetFeed = "release", move });
+        Assert.Equal(HttpStatusCode.OK, promote.StatusCode);
+
+        var extension = await _client.FindVsCodeExtensionAsync("release", Id);
+        Assert.Equal(["linux-x64", "win32-x64"], extension.Versions.Select(v => v.TargetPlatform));
+        Assert.All(extension.Versions, v => Assert.Contains(v.Properties, p => p.Key == VsCodeGalleryApi.PrivateProperty));
+        Assert.Equal(linux, await _client.GetByteArrayAsync(extension.Versions[0].GetAssetUrl(VsCodeGalleryApi.VsixPackageAsset)));
+        Assert.Equal(windows, await _client.GetByteArrayAsync(extension.Versions[1].GetAssetUrl(VsCodeGalleryApi.VsixPackageAsset)));
+        Assert.Equal(VsCodePackageBuilder.Readme, await _client.GetStringAsync(extension.Versions[0].GetAssetUrl(VsCodeGalleryApi.DetailsAsset)));
+        Assert.Contains("Says hello from the editor.", await _client.GetStringAsync("feeds/release/artifacts/contoso.hello-world"));
+
+        // A move leaves nothing in the source feed; a copy leaves it as it was.
+        var source = await _client.FindVsCodeExtensionAsync(Feed, Id);
+        if (move)
+        {
+            Assert.Null(source);
+        }
+        else
+        {
+            Assert.Equal(2, source.Versions.Count);
+        }
+    }
+
     private async Task UploadAsync(string version, byte[] vsix = null)
     {
         using var upload = await _client.UploadVsCodeAsync(Feed, vsix ?? VsCodePackageBuilder.Create("Contoso", "hello-world", version));
