@@ -115,7 +115,8 @@ public class VulnerabilitiesModel : PageModel
             summary = v.Summary,
             affectedVersions = v.AffectedVersions,
             fixedVersion = v.FixedVersion,
-            foundAtUtc = v.FoundAtUtc,
+            // SQLite gives back dates without their kind; they are stored in UTC.
+            foundAtUtc = DateTime.SpecifyKind(v.FoundAtUtc, DateTimeKind.Utc),
         }).ToList();
 
         if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
