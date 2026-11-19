@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
@@ -19,6 +20,7 @@ public partial class PackageService : IPackageService
     private readonly IFeedService _feedService;
     private readonly IPackageIndexingService _indexer;
     private readonly PackageMirrorLock _mirrorLock;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<PackageService> _logger;
 
     public PackageService(
@@ -27,6 +29,7 @@ public partial class PackageService : IPackageService
         IFeedService feedService,
         IPackageIndexingService indexer,
         PackageMirrorLock mirrorLock,
+        MaliciousPackageGuard malicious,
         ILogger<PackageService> logger)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
@@ -34,6 +37,7 @@ public partial class PackageService : IPackageService
         _feedService = feedService ?? throw new ArgumentNullException(nameof(feedService));
         _indexer = indexer ?? throw new ArgumentNullException(nameof(indexer));
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -114,8 +118,16 @@ public partial class PackageService : IPackageService
     /// <returns>True if the package exists locally or was indexed from an upstream source.</returns>
     private async Task<bool> MirrorAsync(Guid feedId, string feedSlug, string id, NuGetVersion version, CancellationToken cancellationToken)
     {
-        if (await _db.ExistsAsync(feedId, id, version, cancellationToken))
+        var stored = await _db.FindOrNullAsync(feedId, id, version, includeUnlisted: true, cancellationToken);
+        if (stored != null)
         {
+            // A mirrored copy of a version listed as malicious since is not served.
+            if (stored.CachedFrom != null)
+            {
+                var storedFeed = await _feedService.GetFeedByIdAsync(feedId, cancellationToken);
+                await _malicious.EnsureAllowedAsync(storedFeed, id, version, stored, cancellationToken);
+            }
+
             return true;
         }
 
@@ -128,6 +140,7 @@ public partial class PackageService : IPackageService
         }
 
         var feed = await _feedService.GetFeedByIdAsync(feedId, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, id, version, (Package)null, cancellationToken);
         var upstream = _upstreamFactory.CreateForFeed(feed);
 
         var upstreamUrl = upstream.GetServiceIndexUrl();

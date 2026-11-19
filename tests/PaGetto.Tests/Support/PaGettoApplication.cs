@@ -98,6 +98,9 @@ public class PaGettoApplication : WebApplicationFactory<Startup>
 
                     // Tests that scan turn it on, with a fake database.
                     { "VulnerabilityScanning:Enabled", "false" },
+
+                    // Tests of malicious packages turn it on, with a fake data export.
+                    { "MaliciousPackages:Enabled", "false" },
                 };
                 _inMemoryConfiguration?.Invoke(dict);
 

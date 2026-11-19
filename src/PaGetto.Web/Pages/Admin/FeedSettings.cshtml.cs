@@ -131,6 +131,12 @@ public class FeedSettingsModel : PageModel
     [BindProperty]
     public bool UseGlobalMirrorCacheRetention { get; set; }
 
+    [BindProperty]
+    public bool? BlockMaliciousPackages { get; set; }
+
+    [BindProperty]
+    public bool UseGlobalBlockMaliciousPackages { get; set; }
+
     public string SuccessMessage { get; set; }
     public string ErrorMessage { get; set; }
 
@@ -184,6 +190,9 @@ public class FeedSettingsModel : PageModel
 
         UseGlobalMirrorCacheRetention = !feed.MirrorCacheRetentionDays.HasValue;
         MirrorCacheRetentionDays = feed.MirrorCacheRetentionDays;
+
+        UseGlobalBlockMaliciousPackages = !feed.BlockMaliciousPackages.HasValue;
+        BlockMaliciousPackages = feed.BlockMaliciousPackages;
 
         WebhookUrl = feed.WebhookUrl;
         WebhookSecretNew = null;
@@ -393,6 +402,7 @@ public class FeedSettingsModel : PageModel
 
         Feed.UpstreamListingCacheSeconds = UseGlobalListingCache ? null : UpstreamListingCacheSeconds;
         Feed.MirrorCacheRetentionDays = UseGlobalMirrorCacheRetention ? null : MirrorCacheRetentionDays;
+        Feed.BlockMaliciousPackages = UseGlobalBlockMaliciousPackages ? null : BlockMaliciousPackages;
 
         Feed.WebhookUrl = string.IsNullOrWhiteSpace(WebhookUrl) ? null : WebhookUrl.Trim();
         if (Feed.WebhookUrl == null || RemoveWebhookSecret)

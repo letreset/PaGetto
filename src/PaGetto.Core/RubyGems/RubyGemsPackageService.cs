@@ -10,6 +10,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.RubyGems;
@@ -26,6 +27,7 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<RubyGemsPackageService> _logger;
 
     public RubyGemsPackageService(
@@ -35,6 +37,7 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<RubyGemsPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -43,6 +46,7 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -127,6 +131,7 @@ public partial class RubyGemsPackageService : IRubyGemsPackageService
         {
             var name = RubyGemsPackageName.Normalize(candidate.Name);
             var local = await _artifacts.FindVersionOrNullAsync(feed.Id, name, candidate.Version, cancellationToken);
+            await _malicious.EnsureAllowedAsync(feed, name, local?.Version ?? candidate.Version, local, cancellationToken);
 
             var file = local == null ? null : await FindStoredFileAsync(feed, name, local.Version, candidate.FullName + RubyGemsFileName.GemExtension, cancellationToken);
             if (file == null && (local == null || local.CachedFrom != null))

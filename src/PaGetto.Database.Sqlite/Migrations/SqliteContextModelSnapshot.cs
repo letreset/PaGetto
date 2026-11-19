@@ -246,6 +246,9 @@ namespace PaGetto.Database.Sqlite.Migrations
                     b.Property<long>("ArtifactRevision")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool?>("BlockMaliciousPackages")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
@@ -447,6 +450,108 @@ namespace PaGetto.Database.Sqlite.Migrations
                         .IsUnique();
 
                     b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackage", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdvisoryId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AffectedVersions")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ecosystem")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ModifiedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("Ecosystem", "AdvisoryId");
+
+                    b.HasIndex("Ecosystem", "Name");
+
+                    b.ToTable("MaliciousPackages");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackageAllowance", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ecosystem")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("Ecosystem", "Name");
+
+                    b.ToTable("MaliciousPackageAllowances");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackageSource", b =>
+                {
+                    b.Property<string>("Ecosystem")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("AttemptedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CursorUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RefreshedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Ecosystem");
+
+                    b.ToTable("MaliciousPackageSources");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Package", b =>

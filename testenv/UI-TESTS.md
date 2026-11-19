@@ -172,6 +172,18 @@ These need internet access to api.osv.dev, and a minute after the environment st
 | V4 | `alice` | Open `/admin/vulnerabilities` | Redirected to the package list |
 | V5 | `admin` | Internal > Contoso.Logging | No vulnerability card (OSV doesn't know the package) |
 
+## Admin > Malicious packages
+
+M1 and M2 need internet access to osv-vulnerabilities.storage.googleapis.com, and a minute after the environment starts for the first copy (the Default feed mirrors nuget.org).
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| M1 | `admin` | Open **Malicious packages** in the admin tabs (also in the user menu) | The **Local copy** table has a `NuGet` row with a package count and the refresh time, or "Waiting for first copy" in the first minute |
+| M2 | `admin` | **Look up a package** with an ecosystem and a name from the [OpenSSF data](https://github.com/ossf/malicious-packages/tree/main/osv/malicious) (e.g. NuGet and a name under `osv/malicious/nuget/`) | The advisories that list it, linked to osv.dev, with "every version" or "some versions" |
+| M3 | `admin` | Allow npm `evil-pkg` version `1.0.0` without a reason, then with the reason `False positive`; then **Remove** it and confirm | First "Say why the package is allowed."; then the toast "npm:evil-pkg@1.0.0 is allowed." and the row with `admin` and the date; after **Remove** the toast "npm:evil-pkg@1.0.0 is no longer allowed." and "No packages are allowed." **Audit log** has `malicious_package_allowed` and `malicious_package_allowance_removed` for `npm:evil-pkg@1.0.0` |
+| M4 | `admin` | Admin > Feeds > Default > settings, **Mirrors** section | A **Block malicious packages** switch with "Use global default · Enabled"; the Dart feed has it too; saving with the default unchecked and the switch off keeps it off after a reload |
+| M5 | `alice` | Open `/admin/maliciouspackages` | Redirected to the package list |
+
 ## Admin > Audit log
 
 | # | Account | Steps | Expected |

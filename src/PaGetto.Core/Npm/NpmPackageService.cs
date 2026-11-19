@@ -15,6 +15,7 @@ using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 using PaGetto.Core.Vulnerabilities;
 
@@ -45,6 +46,7 @@ public partial class NpmPackageService : INpmPackageService
     private readonly SystemTime _time;
     private readonly IVulnerabilityService _vulnerabilities;
     private readonly IOptionsSnapshot<VulnerabilityScanningOptions> _scanningOptions;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<NpmPackageService> _logger;
 
     public NpmPackageService(
@@ -56,6 +58,7 @@ public partial class NpmPackageService : INpmPackageService
         SystemTime time,
         IVulnerabilityService vulnerabilities,
         IOptionsSnapshot<VulnerabilityScanningOptions> scanningOptions,
+        MaliciousPackageGuard malicious,
         ILogger<NpmPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -66,6 +69,7 @@ public partial class NpmPackageService : INpmPackageService
         _time = time ?? throw new ArgumentNullException(nameof(time));
         _vulnerabilities = vulnerabilities ?? throw new ArgumentNullException(nameof(vulnerabilities));
         _scanningOptions = scanningOptions ?? throw new ArgumentNullException(nameof(scanningOptions));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -136,8 +140,9 @@ public partial class NpmPackageService : INpmPackageService
         }
 
         var storedName = NpmPackageName.Normalize(name);
-        if (await _artifacts.FindVersionOrNullAsync(feed.Id, storedName, version, cancellationToken) == null
-            && !await MirrorAsync(feed, name, version, cancellationToken))
+        var stored = await _artifacts.FindVersionOrNullAsync(feed.Id, storedName, version, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, storedName, version, stored, cancellationToken);
+        if (stored == null && !await MirrorAsync(feed, name, version, cancellationToken))
         {
             return null;
         }

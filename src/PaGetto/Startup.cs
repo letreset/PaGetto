@@ -15,6 +15,7 @@ using PaGetto.Core.Notifications;
 using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.Storage;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Vulnerabilities;
 using PaGetto.Core.Webhooks;
 using PaGetto.Database.MySql;
@@ -87,6 +88,7 @@ public class Startup
 
         // Matches stored versions against the OSV vulnerability database.
         services.AddHostedService<VulnerabilityScanService>();
+        services.AddHostedService<MaliciousPackageRefreshService>();
 
         services.AddHealthChecks();
 
@@ -256,6 +258,7 @@ public class Startup
         app.UseCors(ConfigurePaGettoServer.CorsPolicy);
 
         app.UseOperationCancelledMiddleware();
+        app.UseMiddleware<MaliciousPackageMiddleware>();
 
         app.UseEndpoints(endpoints =>
         {

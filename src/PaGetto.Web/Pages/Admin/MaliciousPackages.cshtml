@@ -1,0 +1,214 @@
+@page
+@using System.Globalization
+@model PaGetto.Web.Pages.Admin.MaliciousPackagesModel
+
+@{
+    ViewData["Title"] = "Malicious packages";
+}
+
+@await Html.PartialAsync("_AdminTabs", "MaliciousPackages")
+
+<div class="bgt-page-head">
+    <div>
+        <h1>Malicious packages</h1>
+        <p class="bgt-lead">
+            Mirrored versions that the OpenSSF malicious packages data lists are neither stored nor served.
+            Versions published to a feed are never blocked.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-secondary" asp-page="/Admin/Audit" asp-route-event="malicious_package_blocked">Blocked downloads</a>
+    </div>
+</div>
+
+@if (!Model.DefaultEnabled)
+{
+    <div class="bgt-card bgt-card-body mb-3">
+        Blocking is turned off by default (<code>MaliciousPackages:Enabled</code>). Only feeds that turn it on in their settings block listed versions.
+    </div>
+}
+
+<section class="bgt-card mb-3" aria-labelledby="mal-sources">
+    <div class="bgt-section-head">
+        <div>
+            <h2 id="mal-sources">Local copy</h2>
+            <p>Refreshed in the background for each ecosystem a mirroring feed blocks. A failed refresh keeps the copy in use.</p>
+        </div>
+    </div>
+    @if (Model.Sources.Count == 0)
+    {
+        <div class="bgt-empty-row">No mirroring feed blocks malicious packages yet.</div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="bgt-audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Ecosystem</th>
+                        <th scope="col">Listed packages</th>
+                        <th scope="col">Refreshed (UTC)</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var source in Model.Sources)
+                    {
+                        <tr>
+                            <td>@source.Ecosystem</td>
+                            <td>@source.Count.ToString("N0", CultureInfo.InvariantCulture)</td>
+                            <td class="text-nowrap">@(source.RefreshedAtUtc.HasValue ? Html.DisplayDate(source.RefreshedAtUtc.Value) : Html.Raw("Not yet"))</td>
+                            <td class="bgt-audit-detail">
+                                @if (source.LastError != null)
+                                {
+                                    <span class="bgt-badge bgt-badge-danger">Refresh failed</span>
+                                    <div>@source.LastError</div>
+                                }
+                                else if (!source.Needed)
+                                {
+                                    <span class="bgt-badge">Not used</span>
+                                }
+                                else if (source.RefreshedAtUtc.HasValue)
+                                {
+                                    <span class="bgt-badge">Up to date</span>
+                                }
+                                else
+                                {
+                                    <span class="bgt-badge bgt-badge-warn">Waiting for first copy</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<form method="get" class="bgt-card bgt-card-body mb-3" aria-label="Look up a package">
+    <h2 class="h5">Look up a package</h2>
+    <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr))">
+        <div>
+            <label for="lookup-ecosystem" class="form-label">Ecosystem</label>
+            <select id="lookup-ecosystem" name="ecosystem" class="form-select">
+                @foreach (var ecosystem in MaliciousPackagesModel.Ecosystems)
+                {
+                    <option value="@ecosystem" selected="@(ecosystem == Model.LookupEcosystem)">@ecosystem</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="lookup-name" class="form-label">Package name</label>
+            <input id="lookup-name" name="name" value="@Model.LookupName" class="form-control" autocomplete="off" required />
+        </div>
+    </div>
+    <div class="bgt-form-actions">
+        <button type="submit" class="btn btn-primary">Look up</button>
+    </div>
+    @if (Model.Listings != null)
+    {
+        @if (Model.Listings.Count == 0)
+        {
+            <p class="mt-3 mb-0">@Model.LookupName is not listed as a malicious @Model.LookupEcosystem package.</p>
+        }
+        else
+        {
+            <ul class="mt-3 mb-0">
+                @foreach (var listing in Model.Listings)
+                {
+                    <li>
+                        <a href="https://osv.dev/vulnerability/@Uri.EscapeDataString(listing.AdvisoryId)" target="_blank" rel="noopener noreferrer">@listing.AdvisoryId</a>
+                        (@(listing.AffectedVersions == null ? "every version" : "some versions"))@(listing.Summary != null ? ": " + listing.Summary : "")
+                    </li>
+                }
+            </ul>
+        }
+    }
+</form>
+
+<section class="bgt-card mb-3" aria-labelledby="mal-allowances">
+    <div class="bgt-section-head">
+        <div>
+            <h2 id="mal-allowances">Allowed packages</h2>
+            <p>Listed packages that every feed of their ecosystem serves anyway, e.g. false positives. Adding and removing one is recorded in the audit log.</p>
+        </div>
+    </div>
+    @if (Model.Allowances.Count == 0)
+    {
+        <div class="bgt-empty-row">No packages are allowed.</div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="bgt-audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Package</th>
+                        <th scope="col">Version</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Allowed by</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var allowance in Model.Allowances)
+                    {
+                        <tr>
+                            <td>@allowance.Name <span class="bgt-slug ms-1">@allowance.Ecosystem</span></td>
+                            <td>@(allowance.Version ?? "Every version")</td>
+                            <td class="bgt-audit-detail">@allowance.Reason</td>
+                            <td class="text-nowrap">@allowance.CreatedBy, @Html.DisplayDate(allowance.CreatedAtUtc)</td>
+                            <td>
+                                <form method="post" asp-page-handler="Remove" class="m-0"
+                                      data-confirm="@($"Block {MaliciousPackagesModel.Describe(allowance)} again?")">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="key" value="@allowance.Key" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Remove the allowance of @MaliciousPackagesModel.Describe(allowance)">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <form method="post" asp-page-handler="Allow" class="bgt-card-body" aria-label="Allow a package">
+        @Html.AntiForgeryToken()
+        <div class="bgt-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr))">
+            <div>
+                <label asp-for="AllowEcosystem" class="form-label">Ecosystem</label>
+                <select asp-for="AllowEcosystem" class="form-select">
+                    @foreach (var ecosystem in MaliciousPackagesModel.Ecosystems)
+                    {
+                        <option value="@ecosystem">@ecosystem</option>
+                    }
+                </select>
+                <span asp-validation-for="AllowEcosystem" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="AllowName" class="form-label">Package name</label>
+                <input asp-for="AllowName" class="form-control" autocomplete="off" />
+                <span asp-validation-for="AllowName" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="AllowVersion" class="form-label">Version</label>
+                <input asp-for="AllowVersion" class="form-control" autocomplete="off" placeholder="Every version" />
+                <span asp-validation-for="AllowVersion" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="AllowReason" class="form-label">Reason</label>
+                <input asp-for="AllowReason" class="form-control" autocomplete="off" />
+                <span asp-validation-for="AllowReason" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="bgt-form-actions">
+            <button type="submit" class="btn btn-primary">Allow</button>
+        </div>
+    </form>
+</section>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bgt-toast" role="status"><icon name="check" />@Model.SuccessMessage</div>
+}

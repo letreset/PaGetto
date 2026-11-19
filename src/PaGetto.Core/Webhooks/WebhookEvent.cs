@@ -11,7 +11,7 @@ namespace PaGetto.Core.Webhooks;
 /// <param name="PackageVersion">The version, or null for a change of a whole package.</param>
 /// <param name="Actor">Who made the change.</param>
 /// <param name="TimestampUtc">When the change was made.</param>
-/// <param name="Advisory">The advisory of a <see cref="VulnerabilityFoundEvent"/>, otherwise null.</param>
+/// <param name="Advisory">The advisory of a <see cref="VulnerabilityFoundEvent"/> or <see cref="MaliciousPackageBlockedEvent"/>, otherwise null.</param>
 public record WebhookEvent(
     string Event,
     string FeedSlug,
@@ -25,4 +25,9 @@ public record WebhookEvent(
     /// The event of a new critical vulnerability of a stored version.
     /// </summary>
     public const string VulnerabilityFoundEvent = "vulnerability_found";
+
+    /// <summary>
+    /// The event of a download refused because the version is listed as a malicious package.
+    /// </summary>
+    public const string MaliciousPackageBlockedEvent = "malicious_package_blocked";
 }

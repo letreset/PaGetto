@@ -12,6 +12,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.Maven;
@@ -32,6 +33,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<MavenRepositoryService> _logger;
 
     public MavenRepositoryService(
@@ -41,6 +43,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<MavenRepositoryService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -49,6 +52,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -169,6 +173,7 @@ public partial class MavenRepositoryService : IMavenRepositoryService
     {
         var name = path.PackageName;
         var version = await _artifacts.FindVersionOrNullAsync(feed.Id, name, path.Version, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, path.Version, version, cancellationToken);
         var file = version == null ? null : await FindStoredFileAsync(feed, name, path.Version, path.FileName, cancellationToken);
 
         // A version published to the feed hides the same version of a mirror. Snapshots change with

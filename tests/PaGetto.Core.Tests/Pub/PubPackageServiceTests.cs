@@ -13,6 +13,7 @@ using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Pub;
 using PaGetto.Core.Tests.Support;
 using PaGetto.Core.Upstream;
@@ -286,6 +287,7 @@ public class PubPackageServiceTests
                 new PackageMirrorLock(),
                 FeedSettings.Object,
                 time.Object,
+                new MaliciousPackageGuard(Mock.Of<IContext>(), Mock.Of<IFeedSettingsResolver>(), Mock.Of<ILogger<MaliciousPackageGuard>>()),
                 Mock.Of<ILogger<PubPackageService>>());
         }
 

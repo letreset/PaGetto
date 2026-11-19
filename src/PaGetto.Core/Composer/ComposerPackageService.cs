@@ -10,6 +10,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.Composer;
@@ -25,6 +26,7 @@ public partial class ComposerPackageService : IComposerPackageService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<ComposerPackageService> _logger;
 
     public ComposerPackageService(
@@ -34,6 +36,7 @@ public partial class ComposerPackageService : IComposerPackageService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<ComposerPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -42,6 +45,7 @@ public partial class ComposerPackageService : IComposerPackageService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -119,8 +123,9 @@ public partial class ComposerPackageService : IComposerPackageService
         name = name.ToLowerInvariant();
 
         // Development versions of mirrors change, so they are not stored.
-        var stored = await FindStoredVersionOrNullAsync(feed, name, parsed, cancellationToken)
-            ?? (parsed.IsDev ? null : await MirrorAsync(feed, name, parsed, cancellationToken));
+        var stored = await FindStoredVersionOrNullAsync(feed, name, parsed, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, stored?.Version ?? version, stored, cancellationToken);
+        stored ??= parsed.IsDev ? null : await MirrorAsync(feed, name, parsed, cancellationToken);
         if (stored == null)
         {
             return null;

@@ -38,6 +38,7 @@ using PaGetto.Core.Webhooks;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
 using PaGetto.Core.Vsix;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Vulnerabilities;
 using PaGetto.Protocol;
 using Microsoft.Extensions.Configuration;
@@ -111,6 +112,7 @@ public static partial class DependencyInjectionExtensions
         services.AddPaGettoOptions<PatExpiryNotificationOptions>(nameof(PaGettoOptions.PatExpiryNotification));
         services.AddPaGettoOptions<AuditOptions>(nameof(PaGettoOptions.Audit));
         services.AddPaGettoOptions<VulnerabilityScanningOptions>(nameof(PaGettoOptions.VulnerabilityScanning));
+        services.AddPaGettoOptions<MaliciousPackageOptions>(nameof(PaGettoOptions.MaliciousPackages));
     }
 
     private static void AddPaGettoServices(this IServiceCollection services)
@@ -148,6 +150,10 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<OsvClient>();
         services.TryAddScoped<VulnerabilityScanner>();
         services.TryAddTransient<IVulnerabilityService, VulnerabilityService>();
+        services.TryAddTransient<OsvDataClient>();
+        services.TryAddScoped<MaliciousPackageUpdater>();
+        services.TryAddScoped<MaliciousPackageGuard>();
+        services.TryAddScoped<MaliciousPackageService>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();
