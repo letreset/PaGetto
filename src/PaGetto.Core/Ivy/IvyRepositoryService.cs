@@ -11,6 +11,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Maven;
 using PaGetto.Core.Upstream;
 
@@ -34,6 +35,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<IvyRepositoryService> _logger;
 
     public IvyRepositoryService(
@@ -43,6 +45,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<IvyRepositoryService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -51,6 +54,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -58,6 +62,7 @@ public partial class IvyRepositoryService : IIvyRepositoryService
     {
         var name = path.PackageName;
         var version = await _artifacts.FindVersionOrNullAsync(feed.Id, name, path.Revision, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, path.Revision, version, cancellationToken);
         var file = version == null ? null : await FindStoredFileAsync(feed, name, path.Revision, path.FileName, cancellationToken);
 
         // A revision published to the feed hides the same revision of a mirror. Snapshots are

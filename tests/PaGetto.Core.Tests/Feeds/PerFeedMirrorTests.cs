@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -81,6 +82,7 @@ public class PerFeedMirrorTests
             feedService.Object,
             _indexer.Object,
             new PackageMirrorLock(),
+            new MaliciousPackageGuard(Mock.Of<IContext>(), Mock.Of<IFeedSettingsResolver>(), Mock.Of<ILogger<MaliciousPackageGuard>>()),
             Mock.Of<ILogger<PackageService>>());
     }
 

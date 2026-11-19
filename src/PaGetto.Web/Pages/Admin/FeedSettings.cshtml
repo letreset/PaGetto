@@ -482,6 +482,28 @@
                     @{ Inherit(nameof(Model.UseGlobalMirrorCacheRetention), Model.UseGlobalMirrorCacheRetention, nameof(Model.MirrorCacheRetentionDays), global.MirrorCacheRetentionDays == 0 ? "Keep" : global.MirrorCacheRetentionDays + " days"); }
                 </div>
             </div>
+
+            @if (PaGetto.Core.Vulnerabilities.OsvEcosystem.GetName(Model.Feed.Type) != null)
+            {
+                <div class="bgt-setting">
+                    <div class="bgt-setting-label">
+                        <span class="title">Block malicious packages</span>
+                        <div class="bgt-setting-help">
+                            Versions that the OpenSSF malicious packages data lists are not mirrored, and stored mirrored
+                            copies are not served. Versions published to this feed are never blocked.
+                        </div>
+                    </div>
+                    <div class="bgt-setting-control">
+                        <label class="form-check form-switch">
+                            @* Rendered by hand: asp-for renders a bool? as a text input, which a switch can't toggle. *@
+                            <input type="checkbox" class="form-check-input" role="switch" id="@nameof(Model.BlockMaliciousPackages)" name="@nameof(Model.BlockMaliciousPackages)" value="true" checked="@(Model.BlockMaliciousPackages ?? global.MaliciousPackages.Enabled)" data-global-value="@(global.MaliciousPackages.Enabled ? "true" : "false")" />
+                            <span class="form-check-label">Block</span>
+                        </label>
+                        <input type="hidden" name="@nameof(Model.BlockMaliciousPackages)" value="false" />
+                        @{ Inherit(nameof(Model.UseGlobalBlockMaliciousPackages), Model.UseGlobalBlockMaliciousPackages, nameof(Model.BlockMaliciousPackages), global.MaliciousPackages.Enabled ? "Enabled" : "Disabled"); }
+                    </div>
+                </div>
+            }
         </section>
 
         <section id="webhook" class="bgt-card bgt-card-clip">

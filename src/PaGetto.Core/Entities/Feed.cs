@@ -40,6 +40,12 @@ public class Feed
     public int? MirrorCacheRetentionDays { get; set; }
 
     /// <summary>
+    /// Whether versions that the malicious packages data lists are refused from the feed's mirrors;
+    /// null uses <see cref="Configuration.MaliciousPackageOptions.Enabled"/>.
+    /// </summary>
+    public bool? BlockMaliciousPackages { get; set; }
+
+    /// <summary>
     /// The URL that is sent a POST for every package published, unlisted, relisted or deleted in
     /// the feed, or null for none.
     /// </summary>

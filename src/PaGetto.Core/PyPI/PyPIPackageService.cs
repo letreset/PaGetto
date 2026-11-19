@@ -12,6 +12,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.PyPI;
@@ -28,6 +29,7 @@ public partial class PyPIPackageService : IPyPIPackageService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<PyPIPackageService> _logger;
 
     public PyPIPackageService(
@@ -37,6 +39,7 @@ public partial class PyPIPackageService : IPyPIPackageService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<PyPIPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -45,6 +48,7 @@ public partial class PyPIPackageService : IPyPIPackageService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -137,14 +141,13 @@ public partial class PyPIPackageService : IPyPIPackageService
             return null;
         }
 
+        var local = await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, version, local, cancellationToken);
+
         var file = await FindStoredFileAsync(feed, name, version, fileName, cancellationToken);
-        if (file == null && !IsMetadataFile(fileName))
+        if (file == null && !IsMetadataFile(fileName) && (local == null || local.CachedFrom != null))
         {
-            var local = await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken);
-            if (local == null || local.CachedFrom != null)
-            {
-                file = await MirrorAsync(feed, name, version, fileName, cancellationToken);
-            }
+            file = await MirrorAsync(feed, name, version, fileName, cancellationToken);
         }
 
         if (file == null)

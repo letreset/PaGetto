@@ -34,6 +34,8 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
 
     public const int MaxAdvisoryIdLength = 128;
     public const int MaxAdvisorySummaryLength = 1000;
+    public const int MaxEcosystemLength = 32;
+    public const int MaxMaliciousPackageNameLength = 256;
 
     public const int MaxUsernameLength = 256;
     public const int MaxDisplayNameLength = 256;
@@ -80,6 +82,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
     public DbSet<FeedPermission> FeedPermissions { get; set; }
     public DbSet<AuditEvent> AuditEvents { get; set; }
     public DbSet<PackageVulnerability> PackageVulnerabilities { get; set; }
+    public DbSet<MaliciousPackage> MaliciousPackages { get; set; }
+    public DbSet<MaliciousPackageAllowance> MaliciousPackageAllowances { get; set; }
+    public DbSet<MaliciousPackageSource> MaliciousPackageSources { get; set; }
 
     public Task<int> SaveChangesAsync() => SaveChangesAsync(default);
 
@@ -173,6 +178,9 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
         builder.Entity<FeedPermission>(BuildFeedPermissionEntity);
         builder.Entity<AuditEvent>(BuildAuditEventEntity);
         builder.Entity<PackageVulnerability>(BuildPackageVulnerabilityEntity);
+        builder.Entity<MaliciousPackage>(BuildMaliciousPackageEntity);
+        builder.Entity<MaliciousPackageAllowance>(BuildMaliciousPackageAllowanceEntity);
+        builder.Entity<MaliciousPackageSource>(BuildMaliciousPackageSourceEntity);
     }
 
     private void BuildFeedEntity(EntityTypeBuilder<Feed> feed)
@@ -599,5 +607,39 @@ public abstract class AbstractContext<TContext> : DbContext, IContext where TCon
             .WithMany()
             .HasForeignKey(v => v.ArtifactVersionKey)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void BuildMaliciousPackageEntity(EntityTypeBuilder<MaliciousPackage> package)
+    {
+        package.HasKey(p => p.Key);
+        package.HasIndex(p => new { p.Ecosystem, p.Name });
+        package.HasIndex(p => new { p.Ecosystem, p.AdvisoryId });
+
+        package.Property(p => p.Ecosystem).HasMaxLength(MaxEcosystemLength).IsRequired();
+        package.Property(p => p.Name).HasMaxLength(MaxMaliciousPackageNameLength).IsRequired();
+        package.Property(p => p.AdvisoryId).HasMaxLength(MaxAdvisoryIdLength).IsRequired();
+        package.Property(p => p.Summary).HasMaxLength(MaxAdvisorySummaryLength);
+        package.Property(p => p.ModifiedUtc).IsRequired();
+    }
+
+    private void BuildMaliciousPackageAllowanceEntity(EntityTypeBuilder<MaliciousPackageAllowance> allowance)
+    {
+        allowance.HasKey(a => a.Key);
+        allowance.HasIndex(a => new { a.Ecosystem, a.Name });
+
+        allowance.Property(a => a.Ecosystem).HasMaxLength(MaxEcosystemLength).IsRequired();
+        allowance.Property(a => a.Name).HasMaxLength(MaxMaliciousPackageNameLength).IsRequired();
+        allowance.Property(a => a.Version).HasMaxLength(MaxArtifactVersionLength);
+        allowance.Property(a => a.Reason).HasMaxLength(MaxAdvisorySummaryLength);
+        allowance.Property(a => a.CreatedBy).HasMaxLength(MaxUsernameLength);
+        allowance.Property(a => a.CreatedAtUtc).IsRequired();
+    }
+
+    private void BuildMaliciousPackageSourceEntity(EntityTypeBuilder<MaliciousPackageSource> source)
+    {
+        source.HasKey(s => s.Ecosystem);
+
+        source.Property(s => s.Ecosystem).HasMaxLength(MaxEcosystemLength);
+        source.Property(s => s.LastError).HasMaxLength(MaxAdvisorySummaryLength);
     }
 }

@@ -25,6 +25,9 @@ public class NullContext : IContext
     public DbSet<FeedPermission> FeedPermissions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<AuditEvent> AuditEvents { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public DbSet<PackageVulnerability> PackageVulnerabilities { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public DbSet<MaliciousPackage> MaliciousPackages { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public DbSet<MaliciousPackageAllowance> MaliciousPackageAllowances { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public DbSet<MaliciousPackageSource> MaliciousPackageSources { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public bool SupportsLimitInSubqueries => throw new NotImplementedException();
 

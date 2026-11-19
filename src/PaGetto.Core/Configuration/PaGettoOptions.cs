@@ -119,4 +119,6 @@ public class PaGettoOptions
     public AuditOptions Audit { get; set; } = new();
 
     public VulnerabilityScanningOptions VulnerabilityScanning { get; set; } = new();
+
+    public MaliciousPackageOptions MaliciousPackages { get; set; } = new();
 }

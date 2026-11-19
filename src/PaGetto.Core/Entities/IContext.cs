@@ -24,6 +24,9 @@ public interface IContext
     DbSet<FeedPermission> FeedPermissions { get; set; }
     DbSet<AuditEvent> AuditEvents { get; set; }
     DbSet<PackageVulnerability> PackageVulnerabilities { get; set; }
+    DbSet<MaliciousPackage> MaliciousPackages { get; set; }
+    DbSet<MaliciousPackageAllowance> MaliciousPackageAllowances { get; set; }
+    DbSet<MaliciousPackageSource> MaliciousPackageSources { get; set; }
 
     /// <summary>
     /// Check whether a <see cref="DbUpdateException"/> is due to a SQL unique constraint violation.

@@ -81,6 +81,33 @@ public partial class WebAuditLog
     }
 
     /// <summary>
+    /// Logs a download refused because the version is listed as a malicious package, stores it,
+    /// and sends it to the feed's webhook with the advisory.
+    /// </summary>
+    public async Task MaliciousPackageBlockedAsync(HttpContext httpContext, string feed, string packageId, string packageVersion, string advisoryId)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var eventName = WebhookEvent.MaliciousPackageBlockedEvent;
+        var actor = GetActor(httpContext);
+        var ip = httpContext.Connection.RemoteIpAddress;
+        LogMaliciousPackageEvent(eventName, feed, packageId, packageVersion, advisoryId, actor, ip);
+
+        await StoreAsync(new AuditEvent
+        {
+            Event = eventName,
+            Actor = actor,
+            IpAddress = ip?.ToString(),
+            Feed = feed,
+            PackageId = packageId,
+            PackageVersion = packageVersion,
+            Detail = "advisory=" + advisoryId,
+        });
+
+        _webhooks.Enqueue(new WebhookEvent(eventName, feed, packageId, packageVersion, actor, _systemTime.UtcNow, advisoryId));
+    }
+
+    /// <summary>
     /// Logs a symbol package upload through the NuGet API, e.g. <c>symbol_upload_too_large</c>.
     /// </summary>
     public async Task SymbolAsync(HttpContext httpContext, LogLevel level, string eventName, string feed, string actor)
@@ -154,6 +181,9 @@ public partial class WebAuditLog
 
     [LoggerMessage(Message = "AUDIT {Event} feed={Feed} package_id={PackageId} package_version={PackageVersion} actor={Actor} ip={Ip}")]
     private partial void LogPackageEvent(LogLevel level, string @event, string feed, string packageId, string packageVersion, string actor, IPAddress ip);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "AUDIT {Event} feed={Feed} package_id={PackageId} package_version={PackageVersion} advisory={Advisory} actor={Actor} ip={Ip}")]
+    private partial void LogMaliciousPackageEvent(string @event, string feed, string packageId, string packageVersion, string advisory, string actor, IPAddress ip);
 
     [LoggerMessage(Message = "AUDIT {Event} feed={Feed} actor={Actor} ip={Ip}")]
     private partial void LogSymbolEvent(LogLevel level, string @event, string feed, string actor, IPAddress ip);

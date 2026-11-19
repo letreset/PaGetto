@@ -259,6 +259,9 @@ namespace PaGetto.Database.SqlServer.Migrations
                     b.Property<long>("ArtifactRevision")
                         .HasColumnType("bigint");
 
+                    b.Property<bool?>("BlockMaliciousPackages")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -464,6 +467,112 @@ namespace PaGetto.Database.SqlServer.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackage", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("AdvisoryId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("AffectedVersions")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Ecosystem")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("ModifiedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("Ecosystem", "AdvisoryId");
+
+                    b.HasIndex("Ecosystem", "Name");
+
+                    b.ToTable("MaliciousPackages");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackageAllowance", b =>
+                {
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Ecosystem")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("Ecosystem", "Name");
+
+                    b.ToTable("MaliciousPackageAllowances");
+                });
+
+            modelBuilder.Entity("PaGetto.Core.Entities.MaliciousPackageSource", b =>
+                {
+                    b.Property<string>("Ecosystem")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime?>("AttemptedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CursorUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("RefreshedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Ecosystem");
+
+                    b.ToTable("MaliciousPackageSources");
                 });
 
             modelBuilder.Entity("PaGetto.Core.Entities.Package", b =>

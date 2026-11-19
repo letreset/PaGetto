@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
     'authentication',
     'web-ui',
     'vulnerabilities',
+    'malicious-packages',
     {
       type: 'category',
       label: 'Package formats',

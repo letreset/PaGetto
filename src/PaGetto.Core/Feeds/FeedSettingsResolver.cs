@@ -88,6 +88,11 @@ public class FeedSettingsResolver : IFeedSettingsResolver
         return Math.Max(0, feed?.MirrorCacheRetentionDays ?? _options.Value.MirrorCacheRetentionDays);
     }
 
+    public bool GetBlockMaliciousPackages(Feed feed)
+    {
+        return feed?.BlockMaliciousPackages ?? _options.Value.MaliciousPackages.Enabled;
+    }
+
     public IReadOnlyList<MirrorOptions> GetMirrorOptions(Feed feed)
     {
         if (feed?.Mirrors == null)

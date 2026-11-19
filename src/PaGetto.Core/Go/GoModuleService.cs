@@ -9,6 +9,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.Go;
@@ -21,6 +22,7 @@ public partial class GoModuleService : IGoModuleService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<GoModuleService> _logger;
 
     public GoModuleService(
@@ -30,6 +32,7 @@ public partial class GoModuleService : IGoModuleService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<GoModuleService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -38,6 +41,7 @@ public partial class GoModuleService : IGoModuleService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -164,8 +168,9 @@ public partial class GoModuleService : IGoModuleService
 
         var name = GoModulePath.Escape(modulePath);
 
-        if (await FindStoredVersionOrNullAsync(feed, name, version, cancellationToken) == null
-            && !await MirrorAsync(feed, modulePath, parsedVersion, cancellationToken))
+        var stored = await FindStoredVersionOrNullAsync(feed, name, version, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, version, stored, cancellationToken);
+        if (stored == null && !await MirrorAsync(feed, modulePath, parsedVersion, cancellationToken))
         {
             return null;
         }

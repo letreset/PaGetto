@@ -625,6 +625,27 @@ Stored package versions are matched against the [OSV](https://osv.dev) vulnerabi
 
 See [Vulnerability scanning](vulnerabilities.md#configuration) for what each setting does and what is sent to the database.
 
+## Malicious packages
+
+Feeds that mirror refuse the versions that the [OpenSSF malicious packages](https://github.com/ossf/malicious-packages) data lists, from a local copy refreshed in the background from `https://osv-vulnerabilities.storage.googleapis.com/`. On servers without access to it, turn it off or point it at a copy:
+
+```json
+{
+    ...
+
+    "MaliciousPackages": {
+        "Enabled": true,
+        "DataUrl": "https://osv-vulnerabilities.storage.googleapis.com/",
+        "RefreshIntervalHours": 1,
+        "TimeoutSeconds": 900
+    },
+
+    ...
+}
+```
+
+See [Malicious packages](malicious-packages.md#configuration) for what each setting does. Each feed can override `Enabled` in its settings.
+
 ## Audit log
 
 PaGetto writes one log line for every package upload, unlist, delete and relist, from the clients of every package format and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.

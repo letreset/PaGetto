@@ -32,6 +32,11 @@ public interface IFeedSettingsResolver
     int GetMirrorCacheRetentionDays(Feed feed);
 
     /// <summary>
+    /// Whether versions that the malicious packages data lists are refused from the feed's mirrors.
+    /// </summary>
+    bool GetBlockMaliciousPackages(Feed feed);
+
+    /// <summary>
     /// The feed's enabled mirrors, in priority order. Empty when the feed does not mirror.
     /// </summary>
     IReadOnlyList<MirrorOptions> GetMirrorOptions(Feed feed);

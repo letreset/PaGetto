@@ -12,6 +12,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
+using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Upstream;
 
 namespace PaGetto.Core.Pub;
@@ -28,6 +29,7 @@ public partial class PubPackageService : IPubPackageService
     private readonly PackageMirrorLock _mirrorLock;
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly SystemTime _time;
+    private readonly MaliciousPackageGuard _malicious;
     private readonly ILogger<PubPackageService> _logger;
 
     public PubPackageService(
@@ -37,6 +39,7 @@ public partial class PubPackageService : IPubPackageService
         PackageMirrorLock mirrorLock,
         IFeedSettingsResolver feedSettings,
         SystemTime time,
+        MaliciousPackageGuard malicious,
         ILogger<PubPackageService> logger)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
@@ -45,6 +48,7 @@ public partial class PubPackageService : IPubPackageService
         _mirrorLock = mirrorLock ?? throw new ArgumentNullException(nameof(mirrorLock));
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _malicious = malicious ?? throw new ArgumentNullException(nameof(malicious));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -98,8 +102,9 @@ public partial class PubPackageService : IPubPackageService
             return null;
         }
 
-        if (await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken) == null
-            && !await MirrorAsync(feed, name, version, cancellationToken))
+        var stored = await _artifacts.FindVersionOrNullAsync(feed.Id, name, version, cancellationToken);
+        await _malicious.EnsureAllowedAsync(feed, name, version, stored, cancellationToken);
+        if (stored == null && !await MirrorAsync(feed, name, version, cancellationToken))
         {
             return null;
         }
