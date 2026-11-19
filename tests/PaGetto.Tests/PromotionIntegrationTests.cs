@@ -94,6 +94,18 @@ public class PromotionIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task AnswersMissingFieldsAsNotFound()
+    {
+        await SetUpAsync();
+
+        using var noTarget = await _client.PostAsJsonAsync($"feeds/{Staging}/api/v1/promote", new { packageId = Package, version = "1.0.0" });
+        using var noPackage = await _client.PostAsJsonAsync($"feeds/{Staging}/api/v1/promote", new { targetFeed = Release });
+
+        Assert.Equal(HttpStatusCode.NotFound, noTarget.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, noPackage.StatusCode);
+    }
+
+    [Fact]
     public async Task AppliesTheTargetFeedsPolicies()
     {
         await SetUpAsync(configureRelease: f => f.QuarantineMaliciousPackages = true);

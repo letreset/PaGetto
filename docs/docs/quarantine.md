@@ -42,7 +42,7 @@ curl -u alice:<token> -H "Content-Type: application/json" \
   https://pagetto.example.com/feeds/staging/api/v1/promote
 ```
 
-`packageId` is the name as the feed stores it (the id of a NuGet package). The answer is `200 OK` with the package, version and feeds, `404` when the source feed has no such version (or it is quarantined), `409 Conflict` when the target has it, `400` for a target of another type, `401` or `403` without the permissions, and `403` for a read-only feed. In the `Legacy` [authentication mode](authentication.md) the API key stands for every permission, and the web UI has no **Promote** card.
+`packageId` is the name as the feed stores it (the id of a NuGet package). The answer is `200 OK` with the package, version and feeds, `404` when the target feed doesn't exist, or the source feed has no such version (or it is quarantined, or `packageId` or `version` is missing), `409 Conflict` when the target has it, `400` for a target of another type, `401` or `403` without the permissions, and `403` for a read-only feed. In the `Legacy` [authentication mode](authentication.md) the API key stands for every permission, and the web UI has no **Promote** card.
 
 ## Audit and webhook events
 

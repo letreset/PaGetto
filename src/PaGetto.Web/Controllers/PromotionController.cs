@@ -32,19 +32,21 @@ public class PromotionController : Controller
     [HttpPost]
     public async Task<IActionResult> Promote([FromBody] PromotionRequest request, CancellationToken cancellationToken)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.PackageId) || string.IsNullOrWhiteSpace(request.Version) || string.IsNullOrWhiteSpace(request.TargetFeed))
-        {
-            return Problem("packageId, version and targetFeed are required.", statusCode: StatusCodes.Status400BadRequest);
-        }
+        // Missing fields are not answered before the permissions are checked: an empty target is no
+        // feed, and PromoteAsync answers an empty package or version as not found.
+        var packageId = request?.PackageId?.Trim() ?? string.Empty;
+        var version = request?.Version?.Trim() ?? string.Empty;
+        var targetSlug = request?.TargetFeed?.Trim() ?? string.Empty;
+        var move = request?.Move ?? false;
 
         var source = _feedContext.CurrentFeed;
-        var target = await _feeds.GetFeedBySlugAsync(request.TargetFeed.Trim(), cancellationToken);
+        var target = await _feeds.GetFeedBySlugAsync(targetSlug, cancellationToken);
         if (target == null)
         {
-            return Problem($"There is no feed {request.TargetFeed}.", statusCode: StatusCodes.Status404NotFound);
+            return Problem($"There is no feed '{targetSlug}'.", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var access = await _authorizer.CheckAsync(User, Request.GetApiKey(), source, target, request.Move, cancellationToken);
+        var access = await _authorizer.CheckAsync(User, Request.GetApiKey(), source, target, move, cancellationToken);
         if (access == FeedChangeAccess.Unauthorized)
         {
             return User.Identity?.IsAuthenticated == true ? Forbid() : Unauthorized();
@@ -55,13 +57,13 @@ public class PromotionController : Controller
             return Problem("The feed is read-only.", statusCode: StatusCodes.Status403Forbidden);
         }
 
-        var result = await _promotions.PromoteAsync(source, target, request.PackageId.Trim(), request.Version.Trim(), request.Move, GetActor(), cancellationToken);
+        var result = await _promotions.PromoteAsync(source, target, packageId, version, move, GetActor(), cancellationToken);
 
         return result switch
         {
-            PromotionResult.Success => Ok(new { packageId = request.PackageId.Trim(), version = request.Version.Trim(), sourceFeed = source.Slug, targetFeed = target.Slug, moved = request.Move }),
-            PromotionResult.NotFound => Problem($"Feed {source.Slug} has no version {request.Version} of {request.PackageId}.", statusCode: StatusCodes.Status404NotFound),
-            PromotionResult.AlreadyExists => Problem($"Feed {target.Slug} already has version {request.Version} of {request.PackageId}.", statusCode: StatusCodes.Status409Conflict),
+            PromotionResult.Success => Ok(new { packageId, version, sourceFeed = source.Slug, targetFeed = target.Slug, moved = move }),
+            PromotionResult.NotFound => Problem($"Feed {source.Slug} has no version '{version}' of '{packageId}'.", statusCode: StatusCodes.Status404NotFound),
+            PromotionResult.AlreadyExists => Problem($"Feed {target.Slug} already has version {version} of {packageId}.", statusCode: StatusCodes.Status409Conflict),
             PromotionResult.InvalidTarget => Problem("The target must be another feed of the same type.", statusCode: StatusCodes.Status400BadRequest),
             _ => Problem($"Feed {target.Slug} refused the package.", statusCode: StatusCodes.Status400BadRequest),
         };
