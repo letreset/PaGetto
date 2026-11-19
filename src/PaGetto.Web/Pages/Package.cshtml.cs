@@ -13,6 +13,7 @@ using PaGetto.Core.Extensions;
 using PaGetto.Core.Feeds;
 using PaGetto.Core.Indexing;
 using PaGetto.Core.Search;
+using PaGetto.Core.Vulnerabilities;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 using PaGetto.Web.Extensions;
@@ -44,6 +45,7 @@ public class PackageModel : PageModel
     private readonly WebAuditLog _audit;
     private readonly IOptionsSnapshot<NugetAuthenticationOptions> _authOptions;
     private readonly SystemTime _time;
+    private readonly IVulnerabilityService _vulnerabilities;
 
     static PackageModel()
     {
@@ -63,7 +65,8 @@ public class PackageModel : PageModel
         IFeedSettingsResolver feedSettings,
         WebAuditLog audit,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions,
-        SystemTime time)
+        SystemTime time,
+        IVulnerabilityService vulnerabilities)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -76,6 +79,7 @@ public class PackageModel : PageModel
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _vulnerabilities = vulnerabilities ?? throw new ArgumentNullException(nameof(vulnerabilities));
     }
 
     public bool Found { get; private set; }
@@ -165,6 +169,12 @@ public class PackageModel : PageModel
     /// </summary>
     public string PackageSize { get; private set; }
     public string PackageDownloadUrl { get; private set; }
+
+    /// <summary>
+    /// The known vulnerabilities of the shown version, most severe first. Empty for a version that
+    /// is only available from a mirror, which is scanned once it is stored.
+    /// </summary>
+    public IReadOnlyList<PackageVulnerability> Vulnerabilities { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string id, string version, CancellationToken cancellationToken)
     {
@@ -264,6 +274,11 @@ public class PackageModel : PageModel
 
         PackageSize = Package.Size?.ToFileSize();
         PackageDownloadUrl = _url.GetPackageDownloadUrl(Package.Id, packageVersion);
+
+        if (Package.Key != 0)
+        {
+            Vulnerabilities = await _vulnerabilities.GetForPackageAsync(Package.Key, cancellationToken);
+        }
 
         return Page();
     }

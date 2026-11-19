@@ -30,6 +30,7 @@ using PaGetto.Core.PyPI;
 using PaGetto.Core.RubyGems;
 using PaGetto.Core.Swift;
 using PaGetto.Core.Vsix;
+using PaGetto.Core.Vulnerabilities;
 using PaGetto.Web.Audit;
 using PaGetto.Web.Authentication;
 
@@ -54,6 +55,7 @@ public class ArtifactModel : PageModel
     private readonly IFeedSettingsResolver _feedSettings;
     private readonly WebAuditLog _audit;
     private readonly IOptionsSnapshot<NugetAuthenticationOptions> _authOptions;
+    private readonly IVulnerabilityService _vulnerabilities;
 
     public ArtifactModel(
         IArtifactDatabase artifacts,
@@ -62,7 +64,8 @@ public class ArtifactModel : PageModel
         IPermissionService permissions,
         IFeedSettingsResolver feedSettings,
         WebAuditLog audit,
-        IOptionsSnapshot<NugetAuthenticationOptions> authOptions)
+        IOptionsSnapshot<NugetAuthenticationOptions> authOptions,
+        IVulnerabilityService vulnerabilities)
     {
         _artifacts = artifacts ?? throw new ArgumentNullException(nameof(artifacts));
         _storage = storage ?? throw new ArgumentNullException(nameof(storage));
@@ -71,6 +74,7 @@ public class ArtifactModel : PageModel
         _feedSettings = feedSettings ?? throw new ArgumentNullException(nameof(feedSettings));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
+        _vulnerabilities = vulnerabilities ?? throw new ArgumentNullException(nameof(vulnerabilities));
     }
 
     public bool Found { get; private set; }
@@ -96,6 +100,11 @@ public class ArtifactModel : PageModel
     /// The version the page shows.
     /// </summary>
     public ArtifactVersion Version { get; private set; }
+
+    /// <summary>
+    /// The known vulnerabilities of the shown version, most severe first.
+    /// </summary>
+    public IReadOnlyList<PackageVulnerability> Vulnerabilities { get; private set; } = [];
 
     /// <summary>
     /// Whether <see cref="Version"/> is the version shown by default.
@@ -239,6 +248,7 @@ public class ArtifactModel : PageModel
         Versions = ArtifactVersionOrder.SortDescending(feed.Type, versions);
         TotalDownloads = versions.Sum(v => v.Downloads);
         LastUpdated = versions.Max(v => v.Published);
+        Vulnerabilities = await _vulnerabilities.GetForArtifactVersionAsync(Version.Key, cancellationToken);
 
         if (feed.Type == FeedType.Pub)
         {

@@ -118,6 +118,7 @@ public partial class WebhookDeliveryService : BackgroundService
                 packageVersion = change.PackageVersion,
                 actor = change.Actor,
                 timestamp = change.TimestampUtc,
+                advisory = change.Advisory,
             },
             _json);
         var delivery = Guid.NewGuid().ToString();

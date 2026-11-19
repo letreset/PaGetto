@@ -63,6 +63,8 @@ A package page shows the package's readme, versions, install commands for the fe
 - A link to the package's [Atom feed](#atom-feed), in the **About** card.
 - A **Tags** card; a tag opens the package list filtered by that tag.
 
+On every feed type, a stored version with known vulnerabilities shows them in a card above the install commands: each advisory with its severity, a link to it on osv.dev, the affected versions and the version that fixes it. See [Vulnerability scanning](vulnerabilities.md).
+
 ### Atom feed
 
 Every package has an Atom feed of its listed versions, newest first (at most 20), at `/packages/{id}/atom.xml`, or `/feeds/{slug}/packages/{id}/atom.xml` for a named feed. The package page links to it, so feed readers can find it from the page URL. Versions that are only available from a mirror are included, unlisted versions aren't.
@@ -120,6 +122,7 @@ Administrators open these pages from the user menu. They share a tab row, so you
 | Accounts | Create, enable and disable [local accounts](authentication.md#local-accounts), allow or block web sign-in, make or remove administrators, unlock locked accounts, reset passwords, create tokens, and see Entra users who have signed in. A disabled account can be deleted. Each row shows whether the account is Local or Entra, its email address, and its groups: role-synced groups and manual memberships have different chips |
 | Groups & permissions | Manage [groups](authentication.md#groups), their members, and their [permissions](authentication.md#feed-permissions) on each feed |
 | Feeds | Create, reorder and delete [feeds](feeds.md#managing-feeds), copy each feed's service index URL, and open each feed's [settings](feeds.md#feed-settings) (including its display name, description and mirrors) |
+| Vulnerabilities | The stored versions with known vulnerabilities across feeds, with filters and an export |
 | Audit log | The successful package actions and administration changes, with who made them, when and from which IP address |
 
 ### Feeds
@@ -141,6 +144,10 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 ![Admin > Groups & permissions with three groups, and the permissions of the Developers group on each feed](./assets/web-ui/admin-groups.png)
 
 **New group** opens the form for a group, with an optional **App role value** that links it to an Entra app role; it can't be changed afterwards. The pencil button next to a group edits its name and description; members, permissions and the app role link are kept. Add members to a group with **Add member**, and remove one with the x on its chip. Entra users can't be added to or removed from a role-linked group by hand: their membership follows their app roles. **Delete group** removes the group with its memberships and permissions. Open **Feed permissions** under a group to set its **Pull**, **Push** and **Delete** permissions on each feed, then select **Save permissions**; the button is enabled once a box changes. Clearing all three removes the group's access to that feed.
+
+### Vulnerabilities
+
+**Vulnerabilities** lists every finding of the [vulnerability scan](vulnerabilities.md), most severe first and 50 per page: the severity, the package and version with its feed (linked to its package page), the advisory with its summary (linked to osv.dev), the version that fixes it and when it was found, in UTC. Filter by feed, by severity (a severity and everything above it) and by text in the package name or advisory id. **Export CSV** and **Export JSON** download every finding that matches the filters, with the aliases, CVSS score and affected versions too.
 
 ### Audit log
 

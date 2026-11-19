@@ -160,6 +160,18 @@ For every page you open, the browser console should show no errors.
 | G6 | `admin` | Create a group, open its delete confirmation in two tabs, confirm in both | The first shows the toast "Group deleted successfully.", the second "Group not found." |
 | G7 | `admin` | Create a group `Temp`, add `carol` and give it Pull on Internal. Click its pencil, rename it to `Developers`; then rename it to `Temporary` with a new description and **Save** | The first shows "Group 'Developers' already exists." with the form still open and nothing changed; the second shows the toast "Group 'Temporary' updated successfully.", the new name and description, `carol` still a member and Pull on Internal kept. The container log has `AUDIT group_updated` for `Temp` with `name=Temporary`. Delete the group afterwards |
 
+## Admin > Vulnerabilities
+
+These need internet access to api.osv.dev, and a minute after the environment starts for the first scan.
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| V1 | `admin` | Default > `/packages/Newtonsoft.Json/12.0.1` (stores the version from nuget.org), **Download .nupkg**; wait a minute and reload | A "1 known vulnerability in this version" card above the install tabs with a **High** badge, `GHSA-5crp-9r3c-p9vr` linked to osv.dev, its CVE alias, the affected versions and "Fixed in **13.0.1**" |
+| V2 | `admin` | Open **Vulnerabilities** in the admin tabs (also in the user menu) | The Newtonsoft.Json 12.0.1 row with its feed `default`, linked to its package page; Severity = Critical hides it, **Clear** shows it again |
+| V3 | `admin` | **Export CSV** and **Export JSON** | `vulnerabilities.csv` with a header row and the Newtonsoft.Json row; `vulnerabilities.json` with the same finding |
+| V4 | `alice` | Open `/admin/vulnerabilities` | Redirected to the package list |
+| V5 | `admin` | Internal > Contoso.Logging | No vulnerability card (OSV doesn't know the package) |
+
 ## Admin > Audit log
 
 | # | Account | Steps | Expected |

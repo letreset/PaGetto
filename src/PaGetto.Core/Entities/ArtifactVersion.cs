@@ -65,6 +65,12 @@ public class ArtifactVersion
     public DateTime Published { get; set; }
 
     /// <summary>
+    /// When the version was last matched against the vulnerability database, or null if it hasn't
+    /// been yet. Versions that were never scanned, or not for a while, are scanned in the background.
+    /// </summary>
+    public DateTime? VulnerabilitiesScannedAtUtc { get; set; }
+
+    /// <summary>
     /// The files of the version, for ecosystems whose versions have several (Maven). Empty otherwise.
     /// </summary>
     public List<ArtifactFile> Files { get; set; }

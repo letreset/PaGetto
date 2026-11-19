@@ -117,4 +117,6 @@ public class PaGettoOptions
     public PatExpiryNotificationOptions PatExpiryNotification { get; set; }
 
     public AuditOptions Audit { get; set; } = new();
+
+    public VulnerabilityScanningOptions VulnerabilityScanning { get; set; } = new();
 }

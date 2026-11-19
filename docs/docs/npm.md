@@ -92,7 +92,9 @@ A mirror's credentials are only sent to the mirror itself, not to another host i
 
 ### npm audit
 
-`npm audit` (and the audit that `npm install` runs) asks the feed's mirrors for the security advisories of the packages in use: the request goes to the first mirror that answers, such as registry.npmjs.org. The names of packages published to the feed are left out of it, so they never reach a mirror; the audit knows nothing about them. A feed without mirrors answers that there are no advisories, and when no mirror answers, `npm audit` reports an error (`npm install` carries on).
+`npm audit` (and the audit that `npm install` runs) is answered from the [vulnerability scan](vulnerabilities.md) of the versions stored in the feed, published or mirrored: for each package in use, the advisories found in its stored versions, with the range of versions each affects, which npm matches against the versions it installed. A version that was stored less than a minute ago may not be scanned yet, and a package the feed has never stored has no advisories.
+
+With [vulnerability scanning](vulnerabilities.md#configuration) turned off, `npm audit` asks the feed's mirrors instead: the request goes to the first mirror that answers, such as registry.npmjs.org. The names of packages published to the feed are left out of it, so they never reach a mirror; the audit knows nothing about them. A feed without mirrors then answers that there are no advisories, and when no mirror answers, `npm audit` reports an error (`npm install` carries on).
 
 :::tip
 
@@ -118,7 +120,7 @@ Most [feed settings](feeds.md#feed-settings) apply to npm feeds as to any other 
 | Deletion behavior | Not available: `npm unpublish` always removes the version |
 | Upload from the browser | Not available. Publish with `npm publish` |
 | `npm login`, signatures | Not served |
-| `npm audit` | Answered by the feed's mirrors, without the feed's own packages. See [npm audit](#npm-audit) |
+| `npm audit` | Answered from the vulnerability findings of the stored versions, or by the feed's mirrors while scanning is off. See [npm audit](#npm-audit) |
 | Search | `npm search` finds the packages stored in the feed, not those only a mirror has |
 
 The APIs of other feed types answer `404 Not Found` on an npm feed, and the npm API answers `404 Not Found` on feeds of other types.

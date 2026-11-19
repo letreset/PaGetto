@@ -312,6 +312,8 @@
             </ul>
         }
 
+        <partial name="_Vulnerabilities" model="Model.Vulnerabilities" />
+
         <div class="bgt-card bgt-card-clip bgt-cmd-card" x-data="{ tabs: installTabs, active: installTabs[0] }">
             <div class="bgt-tabs bgt-tabs-sm" role="tablist" aria-label="Install command">
                 <template x-for="tab in tabs" :key="tab.name">
