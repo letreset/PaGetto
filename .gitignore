@@ -284,7 +284,8 @@ __pycache__/
 charts/
 Chart.lock
 
-.claude
+.claude/*
+!.claude/skills/
 
 # Data Protection keys written by local runs (the code in DataProtection/ is committed).
 **/DataProtection/*.xml
