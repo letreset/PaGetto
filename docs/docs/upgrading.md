@@ -1,6 +1,6 @@
 # Upgrading
 
-Each [release](https://github.com/letreset/PaGetto/releases) lists its changes in the release notes. If you skip releases, read the notes of every release between your version and the new one. Coming from BaGetter? See [Migrating from BaGetter](migrating-from-bagetter.md).
+Each [release](https://github.com/letreset/PaGetto/releases) lists its changes in the release notes. The **Admin** pages show a notice when a newer release than the running one exists (see [Release check](configuration.md#release-check)). If you skip releases, read the notes of every release between your version and the new one. Coming from BaGetter? See [Migrating from BaGetter](migrating-from-bagetter.md).
 
 ## Before you upgrade
 
