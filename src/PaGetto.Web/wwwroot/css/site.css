@@ -394,10 +394,12 @@ code { color: inherit; }
 .bgt-narrow { max-width: 880px; }
 .bgt-stack { display: flex; flex-direction: column; gap: 18px; }
 
-.bgt-footer { border-top: 1px solid var(--bgt-border); padding: 18px clamp(16px, 4vw, 24px); }
+.bgt-footer { border-top: 1px solid var(--bgt-border); padding: 18px 0; }
+/* Padded inside its 1200px, like .bgt-main, so the footer lines up with the page content. */
 .bgt-footer-inner {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 24px);
   display: flex;
   flex-wrap: wrap;
   gap: 8px 20px;
