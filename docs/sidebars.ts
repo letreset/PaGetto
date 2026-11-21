@@ -21,6 +21,7 @@ const sidebars: SidebarsConfig = {
     },
     'feeds',
     'authentication',
+    'oidc',
     'web-ui',
     'vulnerabilities',
     'malicious-packages',
