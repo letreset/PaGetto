@@ -180,6 +180,7 @@ Do `docker rm -f kc-saml ldap-test pagetto-sso` and `docker network rm pagetto-s
 | F2 | `admin` | Create a feed with slug `internal` | "already exists" |
 | F3 | `admin` | Create `ui-test`, drag it above Internal, reload | The new order is kept, also in the feed switcher |
 | F4 | `admin` | Change the display name of `ui-test` in its **Settings**, then delete it | Both work; the feed disappears from the switcher |
+| F5 | `admin` | With internet access, run an image older than the [latest release](https://github.com/letreset/PaGetto/releases/latest) (`PAGETTO_TAG=<older version>`) and open Admin > Feeds; then the latest image; then the older image with `UpdateCheck__Enabled=false` | The older image shows "PaGetto X is available; this server runs Y." under the tabs, with **Release notes** opening the GitHub release in a new tab; the latest image and the turned-off check show no notice |
 
 ## Admin > Feed settings
 

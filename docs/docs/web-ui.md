@@ -115,7 +115,7 @@ The **Statistics** tab (`/stats`, or `/feeds/{slug}/stats`) shows, for the curre
 
 ## Administration
 
-Administrators open these pages from the user menu. They share a tab row, so you can switch between them:
+Administrators open these pages from the user menu. They share a tab row, so you can switch between them. When a newer PaGetto release exists, a notice under the tabs names it and links to its release notes (see [Release check](configuration.md#release-check)).
 
 | Page | Contents |
 |---|---|

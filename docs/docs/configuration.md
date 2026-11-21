@@ -694,6 +694,26 @@ Feeds that mirror refuse the versions that the [OpenSSF malicious packages](http
 
 See [Malicious packages](malicious-packages.md#configuration) for what each setting does. Each feed can override `Enabled` in its settings.
 
+## Release check
+
+PaGetto looks up its latest release on GitHub (`https://api.github.com/repos/letreset/PaGetto/releases/latest`) at startup and then once a day. When that release is newer than the running version, the **Admin** pages show a notice with a link to its release notes (see [Web UI](web-ui.md#administration)). Prereleases are not offered. The request sends nothing about the server: no version, no credentials and no cookies, only the user agent `PaGetto` that GitHub requires.
+
+Without network access the check fails silently (a `Debug` line in the log) and no notice is shown. To turn it off, for example on air-gapped servers or to never contact GitHub:
+
+```json
+{
+    ...
+
+    "UpdateCheck": {
+        "Enabled": false
+    },
+
+    ...
+}
+```
+
+Each replica checks on its own and keeps the result in memory.
+
 ## Audit log
 
 PaGetto writes one log line for every package upload, unlist, delete and relist, from the clients of every package format and from the web UI, including denied attempts, and one for every change on the **Admin** pages. The lines go to the normal logs, so you can collect them with whatever already reads PaGetto's output.
