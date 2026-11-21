@@ -101,6 +101,9 @@ public class PaGettoApplication : WebApplicationFactory<Startup>
 
                     // Tests of malicious packages turn it on, with a fake data export.
                     { "MaliciousPackages:Enabled", "false" },
+
+                    // Tests of the release notice turn it on, with a fake GitHub.
+                    { "UpdateCheck:Enabled", "false" },
                 };
                 _inMemoryConfiguration?.Invoke(dict);
 

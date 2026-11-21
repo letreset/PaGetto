@@ -121,4 +121,6 @@ public class PaGettoOptions
     public VulnerabilityScanningOptions VulnerabilityScanning { get; set; } = new();
 
     public MaliciousPackageOptions MaliciousPackages { get; set; } = new();
+
+    public UpdateCheckOptions UpdateCheck { get; set; } = new();
 }

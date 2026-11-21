@@ -1,4 +1,8 @@
+@using PaGetto.Core.Updates
+@using PaGetto.Web.Helper
 @model string
+@inject ReleaseChecker ReleaseChecker
+@inject ApplicationVersion RunningVersion
 @* The model is the active tab: "Accounts", "Groups", "Feeds", "Vulnerabilities", "MaliciousPackages", "Quarantine" or "Audit". *@
 
 <div class="bgt-admin-eyebrow">Administration</div>
@@ -11,3 +15,14 @@
     <a asp-page="/Admin/Quarantine" class="bgt-tab @(Model == "Quarantine" ? "active" : null)" aria-current="@(Model == "Quarantine" ? "page" : null)">Quarantine</a>
     <a asp-page="/Admin/Audit" class="bgt-tab @(Model == "Audit" ? "active" : null)" aria-current="@(Model == "Audit" ? "page" : null)">Audit log</a>
 </nav>
+
+@{
+    var newerRelease = ReleaseChecker.GetNewerRelease(RunningVersion.Version);
+}
+@if (newerRelease != null)
+{
+    <div class="alert alert-info mb-4" role="status">
+        PaGetto <strong>@newerRelease.Version.ToNormalizedString()</strong> is available; this server runs @RunningVersion.Version.
+        <a class="alert-link text-decoration-underline" href="@newerRelease.ReleaseNotesUrl" target="_blank" rel="noopener noreferrer">Release notes</a>
+    </div>
+}
