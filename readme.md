@@ -33,7 +33,7 @@ Each feed hosts one package format and speaks its protocol, so the standard clie
 
 * **Multiple feeds**: each feed serves one package format under `/feeds/{slug}/`, with its own packages, settings, retention, permissions, webhook and read-through mirrors.
 * **Read-through mirrors**: [mirror the public registries][Read through caching], several upstreams per feed in order, so builds keep working when an upstream is down.
-* **Users & permissions**: `Local`, `Entra`, `Oidc` (Keycloak, Okta, GitLab and other OpenID Connect providers) or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
+* **Users & permissions**: `Local` (optionally with LDAP or Active Directory users), `Entra`, `Oidc` (Keycloak, Okta, GitLab and other OpenID Connect providers), `Saml` (SAML 2.0 identity providers) or `Hybrid` authentication, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
 * **Web UI** to browse every feed, with readmes and install commands per client, and admin pages for feeds, accounts and groups.
 * **Operations**: retention per feed, webhooks, an audit log, health checks and OpenTelemetry metrics.
 * **Pluggable backends**: SQLite, SQL Server, PostgreSQL or MySQL; the file system, Azure Blob, AWS S3, Google Cloud Storage, Aliyun OSS or Tencent COS.

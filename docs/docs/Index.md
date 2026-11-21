@@ -36,7 +36,7 @@ Each feed has a type, chosen when the feed is created. A feed of a type speaks t
 PaGetto offers:
 
 - **[Multiple feeds](feeds.md)**: each feed has its own packages, settings, retention, permissions and read-through [mirrors](feeds.md#mirror-read-through-cache) of one or more upstream registries, and can call a [webhook](feeds.md#webhook) on every package change.
-- **[Users and permissions](authentication.md)**: local accounts, Microsoft Entra ID sign-in, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
+- **[Users and permissions](authentication.md)**: local accounts, LDAP and Active Directory users, single sign-on through Microsoft Entra ID, OpenID Connect or SAML, groups, per-feed pull/push/delete permissions, and personal access tokens (also limited to reading or to one feed) with expiry email reminders.
 - **A [web UI](web-ui.md)** to browse every feed's packages, with readmes, install commands per client, unlisting and deletion, statistics and admin pages for feeds, accounts and groups.
 - **Operations**: an [audit log](configuration.md#audit-log), retention per feed, health checks, OpenTelemetry metrics, Data Protection keys in storage (sign-in cookies survive restarts and work across replicas), security headers, CORS and rate limiting.
 

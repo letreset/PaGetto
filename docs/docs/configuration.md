@@ -34,7 +34,7 @@ Make sure the account PaGetto runs as can read the file.
 
 :::note
 
-`ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra`, `Oidc` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
+`ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra`, `Oidc`, `Saml` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
 
 :::
 
@@ -219,7 +219,7 @@ Like `AllowPackageOverwrites` and `PackageDeletionBehavior`, this is the default
 
 A private feed requires users to authenticate before accessing packages.
 
-The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra`, `Oidc` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
+The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra`, `Oidc`, `Saml` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
 
 You can require that users provide a username and password to access the feeds.
 To do so, you can insert the credentials in the `Authentication` section.
@@ -243,7 +243,7 @@ Users will now have to provide the username and password to fetch and download p
 
 ## Single sign-on
 
-Users can sign in through Microsoft Entra ID (`Authentication:Entra`, see [Azure Entra ID setup](authentication.md#azure-entra-id-setup)) or through any OpenID Connect provider such as Keycloak, Okta or GitLab (`Authentication:Oidc`, see [OpenID Connect single sign-on](oidc.md)). `Authentication:Mode` `Oidc` accepts only the OpenID Connect provider; `Hybrid` adds local accounts, and uses the OpenID Connect provider when `Authentication:Oidc` is set.
+Users can sign in through Microsoft Entra ID (`Authentication:Entra`, see [Azure Entra ID setup](authentication.md#azure-entra-id-setup)), through any OpenID Connect provider such as Keycloak, Okta or GitLab (`Authentication:Oidc`, see [OpenID Connect single sign-on](oidc.md)), or through a SAML 2.0 identity provider such as Keycloak, Okta or AD FS (`Authentication:Saml`, see [SAML single sign-on](saml.md)). `Authentication:Mode` `Oidc` accepts only the OpenID Connect provider and `Saml` only the SAML identity provider; `Hybrid` adds local accounts, and uses the OpenID Connect provider when `Authentication:Oidc` is set, the SAML identity provider when `Authentication:Saml` is set, Entra ID otherwise.
 
 | Setting | Default | Description |
 |---|---|---|
@@ -256,7 +256,38 @@ Users can sign in through Microsoft Entra ID (`Authentication:Entra`, see [Azure
 | `Authentication:Oidc:DisplayName` | `SSO` | The provider's name on the sign-in button. |
 | `Authentication:Oidc:RequireHttpsMetadata` | `true` | Whether the authority has to use `https`. |
 
-As environment variables: `Authentication__Oidc__Authority`, `Authentication__Oidc__ClientId` and so on. PaGetto refuses to start when a required setting is missing or invalid.
+| `Authentication:Saml:MetadataUrl` | | Required. The URL of the identity provider's metadata. |
+| `Authentication:Saml:EntityId` | | Required. PaGetto's entity id at the identity provider. |
+| `Authentication:Saml:CallbackPath` | `/signin-saml` | The path of the assertion consumer service URL registered at the identity provider. |
+| `Authentication:Saml:RoleAttribute` | `groups` | The attribute whose values link users to role-linked groups; `Admin` makes a user an administrator. |
+| `Authentication:Saml:DisplayName` | `SSO` | The identity provider's name on the sign-in button. |
+| `Authentication:Saml:RequireHttpsMetadata` | `true` | Whether the metadata URL has to use `https`. |
+
+As environment variables: `Authentication__Oidc__Authority`, `Authentication__Saml__MetadataUrl` and so on. PaGetto refuses to start when a required setting is missing or invalid.
+
+## LDAP and Active Directory
+
+In the `Local` and `Hybrid` modes, the users of an LDAP directory or Active Directory sign in with their directory username and password next to local accounts, in the web UI and from client tools (`Authentication:Ldap`, see [LDAP and Active Directory](ldap.md)).
+
+| Setting | Default | Description |
+|---|---|---|
+| `Authentication:Ldap:Server` | | Required. The host name of the LDAP server. |
+| `Authentication:Ldap:Port` | `0` | The port, or `0` for 636 with `Ssl` and 389 otherwise. |
+| `Authentication:Ldap:Security` | `Ssl` | `Ssl`, `StartTls` or `None`. |
+| `Authentication:Ldap:BindDn` | | The DN of the search account, or empty to search anonymously. |
+| `Authentication:Ldap:BindPassword` | | The search account's password. Keep it in an environment variable or a [secret file](#load-secrets-from-files). |
+| `Authentication:Ldap:SearchBase` | | Required. The DN users are searched under. |
+| `Authentication:Ldap:UserFilter` | `(&(objectClass=person)(uid={0}))` | The filter that finds a user; `{0}` is the typed username. |
+| `Authentication:Ldap:UsernameAttribute` | `uid` | The attribute with the PaGetto username. |
+| `Authentication:Ldap:IdAttribute` | `entryUUID` | The attribute with the user's permanent id (`objectGUID` in Active Directory). |
+| `Authentication:Ldap:DisplayNameAttribute` | `displayName` | The display name; `cn` without it. |
+| `Authentication:Ldap:EmailAttribute` | `mail` | The email address. |
+| `Authentication:Ldap:GroupAttribute` | `memberOf` | The attribute that lists the DNs of the user's groups. |
+| `Authentication:Ldap:GroupSearchFilter` | | A filter that finds the user's groups instead; `{0}` is the user's DN. |
+| `Authentication:Ldap:GroupSearchBase` | `SearchBase` | Where `GroupSearchFilter` searches. |
+| `Authentication:Ldap:DisplayName` | `LDAP` | The directory's name on the sign-in page. |
+| `Authentication:Ldap:CacheSeconds` | `60` | How long a successful sign-in is remembered; `0` checks every request. |
+| `Authentication:Ldap:TimeoutSeconds` | `10` | How long to wait for the server. |
 
 ## Database configuration
 

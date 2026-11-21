@@ -1,6 +1,6 @@
 # Authentication
 
-PaGetto can protect your feeds with API keys from configuration, with local accounts stored in its database, with single sign-on through Microsoft Entra ID (formerly Azure AD) or [another OpenID Connect provider](oidc.md), or with single sign-on and local accounts together. Database-backed modes add groups, per-feed permissions and personal access tokens.
+PaGetto can protect your feeds with API keys from configuration, with local accounts stored in its database, with the accounts of an [LDAP directory or Active Directory](ldap.md), with single sign-on through Microsoft Entra ID (formerly Azure AD), [another OpenID Connect provider](oidc.md) or a [SAML 2.0 identity provider](saml.md), or with single sign-on and local accounts together. Database-backed modes add groups, per-feed permissions and personal access tokens.
 
 ## Authentication modes
 
@@ -9,10 +9,11 @@ The `Authentication:Mode` setting controls which mechanisms are active:
 | Mode | Who signs in | Use it when |
 |------|-------------|-------------|
 | `Legacy` | Nobody. Pushes need an API key from configuration, reads optionally need a username and password from configuration. | Existing BaGetter-style setups. Formerly called `Config`, which is still accepted. See [Require an API key](configuration.md#require-an-api-key) and [Private feeds](configuration.md#private-feeds). |
-| `Local` | Local accounts created by an administrator | You don't use Entra ID but want users, groups and per-feed permissions |
+| `Local` | Local accounts created by an administrator, and the users of an [LDAP directory](ldap.md) when `Authentication:Ldap` is set | You don't use single sign-on but want users, groups and per-feed permissions |
 | `Entra` | Microsoft Entra ID accounts only | Everyone in your organization has an Entra ID account |
 | `Oidc` | Accounts of an OpenID Connect provider only (Keycloak, Okta, Auth0, GitLab, ...) | Everyone signs in through your identity provider. See [OpenID Connect single sign-on](oidc.md). |
-| `Hybrid` | Entra ID or OpenID Connect accounts, and local accounts | People sign in with single sign-on, and build agents or external partners use local accounts. The provider is the OpenID Connect provider when `Authentication:Oidc` is set, Entra ID otherwise. |
+| `Saml` | Accounts of a SAML 2.0 identity provider only (Keycloak, Okta, AD FS, ...) | Everyone signs in through your identity provider. See [SAML single sign-on](saml.md). |
+| `Hybrid` | Entra ID, OpenID Connect or SAML accounts, and local accounts (and [LDAP](ldap.md) users when `Authentication:Ldap` is set) | People sign in with single sign-on, and build agents or external partners use local accounts. The provider is the OpenID Connect provider when `Authentication:Oidc` is set, the SAML identity provider when `Authentication:Saml` is set, Entra ID otherwise. |
 
 ```json
 {
@@ -36,6 +37,8 @@ Administrators manage feeds, accounts, groups and permissions, and can pull, pus
 
 - **`Entra` and `Hybrid`**: assign the `Admin` app role to yourself in Entra ID (see [Step 3](#step-3-define-app-roles-recommended)) and sign in. Admin status always follows the token.
 - **`Oidc` and `Hybrid` with an OpenID Connect provider**: put yourself in the provider's `Admin` group (the value `Admin` in the [`RoleClaim`](oidc.md#configure-pagetto)) and sign in.
+- **`Saml` and `Hybrid` with a SAML identity provider**: put yourself in the identity provider's `Admin` group (the value `Admin` in the [`RoleAttribute`](saml.md#configure-pagetto)) and sign in.
+- **With [LDAP](ldap.md)**: put yourself in a directory group named `Admin` and sign in, or use the local `admin` below.
 - **`Local`** (and optionally `Hybrid`): on startup, while no user is an administrator, PaGetto creates the local account **`admin`** with the password **`admin`** and logs a warning. Sign in with it: PaGetto sends you straight to **Change password** and you can't open any other page until you have chosen a new password (at least 12 characters, or `Authentication:MinPasswordLength`). Until then the default password is also rejected by package clients.
 
 The default administrator is only ever created, never changed:
@@ -47,7 +50,7 @@ The default administrator is only ever created, never changed:
 
 Change the default password right after the first start, before the server is reachable by others. Every local user can change their own password later under **Change password** in the account menu.
 
-In `Legacy`, `Entra` and `Oidc` mode no default administrator is created.
+In `Legacy`, `Entra`, `Oidc` and `Saml` mode no default administrator is created.
 
 ## Azure Entra ID setup
 
@@ -206,7 +209,7 @@ After `MaxFailedAttempts` consecutive failed logins, the account is locked for `
 
 Groups are managed on **Admin > Groups & permissions**. A user inherits the permissions of every group they belong to. Group names are case-insensitive, like usernames. Groups come in two flavors:
 
-- **Role-linked groups** have an `AppRoleValue` set (e.g., `TeamFrontend`), in the optional **App role value** field when you create the group. It can't be changed later. Membership for single sign-on users is synchronized from the token's role claim on each sign-in and can't be changed by hand: it is controlled by the App Role assignments in Entra ID, or by the groups at the [OpenID Connect provider](oidc.md#what-happens-on-sign-in). Local users can still be added manually.
+- **Role-linked groups** have an `AppRoleValue` set (e.g., `TeamFrontend`), in the optional **App role value** field when you create the group. It can't be changed later. Membership for single sign-on users is synchronized from the token's role claim on each sign-in and can't be changed by hand: it is controlled by the App Role assignments in Entra ID, by the groups at the [OpenID Connect provider](oidc.md#what-happens-on-sign-in) or the [SAML identity provider](saml.md#what-happens-on-sign-in), or by the [directory groups](ldap.md#groups-and-permissions) of LDAP users. Local users can still be added manually.
 - **Manually-managed groups** have no `AppRoleValue`. Membership is managed entirely in the PaGetto admin UI, for all user types.
 
 This lets the identity provider control *who has which role*, while PaGetto controls *what each role grants* on each feed.
@@ -319,7 +322,7 @@ How the token reaches PaGetto depends on the client. The **Connect** page of eac
 
 :::note
 
-When a token is used as a password, the username must be the token owner's username; it is not case-sensitive. The username `__token__` also goes with any token, as Python clients send PyPI's API tokens. For an Entra user the username is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. For an [OpenID Connect](oidc.md) user it is the `email` claim, otherwise `preferred_username`. Administrators see it on **Admin > Accounts**.
+When a token is used as a password, the username must be the token owner's username; it is not case-sensitive. The username `__token__` also goes with any token, as Python clients send PyPI's API tokens. For an Entra user the username is the email address PaGetto took from the token's `email`, `mail` or UPN claim, or the Entra object id when the token has none of them. For an [OpenID Connect](oidc.md) user it is the `email` claim, otherwise `preferred_username`; for a [SAML](saml.md) user the `email` attribute, otherwise the name id; for an [LDAP](ldap.md) user its directory username. Administrators see it on **Admin > Accounts**.
 
 :::
 
@@ -348,6 +351,19 @@ When a token is used as a password, the username must be the token owner's usern
         //     "DisplayName": "Keycloak",
         //     "RequireHttpsMetadata": true
         // },
+        // Or a SAML 2.0 identity provider (see saml.md):
+        // "Saml": {
+        //     "MetadataUrl": "https://keycloak.example.com/realms/pagetto/protocol/saml/descriptor",
+        //     "EntityId": "https://packages.example.com",
+        //     "DisplayName": "Keycloak"
+        // },
+        // Directory users next to local accounts, in Local and Hybrid mode (see ldap.md):
+        // "Ldap": {
+        //     "Server": "ldap.example.com",
+        //     "BindDn": "cn=pagetto,ou=services,dc=example,dc=com",
+        //     "BindPassword": "<password>",
+        //     "SearchBase": "ou=people,dc=example,dc=com"
+        // },
         "MaxTokenExpiryDays": 365,
         "MaxFailedAttempts": 5,
         "LockoutMinutes": 15,
@@ -370,7 +386,7 @@ When a token is used as a password, the username must be the token owner's usern
 
 :::info
 
-The `Credentials` and `ApiKeys` arrays are only used when `Mode` is `Legacy`. When `Mode` is `Entra`, `Oidc`, `Local`, or `Hybrid`, authentication is handled through the database-backed user system and PATs.
+The `Credentials` and `ApiKeys` arrays are only used when `Mode` is `Legacy`. When `Mode` is `Entra`, `Oidc`, `Saml`, `Local`, or `Hybrid`, authentication is handled through the database-backed user system and PATs.
 
 :::
 
@@ -380,7 +396,7 @@ All authentication settings can be provided via environment variables using the 
 
 | Environment Variable | Description |
 |---------------------|-------------|
-| `Authentication__Mode` | Authentication mode (required: `Local`, `Entra`, `Oidc`, `Hybrid` or `Legacy`) |
+| `Authentication__Mode` | Authentication mode (required: `Local`, `Entra`, `Oidc`, `Saml`, `Hybrid` or `Legacy`) |
 | `Authentication__Entra__Instance` | Entra ID instance URL |
 | `Authentication__Entra__TenantId` | Tenant ID |
 | `Authentication__Entra__ClientId` | Application (client) ID |
@@ -388,6 +404,8 @@ All authentication settings can be provided via environment variables using the 
 | `Authentication__Entra__CallbackPath` | OIDC callback path |
 | `Authentication__Entra__RoleClaim` | Token claim name for App Roles (default: `roles`) |
 | `Authentication__Oidc__Authority` | OpenID Connect issuer URL (see [OpenID Connect single sign-on](oidc.md#configure-pagetto) for every `Authentication__Oidc__*` setting) |
+| `Authentication__Saml__MetadataUrl` | SAML identity provider metadata URL (see [SAML single sign-on](saml.md#configure-pagetto) for every `Authentication__Saml__*` setting) |
+| `Authentication__Ldap__Server` | LDAP server (see [LDAP and Active Directory](ldap.md#configure-pagetto) for every `Authentication__Ldap__*` setting) |
 | `Authentication__MaxTokenExpiryDays` | Maximum PAT lifetime in days |
 | `Authentication__MaxFailedAttempts` | Failed login threshold for lockout |
 | `Authentication__LockoutMinutes` | Lockout duration in minutes |
