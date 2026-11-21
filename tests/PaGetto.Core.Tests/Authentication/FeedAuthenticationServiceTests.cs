@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Authentication.Ldap;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using PaGetto.Core.Tests.Support;
@@ -147,6 +148,71 @@ public class FeedAuthenticationServiceTests
             Assert.False(result.IsAuthenticated);
         }
 
+        [Theory]
+        [InlineData(AuthenticationMode.Local)]
+        [InlineData(AuthenticationMode.Hybrid)]
+        public async Task AcceptsDirectoryPasswordOfUnknownUsername(AuthenticationMode mode)
+        {
+            var target = CreateTarget(mode, ldap: true);
+            var user = await CreateLdapUser("fry");
+            Ldap.Setup(l => l.AuthenticateAsync("Fry", Password, Ct)).ReturnsAsync(user);
+
+            var result = await target.AuthenticateByCredentialsAsync("Fry", Password, Ct);
+
+            Assert.True(result.IsAuthenticated);
+            Assert.Equal(user.Id, result.UserId);
+            Assert.Equal("fry", result.Username);
+        }
+
+        [Fact]
+        public async Task RejectsWrongDirectoryPassword()
+        {
+            var target = CreateTarget(AuthenticationMode.Local, ldap: true);
+            await CreateLdapUser("fry");
+
+            var result = await target.AuthenticateByCredentialsAsync("fry", "WrongPassword123!", Ct);
+
+            Assert.False(result.IsAuthenticated);
+            Ldap.Verify(l => l.AuthenticateAsync("fry", "WrongPassword123!", Ct));
+        }
+
+        [Fact]
+        public async Task RejectsDisabledDirectoryUser()
+        {
+            var target = CreateTarget(AuthenticationMode.Local, ldap: true);
+            var user = await CreateLdapUser("fry");
+            user.IsEnabled = false;
+            Ldap.Setup(l => l.AuthenticateAsync("fry", Password, Ct)).ReturnsAsync(user);
+
+            var result = await target.AuthenticateByCredentialsAsync("fry", Password, Ct);
+
+            Assert.False(result.IsAuthenticated);
+        }
+
+        [Fact]
+        public async Task ChecksLocalAccountsOnlyLocally()
+        {
+            // A directory user with the name of a local account must not get into that account,
+            // and its password attempts must not reach the directory.
+            var target = CreateTarget(AuthenticationMode.Local, ldap: true);
+            var user = await CreateLocalUser("alice");
+
+            Assert.False((await target.AuthenticateByCredentialsAsync("alice", "DirectoryPassword1!", Ct)).IsAuthenticated);
+            Assert.Equal(user.Id, (await target.AuthenticateByCredentialsAsync("alice", Password, Ct)).UserId);
+            Ldap.Verify(l => l.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task IgnoresTheDirectoryWithoutLdapConfig()
+        {
+            var target = CreateTarget(AuthenticationMode.Local);
+
+            var result = await target.AuthenticateByCredentialsAsync("fry", Password, Ct);
+
+            Assert.False(result.IsAuthenticated);
+            Ldap.Verify(l => l.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
         [Fact]
         public async Task EntraModeRejectsLocalPassword()
         {
@@ -197,13 +263,16 @@ public class FeedAuthenticationServiceTests
 
         protected RequestTokenScope TokenScope { get; } = new();
 
-        protected FeedAuthenticationService CreateTarget(AuthenticationMode mode)
+        protected Mock<ILdapAuthenticationService> Ldap { get; } = new();
+
+        protected FeedAuthenticationService CreateTarget(AuthenticationMode mode, bool ldap = false)
         {
             return new FeedAuthenticationService(
                 Users,
                 Tokens,
                 TokenScope,
-                CreateOptions(mode),
+                Ldap.Object,
+                CreateOptions(mode, ldap),
                 Mock.Of<ILogger<FeedAuthenticationService>>());
         }
 
@@ -213,18 +282,25 @@ public class FeedAuthenticationServiceTests
                 username, username, $"{username}@test.com", Password, true, _adminUserId, Ct);
         }
 
+        protected async Task<User> CreateLdapUser(string username)
+        {
+            return await Users.CreateExternalUserAsync(
+                AuthProvider.Ldap, $"uuid-{username}", username, username, $"{username}@test.com", Ct);
+        }
+
         protected async Task<string> CreateToken(Guid userId)
         {
             var result = await Tokens.CreateTokenAsync(userId, "ci", DateTime.UtcNow.AddDays(30), Ct);
             return result.PlaintextToken;
         }
 
-        private static IOptionsSnapshot<NugetAuthenticationOptions> CreateOptions(AuthenticationMode mode)
+        private static IOptionsSnapshot<NugetAuthenticationOptions> CreateOptions(AuthenticationMode mode, bool ldap = false)
         {
             var options = new Mock<IOptionsSnapshot<NugetAuthenticationOptions>>();
             options.Setup(o => o.Value).Returns(new NugetAuthenticationOptions
             {
                 Mode = mode,
+                Ldap = ldap ? new LdapOptions() : null,
                 MaxFailedAttempts = MaxFailedAttempts,
                 LockoutMinutes = 15,
                 MaxTokenExpiryDays = 365

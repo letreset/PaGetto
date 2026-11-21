@@ -6,9 +6,12 @@
     ViewData["Title"] = "Sign in";
     ViewData["Bare"] = true;
 
+    var passwordAccount = Model.IsLdapEnabled ? $"{Model.LdapName} or local" : "local";
     var subtitle = Model.IsSingleSignOnEnabled && Model.IsLocalEnabled
-        ? $"Use your {Model.SingleSignOnName} or local account to continue."
-        : Model.IsSingleSignOnEnabled ? $"Use your {Model.SingleSignOnName} account to continue." : "Use your local account to continue.";
+        ? Model.IsLdapEnabled
+            ? $"Use your {Model.SingleSignOnName}, {Model.LdapName} or local account to continue."
+            : $"Use your {Model.SingleSignOnName} or local account to continue."
+        : Model.IsSingleSignOnEnabled ? $"Use your {Model.SingleSignOnName} account to continue." : $"Use your {passwordAccount} account to continue.";
 }
 
 <div class="bgt-auth">
@@ -60,7 +63,7 @@
 
                         @if (Model.IsLocalEnabled)
                         {
-                            <div class="bgt-auth-divider">or sign in with a local account</div>
+                            <div class="bgt-auth-divider">@(Model.IsLdapEnabled ? $"or sign in with your {passwordAccount} account" : "or sign in with a local account")</div>
                         }
                     }
 

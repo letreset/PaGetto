@@ -23,11 +23,20 @@ public class XunitLogger : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
-        _output.WriteLine($"{_category} [{eventId}] {formatter(state, exception)}");
-
-        if (exception != null)
+        try
         {
-            _output.WriteLine(exception.ToString());
+            _output.WriteLine($"{_category} [{eventId}] {formatter(state, exception)}");
+
+            if (exception != null)
+            {
+                _output.WriteLine(exception.ToString());
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The test this logger writes for has ended. Microsoft.IdentityModel logs through one
+            // process-wide logger, which the host of whichever test ran last sets, so another test
+            // validating a token must not fail on it.
         }
     }
 

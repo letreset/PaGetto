@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PaGetto.Core.Authentication.Ldap;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
     private readonly RequestTokenScope _tokenScope;
+    private readonly ILdapAuthenticationService _ldapAuthentication;
     private readonly NugetAuthenticationOptions _authOptions;
     private readonly ILogger<FeedAuthenticationService> _logger;
 
@@ -26,18 +28,21 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
         IUserService userService,
         ITokenService tokenService,
         RequestTokenScope tokenScope,
+        ILdapAuthenticationService ldapAuthentication,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions,
         ILogger<FeedAuthenticationService> logger)
     {
         ArgumentNullException.ThrowIfNull(userService);
         ArgumentNullException.ThrowIfNull(tokenService);
         ArgumentNullException.ThrowIfNull(tokenScope);
+        ArgumentNullException.ThrowIfNull(ldapAuthentication);
         ArgumentNullException.ThrowIfNull(authOptions);
         ArgumentNullException.ThrowIfNull(logger);
 
         _userService = userService;
         _tokenService = tokenService;
         _tokenScope = tokenScope;
+        _ldapAuthentication = ldapAuthentication;
         _authOptions = authOptions.Value;
         _logger = logger;
     }
@@ -87,23 +92,47 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
                 return tokenResult;
             }
         }
-        else if (_authOptions.Mode is AuthenticationMode.Local or AuthenticationMode.Hybrid)
+        else if (_authOptions.IsLocalEnabled)
         {
-            var localResult = await TryAuthenticateLocalAccountAsync(username, password, cancellationToken);
-            if (localResult.IsAuthenticated)
-                return localResult;
+            // A username of a local account is only checked locally; other names go to the
+            // directory, which also knows its users by names that aren't their PaGetto username.
+            var user = await _userService.FindByUsernameAsync(username, cancellationToken);
+            var result = _authOptions.IsLdapEnabled && (user == null || user.AuthProvider == AuthProvider.Ldap)
+                ? await TryAuthenticateLdapAccountAsync(username, password, cancellationToken)
+                : await TryAuthenticateLocalAccountAsync(user, username, password, cancellationToken);
+            if (result.IsAuthenticated)
+                return result;
         }
 
         LogCredentialAuthenticationFailed("LoginFailure", username);
         return new AuthResult(false, null, null);
     }
 
-    private async Task<AuthResult> TryAuthenticateLocalAccountAsync(
+    private async Task<AuthResult> TryAuthenticateLdapAccountAsync(
         string username,
         string password,
         CancellationToken cancellationToken)
     {
-        var user = await _userService.FindByUsernameAsync(username, cancellationToken);
+        var user = await _ldapAuthentication.AuthenticateAsync(username, password, cancellationToken);
+        if (user == null)
+            return new AuthResult(false, null, null);
+
+        if (!user.IsEnabled)
+        {
+            LogDisabledLdapAccountLoginAttempt("LoginFailure", user.Username, user.Id);
+            return new AuthResult(false, null, null);
+        }
+
+        LogLdapLoginSucceeded("LoginSuccess", user.Username, user.Id);
+        return new AuthResult(true, user.Id, user.Username);
+    }
+
+    private async Task<AuthResult> TryAuthenticateLocalAccountAsync(
+        User user,
+        string username,
+        string password,
+        CancellationToken cancellationToken)
+    {
         if (user == null || user.AuthProvider != AuthProvider.Local)
             return new AuthResult(false, null, null);
 
@@ -164,4 +193,10 @@ public partial class FeedAuthenticationService : IFeedAuthenticationService
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - Local account {Username} ({UserId}) authenticated successfully")]
     private partial void LogLocalLoginSucceeded(string eventType, string username, Guid userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Audit: {EventType} - Login attempt for disabled LDAP account {Username} ({UserId})")]
+    private partial void LogDisabledLdapAccountLoginAttempt(string eventType, string username, Guid userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - LDAP account {Username} ({UserId}) authenticated successfully")]
+    private partial void LogLdapLoginSucceeded(string eventType, string username, Guid userId);
 }

@@ -5,6 +5,7 @@ public static class AuthenticationConstants
     public const string NugetUserPolicy = "NuGetUserPolicy";
     public const string EntraOidcScheme = "EntraOidc";
     public const string OidcScheme = "Oidc";
+    public const string SamlScheme = "Saml";
     public const string CookieScheme = "PaGettoCookie";
     public const string CookieName = "PaGetto.Auth";
 

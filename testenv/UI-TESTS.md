@@ -53,6 +53,44 @@ docker run -d --name pagetto-oidc --network pagetto-oidc -p 5000:8080 \
 | O5 | `bob` | User menu > **Change password** | "Your account signs in through single sign-on, so its password is managed there." |
 | O6 | `alice` | **Connect**, then **My Tokens** > create a token and run `curl -u alice@example.test:<token> 'http://localhost:5000/v3/search?q=a'` | Connect says "Keycloak users: sign in to the web UI to generate a personal access token (PAT)..."; curl answers 200, and 401 with a wrong token |
 
+## SAML and LDAP sign-in
+
+These checks need the Keycloak of the OpenID Connect checks (its realm also has the SAML client `http://localhost:5000`), the test LDAP server `ghcr.io/rroemhild/docker-test-openldap` (the Planet Express users, each with its uid as the password; `hermes` and `professor` are in the group `admin_staff`, `fry`, `leela` and `bender` in `ship_crew`, `zoidberg` in none) and a PaGetto in `Hybrid` mode with both. Start them on one network:
+
+```bash
+docker network create pagetto-sso
+docker run -d --name kc-saml --network pagetto-sso -p 8080:8080 \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME=kcadmin -e KC_BOOTSTRAP_ADMIN_PASSWORD=kcadmin \
+  -e KC_HOSTNAME=http://host.docker.internal:8080 \
+  -v "$PWD/testenv/keycloak:/opt/keycloak/data/import" quay.io/keycloak/keycloak:26.0 start-dev --import-realm
+docker run -d --name ldap-test --network pagetto-sso ghcr.io/rroemhild/docker-test-openldap:master
+docker run -d --name pagetto-sso --network pagetto-sso -p 5000:8080 \
+  -e Authentication__Mode=Hybrid \
+  -e Authentication__Saml__MetadataUrl=http://host.docker.internal:8080/realms/pagetto/protocol/saml/descriptor \
+  -e Authentication__Saml__EntityId=http://localhost:5000 -e Authentication__Saml__DisplayName=Keycloak \
+  -e Authentication__Saml__RequireHttpsMetadata=false \
+  -e Authentication__Ldap__Server=ldap-test -e Authentication__Ldap__Port=10389 -e Authentication__Ldap__Security=None \
+  -e Authentication__Ldap__BindDn=cn=admin,dc=planetexpress,dc=com -e Authentication__Ldap__BindPassword=GoodNewsEveryone \
+  -e Authentication__Ldap__SearchBase=ou=people,dc=planetexpress,dc=com -e "Authentication__Ldap__DisplayName=Planet Express" \
+  letreset/pagetto:dev
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| SM1 | none | Open `/Login` | "Use your Keycloak, Planet Express or local account to continue.", a **Sign in with Keycloak** button, the divider "or sign in with your Planet Express or local account" and the sign-in form |
+| SM2 | none | **Sign in with Keycloak**, sign in as `alice` | Back on PaGetto, signed in. Admin > Accounts lists `alice@example.test` with the **Admin** badge and "· SAML · alice@example.test" |
+| SM3 | `alice` | Admin > Groups & permissions: create the group `Developers` with the app role value `developers`. Then sign in as `bob` through Keycloak in another context and reload the groups page as `alice` | `bob` (no email, so named by its name id) is a member of `Developers` with a **Synced** badge and no remove button |
+| SM4 | none | **Sign in with Keycloak** as the Keycloak user `admin` | Back on `/Login` with "authentication_failed". The server log says "Login denied: the username admin of the new Saml user is already used by another account" |
+| SM5 | `bob` | User menu > **Change password** | "Your account signs in through single sign-on, so its password is managed there." |
+| LD1 | `alice` | Admin > Groups & permissions: create the group `Crew` with the app role value `ship_crew` and give it Pull on Default. Then sign in with the form as `fry` / `fry` in another context | Signed in as "Fry". Admin > Accounts (as `alice`) lists `fry` with "Fry · LDAP · fry@planetexpress.com"; `Crew` has the member `fry` with a **Synced** badge |
+| LD2 | none | Sign in with the form as `fry` with the password `bender`, then as `nibbler` / `nibbler` | "Invalid username or password." both times. The server log says "LDAP sign-in of fry failed: no such directory user or a wrong password" |
+| LD3 | none | `curl -u fry:fry 'http://localhost:5000/v3/search?q=a'`, the same with `fry:bender`, then `curl -u zoidberg:zoidberg ...` | 200; 401; `zoidberg` authenticates but has no feed permission, so 404 |
+| LD4 | `fry` | User menu > **Change password** | "Your account signs in through the LDAP directory, so its password is managed there." |
+| LD5 | `alice` | Admin > Accounts: disable `fry`. Then sign in as `fry` / `fry` in another context | "This account has been disabled." |
+| LD6 | none | Sign in with the form as `admin` / `bender` (the directory has no `admin`, and the local account `admin` has another password) | "Invalid username or password."; the local `admin` counts a failed attempt and the directory is not asked (no "LDAP sign-in of admin" line in the log) |
+
+Do `docker rm -f kc-saml ldap-test pagetto-sso` and `docker network rm pagetto-sso` afterwards.
+
 ## Navigation
 
 | # | Account | Steps | Expected |

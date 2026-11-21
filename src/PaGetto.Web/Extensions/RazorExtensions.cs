@@ -78,7 +78,8 @@ public static class RazorExtensions
     }
 
     /// <summary>
-    /// The short name of the provider an account signs in with: "Local", "Entra" or "OIDC".
+    /// The short name of the provider an account signs in with: "Local", "Entra", "OIDC", "SAML" or
+    /// "LDAP".
     /// </summary>
     public static string ToDisplayName(this AuthProvider provider)
     {
@@ -86,6 +87,8 @@ public static class RazorExtensions
         {
             AuthProvider.Local => "Local",
             AuthProvider.Entra => "Entra",
+            AuthProvider.Saml => "SAML",
+            AuthProvider.Ldap => "LDAP",
             _ => "OIDC",
         };
     }

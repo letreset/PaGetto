@@ -20,7 +20,8 @@ public enum AuthenticationMode
 
     /// <summary>
     /// Local accounts and single sign-on are enabled: through the OpenID Connect provider of
-    /// <c>Authentication:Oidc</c> when that section is set, otherwise through Entra ID.
+    /// <c>Authentication:Oidc</c> or the SAML identity provider of <c>Authentication:Saml</c> when
+    /// one of those sections is set, otherwise through Entra ID.
     /// </summary>
     Hybrid = 3,
 
@@ -42,4 +43,10 @@ public enum AuthenticationMode
     /// not accepted.
     /// </summary>
     Oidc = 5,
+
+    /// <summary>
+    /// Only the SAML 2.0 identity provider of <c>Authentication:Saml</c> is enabled. Local accounts
+    /// are not accepted.
+    /// </summary>
+    Saml = 6,
 }

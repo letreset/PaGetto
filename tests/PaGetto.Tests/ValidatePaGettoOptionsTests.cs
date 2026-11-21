@@ -206,6 +206,7 @@ public class ValidatePaGettoOptionsTests
         [InlineData(AuthenticationMode.Legacy)]
         [InlineData(AuthenticationMode.Local)]
         [InlineData(AuthenticationMode.Oidc)]
+        [InlineData(AuthenticationMode.Saml)]
         public void AcceptsMode(AuthenticationMode mode)
         {
             Assert.False(HasModeFailure(new NugetAuthenticationOptions { Mode = mode }));
@@ -268,7 +269,7 @@ public class ValidatePaGettoOptionsTests
                 Oidc = ValidOidc(),
             });
 
-            Assert.Contains(failures, f => f.Contains("can't both be set in Hybrid mode"));
+            Assert.Contains(failures, f => f.Contains("can be set in Hybrid mode"));
         }
 
         [Fact]
@@ -335,6 +336,185 @@ public class ValidatePaGettoOptionsTests
         public void IgnoresTheSectionInLocalMode()
         {
             Assert.Empty(Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, Oidc = new OidcOptions() }));
+        }
+    }
+
+    public class ValidateSaml
+    {
+        // The single sign-on failures only: the other sections are left out on purpose.
+        private static IReadOnlyList<string> Failures(NugetAuthenticationOptions authentication)
+        {
+            var options = new PaGettoOptions { Authentication = authentication };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed
+                ? result.Failures.Where(f => f.Contains("Saml") || f.Contains("Entra") || f.Contains("Oidc")).ToList()
+                : [];
+        }
+
+        private static SamlOptions ValidSaml()
+        {
+            return new SamlOptions
+            {
+                MetadataUrl = "https://sso.example.com/realms/pagetto/protocol/saml/descriptor",
+                EntityId = "https://packages.example.com",
+            };
+        }
+
+        [Theory]
+        [InlineData(AuthenticationMode.Saml)]
+        [InlineData(AuthenticationMode.Hybrid)]
+        public void AcceptsValidSettings(AuthenticationMode mode)
+        {
+            Assert.Empty(Failures(new NugetAuthenticationOptions { Mode = mode, Saml = ValidSaml() }));
+        }
+
+        [Fact]
+        public void RequiresTheSectionInSamlMode()
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Saml });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Saml' config is required"));
+        }
+
+        [Fact]
+        public void RejectsOidcAndSamlTogetherInHybridMode()
+        {
+            var failures = Failures(new NugetAuthenticationOptions
+            {
+                Mode = AuthenticationMode.Hybrid,
+                Oidc = new OidcOptions { Authority = "https://sso.example.com/realms/pagetto", ClientId = "pagetto" },
+                Saml = ValidSaml(),
+            });
+
+            Assert.Contains(failures, f => f.Contains("can be set in Hybrid mode"));
+        }
+
+        [Fact]
+        public void RequiresMetadataUrlAndEntityId()
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Saml, Saml = new SamlOptions() });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Saml:MetadataUrl' config is required"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Saml:EntityId' config is required"));
+        }
+
+        [Theory]
+        [InlineData("sso.example.com/descriptor")]
+        [InlineData("ftp://sso.example.com/descriptor")]
+        public void RejectsMetadataUrlThatIsNotAnHttpUrl(string metadataUrl)
+        {
+            var saml = ValidSaml();
+            saml.MetadataUrl = metadataUrl;
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Saml, Saml = saml });
+
+            Assert.Contains(failures, f => f.Contains("must be an absolute http or https URL"));
+        }
+
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        public void RequiresHttpsMetadataUnlessTurnedOff(bool requireHttpsMetadata, bool fails)
+        {
+            var saml = ValidSaml();
+            saml.MetadataUrl = "http://keycloak:8080/realms/pagetto/protocol/saml/descriptor";
+            saml.RequireHttpsMetadata = requireHttpsMetadata;
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Saml, Saml = saml });
+
+            Assert.Equal(fails, failures.Any(f => f.Contains("must use https")));
+        }
+
+        [Fact]
+        public void RejectsInvalidCallbackPathAndEmptyRoleAttribute()
+        {
+            var saml = ValidSaml();
+            saml.CallbackPath = "signin-saml";
+            saml.RoleAttribute = "";
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Saml, Saml = saml });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Saml:CallbackPath' config must start with '/'"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Saml:RoleAttribute' config is required"));
+        }
+    }
+
+    public class ValidateLdap
+    {
+        private static IReadOnlyList<string> Failures(NugetAuthenticationOptions authentication)
+        {
+            var options = new PaGettoOptions { Authentication = authentication };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed
+                ? result.Failures.Where(f => f.Contains("Ldap")).ToList()
+                : [];
+        }
+
+        private static LdapOptions ValidLdap()
+        {
+            return new LdapOptions { Server = "ldap.example.com", SearchBase = "ou=people,dc=example,dc=com" };
+        }
+
+        [Theory]
+        [InlineData(AuthenticationMode.Local)]
+        [InlineData(AuthenticationMode.Hybrid)]
+        public void AcceptsValidSettings(AuthenticationMode mode)
+        {
+            Assert.Empty(Failures(new NugetAuthenticationOptions { Mode = mode, Ldap = ValidLdap() }));
+        }
+
+        [Theory]
+        [InlineData(AuthenticationMode.Entra)]
+        [InlineData(AuthenticationMode.Oidc)]
+        [InlineData(AuthenticationMode.Saml)]
+        public void RejectsTheSectionInModesWithoutLocalAccounts(AuthenticationMode mode)
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = mode, Ldap = ValidLdap() });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap' config is only used in 'Local' and 'Hybrid' mode"));
+        }
+
+        [Fact]
+        public void RequiresServerAndSearchBase()
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, Ldap = new LdapOptions() });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:Server' config is required"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:SearchBase' config is required"));
+        }
+
+        [Fact]
+        public void RequiresThePlaceholderInTheFilters()
+        {
+            var ldap = ValidLdap();
+            ldap.UserFilter = "(uid=fry)";
+            ldap.GroupSearchFilter = "(objectClass=groupOfNames)";
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, Ldap = ldap });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:UserFilter' config must contain '{0}'"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:GroupSearchFilter' config must contain '{0}'"));
+        }
+
+        [Fact]
+        public void RejectsInvalidNumbersAndEmptyAttributes()
+        {
+            var ldap = ValidLdap();
+            ldap.Port = 70000;
+            ldap.Security = (LdapSecurity)7;
+            ldap.CacheSeconds = -1;
+            ldap.TimeoutSeconds = 0;
+            ldap.UsernameAttribute = "";
+            ldap.IdAttribute = null;
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, Ldap = ldap });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:Port' config must be between 0 and 65535"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:Security' config must be"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:CacheSeconds' config must not be negative"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:TimeoutSeconds' config must be at least 1"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:UsernameAttribute' config is required"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Ldap:IdAttribute' config is required"));
         }
     }
 

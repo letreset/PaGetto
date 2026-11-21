@@ -41,7 +41,7 @@
                 <div>
                     <label asp-for="NewAppRoleValue" class="form-label">App role value <span class="bgt-optional">(optional)</span></label>
                     <input asp-for="NewAppRoleValue" class="form-control" placeholder="e.g. TeamFrontend" autocomplete="off" />
-                    <div class="form-text">Syncs members from an Entra ID app role or a value of the OIDC role claim. Leave empty to manage members manually.</div>
+                    <div class="form-text">Syncs members from an Entra ID app role, a value of the OIDC role claim or the SAML role attribute, or an LDAP group (its cn or DN). Leave empty to manage members manually.</div>
                 </div>
                 <div style="grid-column: 1 / -1">
                     <label asp-for="NewDescription" class="form-label">Description</label>
@@ -139,7 +139,7 @@
                 <div class="bgt-section-label">Members · @members.Count</div>
                 @if (isRoleLinked)
                 {
-                    <p class="bgt-group-note">Membership for single sign-on users is managed by their role at the sign-in provider. Local users can be added manually.</p>
+                    <p class="bgt-group-note">Membership for single sign-on and LDAP users is managed by their role at the sign-in provider or their directory group. Local users can be added manually.</p>
                 }
                 <div class="bgt-members">
                     @foreach (var ug in members)

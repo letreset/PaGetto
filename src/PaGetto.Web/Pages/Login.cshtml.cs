@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Authentication.Ldap;
 using PaGetto.Core.Configuration;
 using PaGetto.Core.Entities;
 using Microsoft.AspNetCore.Authentication;
@@ -18,15 +19,18 @@ namespace PaGetto.Web.Pages;
 public partial class LoginModel : PageModel
 {
     private readonly IUserService _userService;
+    private readonly ILdapAuthenticationService _ldapAuthentication;
     private readonly IOptionsSnapshot<NugetAuthenticationOptions> _authOptions;
     private readonly ILogger<LoginModel> _logger;
 
     public LoginModel(
         IUserService userService,
+        ILdapAuthenticationService ldapAuthentication,
         IOptionsSnapshot<NugetAuthenticationOptions> authOptions,
         ILogger<LoginModel> logger)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _ldapAuthentication = ldapAuthentication ?? throw new ArgumentNullException(nameof(ldapAuthentication));
         _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -51,8 +55,11 @@ public partial class LoginModel : PageModel
 
     public string SingleSignOnName => _authOptions.Value.SingleSignOnName;
 
-    public bool IsLocalEnabled =>
-        _authOptions.Value.Mode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
+    public bool IsLocalEnabled => _authOptions.Value.IsLocalEnabled;
+
+    public bool IsLdapEnabled => _authOptions.Value.IsLdapEnabled;
+
+    public string LdapName => _authOptions.Value.Ldap?.DisplayName ?? "LDAP";
 
     [FromQuery(Name = "error")]
     public string ExternalError { get; set; }
@@ -95,6 +102,12 @@ public partial class LoginModel : PageModel
         }
 
         var user = await _userService.FindByUsernameAsync(Username, cancellationToken);
+
+        // A username of a local account is only checked locally; other names go to the directory.
+        if (IsLdapEnabled && (user == null || user.AuthProvider == AuthProvider.Ldap))
+        {
+            return await SignInLdapUserAsync(cancellationToken);
+        }
 
         if (user == null || user.AuthProvider != AuthProvider.Local)
         {
@@ -139,12 +152,43 @@ public partial class LoginModel : PageModel
 
         await _userService.ResetFailedLoginCountAsync(user.Id, cancellationToken);
 
+        return await SignInAsync(user);
+    }
+
+    private async Task<IActionResult> SignInLdapUserAsync(CancellationToken cancellationToken)
+    {
+        var user = await _ldapAuthentication.AuthenticateAsync(Username, Password, cancellationToken);
+        if (user == null)
+        {
+            ErrorMessage = "Invalid username or password.";
+            return Page();
+        }
+
+        if (!user.IsEnabled)
+        {
+            ErrorMessage = "This account has been disabled.";
+            LogUserDisabled(user.Username);
+            return Page();
+        }
+
+        if (!user.CanLoginToUI)
+        {
+            ErrorMessage = "This account is not permitted to sign in to the web UI.";
+            LogUiLoginNotPermitted(user.Username);
+            return Page();
+        }
+
+        return await SignInAsync(user);
+    }
+
+    private async Task<IActionResult> SignInAsync(User user)
+    {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
             new("DisplayName", user.DisplayName ?? user.Username),
-            new("AuthProvider", AuthProvider.Local.ToString()),
+            new("AuthProvider", user.AuthProvider.ToString()),
             new(Core.Authentication.AuthenticationConstants.IsAdminClaim, user.IsAdmin ? "true" : "false")
         };
 
@@ -165,7 +209,7 @@ public partial class LoginModel : PageModel
                 RedirectUri = ReturnUrl
             });
 
-        LogSignedIn(Username);
+        LogSignedIn(user.Username, user.AuthProvider);
 
         if (user.MustChangePassword)
         {
@@ -193,9 +237,12 @@ public partial class LoginModel : PageModel
 
         return Challenge(
             new AuthenticationProperties { RedirectUri = redirectUrl },
-            IsEntraSignOn
-                ? Core.Authentication.AuthenticationConstants.EntraOidcScheme
-                : Core.Authentication.AuthenticationConstants.OidcScheme);
+            _authOptions.Value.SingleSignOnProvider switch
+            {
+                AuthProvider.Entra => Core.Authentication.AuthenticationConstants.EntraOidcScheme,
+                AuthProvider.Saml => Core.Authentication.AuthenticationConstants.SamlScheme,
+                _ => Core.Authentication.AuthenticationConstants.OidcScheme,
+            });
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login failed: user '{Username}' not found or not a local account")]
@@ -213,6 +260,6 @@ public partial class LoginModel : PageModel
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login failed: invalid password for user '{Username}'")]
     private partial void LogInvalidPassword(string username);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "User '{Username}' signed in successfully via local account")]
-    private partial void LogSignedIn(string username);
+    [LoggerMessage(Level = LogLevel.Information, Message = "User '{Username}' signed in successfully via {AuthProvider} account")]
+    private partial void LogSignedIn(string username, AuthProvider authProvider);
 }
