@@ -34,7 +34,7 @@ Make sure the account PaGetto runs as can read the file.
 
 :::note
 
-`ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
+`ApiKeys` and `Credentials` (see [Private feeds](#private-feeds)) only apply when `Authentication:Mode` is `Legacy` (formerly `Config`). In the `Local`, `Entra`, `Oidc` and `Hybrid` modes they are ignored, and clients push and restore with a personal access token or their credentials instead. See [Authentication](authentication.md).
 
 :::
 
@@ -219,7 +219,7 @@ Like `AllowPackageOverwrites` and `PackageDeletionBehavior`, this is the default
 
 A private feed requires users to authenticate before accessing packages.
 
-The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
+The `Credentials` list below only applies in the `Legacy` authentication mode. With user accounts (`Local`, `Entra`, `Oidc` or `Hybrid`), access is controlled per feed through groups and permissions instead; see [Authentication](authentication.md).
 
 You can require that users provide a username and password to access the feeds.
 To do so, you can insert the credentials in the `Authentication` section.
@@ -240,6 +240,23 @@ To do so, you can insert the credentials in the `Authentication` section.
 ```
 
 Users will now have to provide the username and password to fetch and download packages, in every feed. Clients send them with Basic authentication. A few clients can only send a token, so they can't use every combination of credentials and API keys; the page of each [package format](Index.md#package-formats) says what works in the `Legacy` mode. For the NuGet commands, see [NuGet packages](nuget.md#configure-the-client).
+
+## Single sign-on
+
+Users can sign in through Microsoft Entra ID (`Authentication:Entra`, see [Azure Entra ID setup](authentication.md#azure-entra-id-setup)) or through any OpenID Connect provider such as Keycloak, Okta or GitLab (`Authentication:Oidc`, see [OpenID Connect single sign-on](oidc.md)). `Authentication:Mode` `Oidc` accepts only the OpenID Connect provider; `Hybrid` adds local accounts, and uses the OpenID Connect provider when `Authentication:Oidc` is set.
+
+| Setting | Default | Description |
+|---|---|---|
+| `Authentication:Oidc:Authority` | | Required. The provider's issuer URL. |
+| `Authentication:Oidc:ClientId` | | Required. The client id registered at the provider. |
+| `Authentication:Oidc:ClientSecret` | | The client secret. Keep it in an environment variable or a [secret file](#load-secrets-from-files). |
+| `Authentication:Oidc:Scopes` | `openid profile email` | The scopes to request, separated by spaces. Must include `openid`. |
+| `Authentication:Oidc:CallbackPath` | `/signin-oidc` | The path of the redirect URI registered at the provider. |
+| `Authentication:Oidc:RoleClaim` | `groups` | The ID token claim whose values link users to role-linked groups; `Admin` makes a user an administrator. |
+| `Authentication:Oidc:DisplayName` | `SSO` | The provider's name on the sign-in button. |
+| `Authentication:Oidc:RequireHttpsMetadata` | `true` | Whether the authority has to use `https`. |
+
+As environment variables: `Authentication__Oidc__Authority`, `Authentication__Oidc__ClientId` and so on. PaGetto refuses to start when a required setting is missing or invalid.
 
 ## Database configuration
 
