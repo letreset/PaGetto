@@ -2,7 +2,7 @@
 
 PaGetto has a web UI for browsing packages, connecting clients, uploading packages and managing the server. Open the server's root URL (`https://your-server/`) for the default [feed](feeds.md), or `https://your-server/feeds/{slug}/` for another feed.
 
-What a user sees depends on their [permissions](authentication.md#feed-permissions). In the `Local`, `Entra`, `Oidc` and `Hybrid` modes, users sign in with **Sign in** in the top bar, and anonymous visitors see a **Sign in required** page. Feeds a user can't pull from are hidden, and a signed-in user who can't pull from any feed sees **No feeds available**.
+What a user sees depends on their [permissions](authentication.md#feed-permissions). In the `Local`, `Entra`, `Oidc`, `Saml` and `Hybrid` modes, users sign in with **Sign in** in the top bar, and anonymous visitors see a **Sign in required** page. Feeds a user can't pull from are hidden, and a signed-in user who can't pull from any feed sees **No feeds available**.
 
 ## Navigation
 
@@ -22,7 +22,7 @@ A **Docs** link opens this documentation. Signed-in users also get a user menu w
 
 The button next to the user menu switches between the light and the dark theme. Until you pick one, the UI follows the system setting; your choice is remembered per browser. On screens narrower than 760 px, the links and the user menu move into a menu behind the menu button.
 
-In the `Local`, `Entra`, `Oidc` and `Hybrid` modes, a signed-in user who opens the root URL lands on the first feed, in the order set on **Admin > Feeds**, that they can pull from. A feed they can't pull from returns `404 Not Found`, the same as a feed that doesn't exist.
+In the `Local`, `Entra`, `Oidc`, `Saml` and `Hybrid` modes, a signed-in user who opens the root URL lands on the first feed, in the order set on **Admin > Feeds**, that they can pull from. A feed they can't pull from returns `404 Not Found`, the same as a feed that doesn't exist.
 
 ## Search and filters
 
@@ -69,7 +69,7 @@ On every feed type, a stored version with known vulnerabilities shows them in a 
 
 Every package has an Atom feed of its listed versions, newest first (at most 20), at `/packages/{id}/atom.xml`, or `/feeds/{slug}/packages/{id}/atom.xml` for a named feed. The package page links to it, so feed readers can find it from the page URL. Versions that are only available from a mirror are included, unlisted versions aren't.
 
-Feed readers can't use the web UI's sign-in. In the `Local`, `Entra`, `Oidc` and `Hybrid` modes they authenticate with Basic auth: your user name and a [personal access token](#my-tokens) as the password. Users without pull permission on the feed get a 404, as on the package page.
+Feed readers can't use the web UI's sign-in. In the `Local`, `Entra`, `Oidc`, `Saml` and `Hybrid` modes they authenticate with Basic auth: your user name and a [personal access token](#my-tokens) as the password. Users without pull permission on the feed get a 404, as on the package page.
 
 ## Unlist, relist and delete
 
@@ -87,7 +87,7 @@ Feeds of the other types name these actions after their ecosystem: **Yank** on P
 
 ![The Connect page of the Internal feed](./assets/web-ui/connect.png)
 
-The **Connect** tab shows the feed's URL with a copy button, the client configuration for the feed's type, and how to authenticate for the server's [authentication mode](authentication.md#authentication-modes): which user name and password or token to use. On a NuGet feed it has commands for the .NET CLI, the NuGet CLI, `nuget.config` and Paket; on the other feeds those of their clients, as on the page of each [package format](Index.md#package-formats). In the `Local`, `Entra`, `Oidc` and `Hybrid` modes, users must sign in to see it. See also [Connecting a client](feeds.md#connecting-a-client).
+The **Connect** tab shows the feed's URL with a copy button, the client configuration for the feed's type, and how to authenticate for the server's [authentication mode](authentication.md#authentication-modes): which user name and password or token to use. On a NuGet feed it has commands for the .NET CLI, the NuGet CLI, `nuget.config` and Paket; on the other feeds those of their clients, as on the page of each [package format](Index.md#package-formats). In the `Local`, `Entra`, `Oidc`, `Saml` and `Hybrid` modes, users must sign in to see it. See also [Connecting a client](feeds.md#connecting-a-client).
 
 ## Upload
 
@@ -145,7 +145,7 @@ Drag a feed by its handle to change the order. The order is saved right away, an
 
 ![Admin > Groups & permissions with three groups, and the permissions of the Developers group on each feed](./assets/web-ui/admin-groups.png)
 
-**New group** opens the form for a group, with an optional **App role value** that links it to an Entra app role or an [OpenID Connect](oidc.md) group; it can't be changed afterwards. The pencil button next to a group edits its name and description; members, permissions and the app role link are kept. Add members to a group with **Add member**, and remove one with the x on its chip. Single sign-on users (Entra ID or OpenID Connect) can't be added to or removed from a role-linked group by hand: their membership follows their roles or groups at the provider. **Delete group** removes the group with its memberships and permissions. Open **Feed permissions** under a group to set its **Pull**, **Push** and **Delete** permissions on each feed, then select **Save permissions**; the button is enabled once a box changes. Clearing all three removes the group's access to that feed.
+**New group** opens the form for a group, with an optional **App role value** that links it to an Entra app role, an [OpenID Connect](oidc.md) or [SAML](saml.md) group, or an [LDAP](ldap.md) group (its common name or DN); it can't be changed afterwards. The pencil button next to a group edits its name and description; members, permissions and the app role link are kept. Add members to a group with **Add member**, and remove one with the x on its chip. Single sign-on users (Entra ID, OpenID Connect or SAML) and LDAP users can't be added to or removed from a role-linked group by hand: their membership follows their roles or groups at the provider or in the directory. **Delete group** removes the group with its memberships and permissions. Open **Feed permissions** under a group to set its **Pull**, **Push** and **Delete** permissions on each feed, then select **Save permissions**; the button is enabled once a box changes. Clearing all three removes the group's access to that feed.
 
 ### Vulnerabilities
 
