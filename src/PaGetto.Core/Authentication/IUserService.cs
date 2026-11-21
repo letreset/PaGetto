@@ -10,8 +10,8 @@ public interface IUserService
 {
     Task<User> FindByIdAsync(Guid userId, CancellationToken cancellationToken);
     Task<User> FindByUsernameAsync(string username, CancellationToken cancellationToken);
-    Task<User> FindByEntraObjectIdAsync(string entraObjectId, CancellationToken cancellationToken);
-    Task<User> CreateEntraUserAsync(string entraObjectId, string username, string displayName, string email, CancellationToken cancellationToken);
+    Task<User> FindByExternalIdAsync(AuthProvider provider, string externalId, CancellationToken cancellationToken);
+    Task<User> CreateExternalUserAsync(AuthProvider provider, string externalId, string username, string displayName, string email, CancellationToken cancellationToken);
     Task<User> CreateLocalUserAsync(string username, string displayName, string email, string password, bool canLoginToUI, Guid? createdByUserId, CancellationToken cancellationToken);
     Task<User> CreateLocalAdminAsync(string username, string password, bool mustChangePassword, CancellationToken cancellationToken);
     Task UpdateUserAsync(User user, CancellationToken cancellationToken);

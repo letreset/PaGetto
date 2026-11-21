@@ -205,6 +205,7 @@ public class ValidatePaGettoOptionsTests
         [Theory]
         [InlineData(AuthenticationMode.Legacy)]
         [InlineData(AuthenticationMode.Local)]
+        [InlineData(AuthenticationMode.Oidc)]
         public void AcceptsMode(AuthenticationMode mode)
         {
             Assert.False(HasModeFailure(new NugetAuthenticationOptions { Mode = mode }));
@@ -221,6 +222,119 @@ public class ValidatePaGettoOptionsTests
                 .Get<PaGettoOptions>();
 
             Assert.Equal(AuthenticationMode.Legacy, options.Authentication.Mode);
+        }
+    }
+
+    public class ValidateOidc
+    {
+        // The single sign-on failures only: the other sections are left out on purpose.
+        private static IReadOnlyList<string> Failures(NugetAuthenticationOptions authentication)
+        {
+            var options = new PaGettoOptions { Authentication = authentication };
+            var result = new ValidatePaGettoOptions().Validate(null, options);
+            return result.Failed
+                ? result.Failures.Where(f => f.Contains("Oidc") || f.Contains("Entra")).ToList()
+                : [];
+        }
+
+        private static OidcOptions ValidOidc()
+        {
+            return new OidcOptions { Authority = "https://sso.example.com/realms/pagetto", ClientId = "pagetto" };
+        }
+
+        [Theory]
+        [InlineData(AuthenticationMode.Oidc)]
+        [InlineData(AuthenticationMode.Hybrid)]
+        public void AcceptsValidSettings(AuthenticationMode mode)
+        {
+            Assert.Empty(Failures(new NugetAuthenticationOptions { Mode = mode, Oidc = ValidOidc() }));
+        }
+
+        [Fact]
+        public void RequiresTheSectionInOidcMode()
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc' config is required"));
+        }
+
+        [Fact]
+        public void RejectsEntraAndOidcTogetherInHybridMode()
+        {
+            var failures = Failures(new NugetAuthenticationOptions
+            {
+                Mode = AuthenticationMode.Hybrid,
+                Entra = new EntraOptions { Instance = "https://login.microsoftonline.com/", TenantId = "t", ClientId = "c" },
+                Oidc = ValidOidc(),
+            });
+
+            Assert.Contains(failures, f => f.Contains("can't both be set in Hybrid mode"));
+        }
+
+        [Fact]
+        public void RequiresAuthorityAndClientId()
+        {
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc, Oidc = new OidcOptions() });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc:Authority' config is required"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc:ClientId' config is required"));
+        }
+
+        [Theory]
+        [InlineData("sso.example.com")]
+        [InlineData("ftp://sso.example.com")]
+        public void RejectsAuthorityThatIsNotAnHttpUrl(string authority)
+        {
+            var oidc = ValidOidc();
+            oidc.Authority = authority;
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc, Oidc = oidc });
+
+            Assert.Contains(failures, f => f.Contains("must be an absolute http or https URL"));
+        }
+
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        public void RequiresHttpsAuthorityUnlessTurnedOff(bool requireHttpsMetadata, bool fails)
+        {
+            var oidc = ValidOidc();
+            oidc.Authority = "http://keycloak:8080/realms/pagetto";
+            oidc.RequireHttpsMetadata = requireHttpsMetadata;
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc, Oidc = oidc });
+
+            Assert.Equal(fails, failures.Any(f => f.Contains("must use https")));
+        }
+
+        [Fact]
+        public void RequiresTheOpenIdScope()
+        {
+            var oidc = ValidOidc();
+            oidc.Scopes = "profile email";
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc, Oidc = oidc });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc:Scopes' config must include 'openid'"));
+        }
+
+        [Fact]
+        public void RejectsInvalidCallbackPathAndEmptyRoleClaim()
+        {
+            var oidc = ValidOidc();
+            oidc.CallbackPath = "signin-oidc";
+            oidc.RoleClaim = "";
+
+            var failures = Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Oidc, Oidc = oidc });
+
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc:CallbackPath' config must start with '/'"));
+            Assert.Contains(failures, f => f.Contains("'Authentication:Oidc:RoleClaim' config is required"));
+        }
+
+        [Fact]
+        public void IgnoresTheSectionInLocalMode()
+        {
+            Assert.Empty(Failures(new NugetAuthenticationOptions { Mode = AuthenticationMode.Local, Oidc = new OidcOptions() }));
         }
     }
 

@@ -1,0 +1,105 @@
+{
+  "realm": "pagetto",
+  "enabled": true,
+  "sslRequired": "none",
+  "groups": [
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "developers"
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@example.test",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice-test-pw",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/Admin",
+        "/developers"
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "firstName": "Bob",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob-test-pw",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/developers"
+      ]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "firstName": "Clash",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "clash-test-pw",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "pagetto",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "pagetto-test-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5000/signin-oidc"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "VERIFY_PROFILE",
+      "name": "Verify Profile",
+      "providerId": "VERIFY_PROFILE",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 90,
+      "config": {}
+    }
+  ]
+}

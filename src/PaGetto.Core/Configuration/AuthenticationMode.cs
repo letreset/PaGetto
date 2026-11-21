@@ -19,7 +19,8 @@ public enum AuthenticationMode
     Local = 2,
 
     /// <summary>
-    /// Both Entra ID and local account authentication are enabled.
+    /// Local accounts and single sign-on are enabled: through the OpenID Connect provider of
+    /// <c>Authentication:Oidc</c> when that section is set, otherwise through Entra ID.
     /// </summary>
     Hybrid = 3,
 
@@ -35,4 +36,10 @@ public enum AuthenticationMode
     /// </summary>
     [Obsolete("Use Legacy.")]
     Config = Legacy,
+
+    /// <summary>
+    /// Only the OpenID Connect provider of <c>Authentication:Oidc</c> is enabled. Local accounts are
+    /// not accepted.
+    /// </summary>
+    Oidc = 5,
 }

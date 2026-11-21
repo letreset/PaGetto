@@ -41,7 +41,7 @@
                 <div>
                     <label asp-for="NewAppRoleValue" class="form-label">App role value <span class="bgt-optional">(optional)</span></label>
                     <input asp-for="NewAppRoleValue" class="form-control" placeholder="e.g. TeamFrontend" autocomplete="off" />
-                    <div class="form-text">Syncs members from an Entra ID app role. Leave empty to manage members manually.</div>
+                    <div class="form-text">Syncs members from an Entra ID app role or a value of the OIDC role claim. Leave empty to manage members manually.</div>
                 </div>
                 <div style="grid-column: 1 / -1">
                     <label asp-for="NewDescription" class="form-label">Description</label>
@@ -69,7 +69,7 @@
         var memberIds = members.Select(m => m.UserId).ToHashSet();
         var addableUsers = Model.AllUsers
             .Where(u => !memberIds.Contains(u.Id))
-            .Where(u => !isRoleLinked || u.AuthProvider != AuthProvider.Entra)
+            .Where(u => !isRoleLinked || u.AuthProvider == AuthProvider.Local)
             .OrderBy(u => u.Username)
             .ToList();
 
@@ -109,7 +109,7 @@
                         <h2 class="bgt-group-name m-0">@group.Name</h2>
                         @if (isRoleLinked)
                         {
-                            <span class="bgt-badge" title="Members with the Entra app role '@group.AppRoleValue' are synced">Synced · @group.AppRoleValue</span>
+                            <span class="bgt-badge" title="Single sign-on members with the role '@group.AppRoleValue' are synced">Synced · @group.AppRoleValue</span>
                         }
                         else
                         {
@@ -139,20 +139,20 @@
                 <div class="bgt-section-label">Members · @members.Count</div>
                 @if (isRoleLinked)
                 {
-                    <p class="bgt-group-note">Membership for Entra users is managed by the Entra app role. Local users can be added manually.</p>
+                    <p class="bgt-group-note">Membership for single sign-on users is managed by their role at the sign-in provider. Local users can be added manually.</p>
                 }
                 <div class="bgt-members">
                     @foreach (var ug in members)
                     {
                         var memberName = ug.User?.Username ?? ug.UserId.ToString();
-                        var isEntraUser = ug.User?.AuthProvider == AuthProvider.Entra;
-                        var canRemove = !isRoleLinked || !isEntraUser;
+                        var isSingleSignOnUser = ug.User != null && ug.User.AuthProvider != AuthProvider.Local;
+                        var canRemove = !isRoleLinked || !isSingleSignOnUser;
                         <span class="bgt-member">
                             <span class="bgt-avatar bgt-avatar-sm">@((ug.User?.DisplayName ?? memberName).ToNameInitials())</span>
                             <span class="bgt-member-name">@memberName</span>
-                            @if (isEntraUser)
+                            @if (isSingleSignOnUser)
                             {
-                                <span class="bgt-badge" title="@(isRoleLinked ? $"Synced via the app role '{group.AppRoleValue}'" : "Entra account")">@(isRoleLinked ? "Synced" : "Entra")</span>
+                                <span class="bgt-badge" title="@(isRoleLinked ? $"Synced via the role '{group.AppRoleValue}'" : $"{ug.User.AuthProvider.ToDisplayName()} account")">@(isRoleLinked ? "Synced" : ug.User.AuthProvider.ToDisplayName())</span>
                             }
                             @if (canRemove)
                             {
@@ -185,7 +185,7 @@
                                         <button type="submit" name="userId" value="@user.Id" class="dropdown-item">
                                             <span class="bgt-avatar" style="width: 26px; height: 26px; font-size: 10.5px">@((user.DisplayName ?? user.Username).ToNameInitials())</span>
                                             <span class="fw-medium">@user.Username</span>
-                                            <span class="bgt-member-display">@(userDisplay ?? (user.AuthProvider == AuthProvider.Entra ? "Entra" : null))</span>
+                                            <span class="bgt-member-display">@(userDisplay ?? (user.AuthProvider != AuthProvider.Local ? user.AuthProvider.ToDisplayName() : null))</span>
                                         </button>
                                     }
                                 </form>

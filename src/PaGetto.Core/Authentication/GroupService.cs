@@ -101,7 +101,7 @@ public partial class GroupService : IGroupService
         if (!await CanManuallyModifyMembershipAsync(groupId, userId, cancellationToken))
         {
             throw new InvalidOperationException(
-                "Cannot manually add an Entra user to a role-linked group. Membership is managed by App Roles.");
+                "Cannot manually add a single sign-on user to a role-linked group. Membership is managed by the sign-in provider's roles.");
         }
 
         var exists = await _context.UserGroups
@@ -124,7 +124,7 @@ public partial class GroupService : IGroupService
         if (!await CanManuallyModifyMembershipAsync(groupId, userId, cancellationToken))
         {
             throw new InvalidOperationException(
-                "Cannot manually remove an Entra user from a role-linked group. Membership is managed by App Roles.");
+                "Cannot manually remove a single sign-on user from a role-linked group. Membership is managed by the sign-in provider's roles.");
         }
 
         var membership = await _context.UserGroups
@@ -202,7 +202,7 @@ public partial class GroupService : IGroupService
         if (user == null)
             return false;
 
-        return user.AuthProvider != AuthProvider.Entra;
+        return user.AuthProvider == AuthProvider.Local;
     }
 
     public async Task<bool> DeleteGroupAsync(Guid groupId, CancellationToken cancellationToken)
