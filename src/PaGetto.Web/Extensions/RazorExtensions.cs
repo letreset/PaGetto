@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using Humanizer;
+using PaGetto.Core.Entities;
 
 namespace PaGetto.Web.Extensions;
 
@@ -74,6 +75,19 @@ public static class RazorExtensions
         var letters = string.Concat(words.Take(2).Select(w => w[0]));
 
         return letters.ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// The short name of the provider an account signs in with: "Local", "Entra" or "OIDC".
+    /// </summary>
+    public static string ToDisplayName(this AuthProvider provider)
+    {
+        return provider switch
+        {
+            AuthProvider.Local => "Local",
+            AuthProvider.Entra => "Entra",
+            _ => "OIDC",
+        };
     }
 
     /// <summary>

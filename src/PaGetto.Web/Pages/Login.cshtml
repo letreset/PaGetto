@@ -6,9 +6,9 @@
     ViewData["Title"] = "Sign in";
     ViewData["Bare"] = true;
 
-    var subtitle = Model.IsEntraEnabled && Model.IsLocalEnabled
-        ? "Use your Microsoft or local account to continue."
-        : Model.IsEntraEnabled ? "Use your Microsoft account to continue." : "Use your local account to continue.";
+    var subtitle = Model.IsSingleSignOnEnabled && Model.IsLocalEnabled
+        ? $"Use your {Model.SingleSignOnName} or local account to continue."
+        : Model.IsSingleSignOnEnabled ? $"Use your {Model.SingleSignOnName} account to continue." : "Use your local account to continue.";
 }
 
 <div class="bgt-auth">
@@ -36,19 +36,26 @@
                 </div>
             }
 
-            @if (Model.IsEntraEnabled || Model.IsLocalEnabled)
+            @if (Model.IsSingleSignOnEnabled || Model.IsLocalEnabled)
             {
                 <div class="bgt-auth-card">
-                    @if (Model.IsEntraEnabled)
+                    @if (Model.IsSingleSignOnEnabled)
                     {
-                        <a href="@Url.Page("/Login", "EntraSignIn", new { ReturnUrl = Model.ReturnUrl })" class="btn btn-secondary">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
-                                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                            </svg>
-                            Sign in with Microsoft
+                        <a href="@Url.Page("/Login", "SingleSignOn", new { ReturnUrl = Model.ReturnUrl })" class="btn btn-secondary">
+                            @if (Model.IsEntraSignOn)
+                            {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+                                    <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+                                    <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+                                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+                                    <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+                                </svg>
+                            }
+                            else
+                            {
+                                <icon name="lock" size="16" />
+                            }
+                            Sign in with @Model.SingleSignOnName
                         </a>
 
                         @if (Model.IsLocalEnabled)

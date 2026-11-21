@@ -45,8 +45,11 @@ public partial class LoginModel : PageModel
 
     public string ErrorMessage { get; set; }
 
-    public bool IsEntraEnabled =>
-        _authOptions.Value.Mode is AuthenticationMode.Entra or AuthenticationMode.Hybrid;
+    public bool IsSingleSignOnEnabled => _authOptions.Value.SingleSignOnProvider != null;
+
+    public bool IsEntraSignOn => _authOptions.Value.SingleSignOnProvider == AuthProvider.Entra;
+
+    public string SingleSignOnName => _authOptions.Value.SingleSignOnName;
 
     public bool IsLocalEnabled =>
         _authOptions.Value.Mode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
@@ -177,9 +180,9 @@ public partial class LoginModel : PageModel
         return RedirectToPage("/Index");
     }
 
-    public IActionResult OnGetEntraSignIn()
+    public IActionResult OnGetSingleSignOn()
     {
-        if (!IsEntraEnabled)
+        if (!IsSingleSignOnEnabled)
         {
             return RedirectToPage("/Index");
         }
@@ -190,7 +193,9 @@ public partial class LoginModel : PageModel
 
         return Challenge(
             new AuthenticationProperties { RedirectUri = redirectUrl },
-            Core.Authentication.AuthenticationConstants.EntraOidcScheme);
+            IsEntraSignOn
+                ? Core.Authentication.AuthenticationConstants.EntraOidcScheme
+                : Core.Authentication.AuthenticationConstants.OidcScheme);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login failed: user '{Username}' not found or not a local account")]

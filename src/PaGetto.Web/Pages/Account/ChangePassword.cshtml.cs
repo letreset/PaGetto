@@ -53,6 +53,8 @@ public class ChangePasswordModel : PageModel
 
     public bool IsLocalAccount { get; private set; }
 
+    public AuthProvider AuthProvider { get; private set; }
+
     [TempData]
     public string SuccessMessage { get; set; }
 
@@ -108,6 +110,7 @@ public class ChangePasswordModel : PageModel
     private void Load(User user)
     {
         IsLocalAccount = user.AuthProvider == AuthProvider.Local;
+        AuthProvider = user.AuthProvider;
         IsRequired = user.MustChangePassword;
     }
 

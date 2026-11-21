@@ -1,17 +1,49 @@
+using PaGetto.Core.Entities;
+
 namespace PaGetto.Core.Configuration;
 
 public sealed class NugetAuthenticationOptions
 {
     /// <summary>
     /// Controls which authentication mechanisms are active.
-    /// Required: <c>Legacy</c>, <c>Local</c>, <c>Entra</c> or <c>Hybrid</c>.
+    /// Required: <c>Legacy</c>, <c>Local</c>, <c>Entra</c>, <c>Oidc</c> or <c>Hybrid</c>.
     /// </summary>
     public AuthenticationMode Mode { get; set; }
 
     /// <summary>
-    /// Azure Entra ID (OIDC) configuration. Required when Mode is Entra or Hybrid.
+    /// Azure Entra ID (OIDC) configuration. Required when Mode is Entra, or Hybrid without
+    /// <see cref="Oidc"/>.
     /// </summary>
     public EntraOptions Entra { get; set; }
+
+    /// <summary>
+    /// OpenID Connect provider configuration. Required when Mode is Oidc; in Hybrid mode it
+    /// replaces Entra ID.
+    /// </summary>
+    public OidcOptions Oidc { get; set; }
+
+    /// <summary>
+    /// The provider users sign in with besides local accounts, or null when there is none
+    /// (<c>Local</c> and <c>Legacy</c>).
+    /// </summary>
+    public AuthProvider? SingleSignOnProvider => Mode switch
+    {
+        AuthenticationMode.Entra => AuthProvider.Entra,
+        AuthenticationMode.Oidc => AuthProvider.Oidc,
+        AuthenticationMode.Hybrid => Oidc != null ? AuthProvider.Oidc : AuthProvider.Entra,
+        _ => null,
+    };
+
+    /// <summary>
+    /// The name of the <see cref="SingleSignOnProvider"/> in the web UI ("Sign in with ..."), or
+    /// null when there is none.
+    /// </summary>
+    public string SingleSignOnName => SingleSignOnProvider switch
+    {
+        AuthProvider.Entra => "Microsoft",
+        AuthProvider.Oidc => Oidc?.DisplayName ?? "SSO",
+        _ => null,
+    };
 
     /// <summary>
     /// Maximum number of days a personal access token can be valid.

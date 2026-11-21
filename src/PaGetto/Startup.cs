@@ -185,8 +185,8 @@ public class Startup
         app.AddNugetBasicHttpAuthentication();
         app.AddNugetBasicHttpAuthorization();
 
-        // Add Entra ID (OIDC) authentication when configured
-        app.AddEntraAuthentication(Configuration, Environment);
+        // Add the web session, with single sign-on (Entra ID or OIDC) when configured
+        app.AddWebUiAuthentication(Configuration, Environment);
 
         // Add database providers.
         app.AddMySqlDatabase();

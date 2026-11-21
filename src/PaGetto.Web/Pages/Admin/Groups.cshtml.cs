@@ -237,7 +237,7 @@ public class GroupsModel : PageModel
 
         if (!await _groupService.CanManuallyModifyMembershipAsync(groupId, userId, cancellationToken))
         {
-            ErrorMessage = "Cannot manually add Entra users to role-linked groups. Membership is managed by Azure AD App Roles.";
+            ErrorMessage = "Cannot manually add single sign-on users to role-linked groups. Membership is managed by their role at the sign-in provider.";
             Groups = await _groupService.GetAllGroupsAsync(cancellationToken);
             AllUsers = await _userService.GetAllUsersAsync(cancellationToken);
             await LoadGroupPermissionsAsync(cancellationToken);
@@ -258,7 +258,7 @@ public class GroupsModel : PageModel
 
         if (!await _groupService.CanManuallyModifyMembershipAsync(groupId, userId, cancellationToken))
         {
-            ErrorMessage = "Cannot manually remove Entra users from role-linked groups. Membership is managed by Azure AD App Roles.";
+            ErrorMessage = "Cannot manually remove single sign-on users from role-linked groups. Membership is managed by their role at the sign-in provider.";
             Groups = await _groupService.GetAllGroupsAsync(cancellationToken);
             AllUsers = await _userService.GetAllUsersAsync(cancellationToken);
             await LoadGroupPermissionsAsync(cancellationToken);

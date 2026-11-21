@@ -16,7 +16,8 @@
     var serviceIndexUrl = URL.GetServiceIndexUrl();
 
     var authMode = AuthOptions.Value.Mode;
-    var hasEntra = authMode is AuthenticationMode.Entra or AuthenticationMode.Hybrid;
+    var ssoName = AuthOptions.Value.SingleSignOnName;
+    var hasSso = ssoName != null;
     var hasLocal = authMode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
     var requiresAuth = authMode != AuthenticationMode.Legacy;
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
@@ -146,21 +147,21 @@
         </div>
     </div>
 
-    @if (hasEntra || hasLocal)
+    @if (hasSso || hasLocal)
     {
         <div class="bgt-callout">
             <icon name="lock" size="18" />
             <div>
                 <div class="bgt-callout-title">Authentication required</div>
                 <div class="bgt-callout-body">
-                    @if (hasEntra && hasLocal)
+                    @if (hasSso && hasLocal)
                     {
-                        <p>Entra (Microsoft) users: sign in to the web UI to generate a personal access token (PAT), then use it as the API key.</p>
+                        <p>@ssoName users: sign in to the web UI to generate a personal access token (PAT), then use it as the API key.</p>
                         <p>Local accounts: use your username and password with basic authentication.</p>
                     }
-                    else if (hasEntra)
+                    else if (hasSso)
                     {
-                        <p>Sign in with your Microsoft account to generate a personal access token (PAT), then use it as the API key when pushing packages.</p>
+                        <p>Sign in with your @ssoName account to generate a personal access token (PAT), then use it as the API key when pushing packages.</p>
                     }
                     else
                     {

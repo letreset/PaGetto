@@ -26,6 +26,33 @@ For every page you open, the browser console should show no errors.
 | S8 | `alice` | User menu > **Change password**, change it with the wrong current password, then with the right one | Wrong one: "The current password is incorrect."; right one: "Your password has been changed." and signing in again needs the new password |
 | S9 | none | Start with `TESTENV_EMPTY=1` and sign in as `admin` / `admin` | Lands on **Change password** with a warning; opening any other page returns there; after changing the password the site works normally |
 
+## OpenID Connect sign-in
+
+These checks need a Keycloak with the realm in `keycloak/pagetto-realm.json` (users `alice`, in the Keycloak groups `Admin` and `developers`, `bob` in `developers` without an email, and `admin`; their test passwords are in that file) and a PaGetto in `Hybrid` mode that uses it. Start both on one network; the browser and PaGetto reach Keycloak as `host.docker.internal:8080`:
+
+```bash
+docker network create pagetto-oidc
+docker run -d --name kc-oidc --network pagetto-oidc -p 8080:8080 \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME=kcadmin -e KC_BOOTSTRAP_ADMIN_PASSWORD=kcadmin \
+  -e KC_HOSTNAME=http://host.docker.internal:8080 \
+  -v "$PWD/testenv/keycloak:/opt/keycloak/data/import" quay.io/keycloak/keycloak:26.0 start-dev --import-realm
+docker run -d --name pagetto-oidc --network pagetto-oidc -p 5000:8080 \
+  -e Authentication__Mode=Hybrid \
+  -e Authentication__Oidc__Authority=http://host.docker.internal:8080/realms/pagetto \
+  -e Authentication__Oidc__ClientId=pagetto -e Authentication__Oidc__ClientSecret=pagetto-test-secret \
+  -e Authentication__Oidc__DisplayName=Keycloak -e Authentication__Oidc__RequireHttpsMetadata=false \
+  letreset/pagetto:dev
+```
+
+| # | Account | Steps | Expected |
+|---|---|---|---|
+| O1 | none | Open `/Login` | "Use your Keycloak or local account to continue.", a **Sign in with Keycloak** button and the local sign-in form |
+| O2 | none | **Sign in with Keycloak**, sign in as `alice` | Back on PaGetto, signed in. Admin > Accounts lists `alice@example.test` with the **Admin** badge and "Alice Admin · OIDC · alice@example.test" |
+| O3 | `alice` | Admin > Groups & permissions: create the group `Developers` with the app role value `developers`. Then sign in as `bob` through Keycloak in another context and reload the groups page as `alice` | `Developers` shows "Synced · developers" and the member `bob` with a **Synced** badge and no remove button; **Add member** offers only local accounts |
+| O4 | none | **Sign in with Keycloak** as the Keycloak user `admin` | Back on `/Login` with "authentication_failed": the username `admin` belongs to the local account. The server log says "Login denied: the username admin of the new Oidc user is already used by another account" |
+| O5 | `bob` | User menu > **Change password** | "Your account signs in through single sign-on, so its password is managed there." |
+| O6 | `alice` | **Connect**, then **My Tokens** > create a token and run `curl -u alice@example.test:<token> 'http://localhost:5000/v3/search?q=a'` | Connect says "Keycloak users: sign in to the web UI to generate a personal access token (PAT)..."; curl answers 200, and 401 with a wrong token |
+
 ## Navigation
 
 | # | Account | Steps | Expected |

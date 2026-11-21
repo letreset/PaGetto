@@ -304,7 +304,7 @@ public class WebUiLocalLoginTests : IDisposable
     }
 
     [Fact]
-    public async Task EntraSignIn_WhenEntraNotConfigured_RedirectsToIndex()
+    public async Task SingleSignOn_WhenNotConfigured_RedirectsToIndex()
     {
         // Arrange - create app with Mode=Local (no Entra)
         using var app = new PaGettoApplication(_output, null, dict =>
@@ -317,7 +317,7 @@ public class WebUiLocalLoginTests : IDisposable
         });
 
         // Act - attempt Entra sign-in when not enabled
-        using var response = await client.GetAsync("/Login?handler=EntraSignIn");
+        using var response = await client.GetAsync("/Login?handler=SingleSignOn");
 
         // Assert - should redirect to index since Entra is not enabled
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

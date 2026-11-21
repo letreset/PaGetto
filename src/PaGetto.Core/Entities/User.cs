@@ -27,6 +27,11 @@ public class User
 
     public string DisplayName { get; set; }
     public AuthProvider AuthProvider { get; set; }
+
+    /// <summary>
+    /// The user's id at the single sign-on provider: the Entra object id (<c>oid</c>), or the
+    /// subject (<c>sub</c>) of an OpenID Connect provider. Null for local accounts.
+    /// </summary>
     public string EntraObjectId { get; set; }
     public string Email { get; set; }
     public string PasswordHash { get; set; }

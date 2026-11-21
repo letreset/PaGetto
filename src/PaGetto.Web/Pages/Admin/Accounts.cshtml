@@ -89,7 +89,7 @@
             var displayName = string.IsNullOrEmpty(user.DisplayName) ? user.Username : user.DisplayName;
             var subParts = new List<string>();
             if (!string.Equals(displayName, user.Username, StringComparison.Ordinal)) subParts.Add(displayName);
-            subParts.Add(isLocal ? "Local" : "Entra");
+            subParts.Add(user.AuthProvider.ToDisplayName());
             if (!string.IsNullOrEmpty(user.Email)) subParts.Add(user.Email);
             Model.UserGroupMemberships.TryGetValue(user.Id, out var groups);
 
@@ -101,7 +101,7 @@
                             @user.Username
                             @if (user.IsAdmin)
                             {
-                                <span class="bgt-badge bgt-badge-solid" title="@(isLocal ? "Administrator" : "Administrator through the Entra Admin app role")">Admin</span>
+                                <span class="bgt-badge bgt-badge-solid" title="@(isLocal ? "Administrator" : $"Administrator through the {user.AuthProvider.ToDisplayName()} Admin role")">Admin</span>
                             }
                             @if (isLocked)
                             {

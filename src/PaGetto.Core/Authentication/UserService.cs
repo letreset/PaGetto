@@ -44,14 +44,15 @@ public partial class UserService : IUserService
         return await _context.Users.FirstOrDefaultAsync(u => u.NormalizedUsername == normalized, cancellationToken);
     }
 
-    public async Task<User> FindByEntraObjectIdAsync(string entraObjectId, CancellationToken cancellationToken)
+    public async Task<User> FindByExternalIdAsync(AuthProvider provider, string externalId, CancellationToken cancellationToken)
     {
         return await _context.Users.FirstOrDefaultAsync(
-            u => u.EntraObjectId == entraObjectId, cancellationToken);
+            u => u.AuthProvider == provider && u.EntraObjectId == externalId, cancellationToken);
     }
 
-    public async Task<User> CreateEntraUserAsync(
-        string entraObjectId,
+    public async Task<User> CreateExternalUserAsync(
+        AuthProvider provider,
+        string externalId,
         string username,
         string displayName,
         string email,
@@ -63,8 +64,8 @@ public partial class UserService : IUserService
             Id = Guid.NewGuid(),
             Username = username,
             DisplayName = displayName,
-            AuthProvider = AuthProvider.Entra,
-            EntraObjectId = entraObjectId,
+            AuthProvider = provider,
+            EntraObjectId = externalId,
             Email = email,
             IsEnabled = true,
             CanLoginToUI = true,
@@ -75,7 +76,7 @@ public partial class UserService : IUserService
         _context.Users.Add(user);
         await _context.SaveChangesAsync(cancellationToken);
 
-        LogEntraUserCreated("AccountCreated", username, user.Id);
+        LogExternalUserCreated("AccountCreated", provider, username, user.Id);
         return user;
     }
 
@@ -285,8 +286,8 @@ public partial class UserService : IUserService
         LogUserDeleted("AccountDeleted", username, userId);
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - Created Entra user {Username} with ID {UserId}")]
-    private partial void LogEntraUserCreated(string eventType, string username, Guid userId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - Created {AuthProvider} user {Username} with ID {UserId}")]
+    private partial void LogExternalUserCreated(string eventType, AuthProvider authProvider, string username, Guid userId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Audit: {EventType} - Created local user {Username} with ID {UserId} by {CreatedBy}")]
     private partial void LogLocalUserCreated(string eventType, string username, Guid userId, Guid? createdBy);

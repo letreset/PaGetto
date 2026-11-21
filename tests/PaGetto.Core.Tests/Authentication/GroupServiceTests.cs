@@ -390,6 +390,17 @@ public class GroupServiceTests
         }
 
         [Fact]
+        public async Task ReturnsFalseForOidcUserOnRoleLinkedGroup()
+        {
+            var user = await CreateUser("oidcuser", AuthProvider.Oidc);
+            var group = await Target.CreateGroupAsync("RoleGroup", "developers", null, Ct);
+
+            var result = await Target.CanManuallyModifyMembershipAsync(group.Id, user.Id, Ct);
+
+            Assert.False(result);
+        }
+
+        [Fact]
         public async Task ReturnsTrueForLocalUserOnRoleLinkedGroup()
         {
             var user = await CreateLocalUser("localuser");
@@ -517,14 +528,14 @@ public class GroupServiceTests
                 Mock.Of<ILogger<GroupService>>());
         }
 
-        protected async Task<User> CreateUser(string username)
+        protected async Task<User> CreateUser(string username, AuthProvider authProvider = AuthProvider.Entra)
         {
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 Username = username,
                 DisplayName = $"{username} Display",
-                AuthProvider = AuthProvider.Entra,
+                AuthProvider = authProvider,
                 EntraObjectId = $"oid-{username}",
                 IsEnabled = true,
                 CanLoginToUI = true,

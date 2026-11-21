@@ -210,13 +210,52 @@ public class ValidatePaGettoOptions
             failures.Add($"The '{section}:{nameof(RequestRateLimitOptions.QueueLimit)}' config must not be negative");
     }
 
+    private static void ValidateOidc(NugetAuthenticationOptions auth, List<string> failures)
+    {
+        const string section = $"{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Oidc)}";
+        var oidc = auth.Oidc;
+        if (oidc == null)
+        {
+            failures.Add($"The '{section}' config is required when Authentication Mode is '{auth.Mode}'");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(oidc.Authority))
+        {
+            failures.Add($"The '{section}:{nameof(OidcOptions.Authority)}' config is required");
+        }
+        else if (!Uri.TryCreate(oidc.Authority, UriKind.Absolute, out var authority)
+            || (authority.Scheme != Uri.UriSchemeHttps && authority.Scheme != Uri.UriSchemeHttp))
+        {
+            failures.Add($"The '{section}:{nameof(OidcOptions.Authority)}' config must be an absolute http or https URL");
+        }
+        else if (authority.Scheme != Uri.UriSchemeHttps && oidc.RequireHttpsMetadata)
+        {
+            failures.Add($"The '{section}:{nameof(OidcOptions.Authority)}' config must use https unless " +
+                $"'{section}:{nameof(OidcOptions.RequireHttpsMetadata)}' is false");
+        }
+
+        if (string.IsNullOrEmpty(oidc.ClientId))
+            failures.Add($"The '{section}:{nameof(OidcOptions.ClientId)}' config is required");
+
+        var scopes = (oidc.Scopes ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (!scopes.Contains("openid", StringComparer.Ordinal))
+            failures.Add($"The '{section}:{nameof(OidcOptions.Scopes)}' config must include 'openid'");
+
+        if (string.IsNullOrEmpty(oidc.CallbackPath) || !oidc.CallbackPath.StartsWith('/'))
+            failures.Add($"The '{section}:{nameof(OidcOptions.CallbackPath)}' config must start with '/'");
+
+        if (string.IsNullOrEmpty(oidc.RoleClaim))
+            failures.Add($"The '{section}:{nameof(OidcOptions.RoleClaim)}' config is required");
+    }
+
     private static void ValidateAuthentication(PaGettoOptions options, List<string> failures)
     {
         var auth = options.Authentication;
         if (auth == null || !Enum.IsDefined(auth.Mode))
         {
             failures.Add($"The '{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Mode)}' config is required: " +
-                $"'{nameof(AuthenticationMode.Local)}', '{nameof(AuthenticationMode.Entra)}', '{nameof(AuthenticationMode.Hybrid)}' or '{nameof(AuthenticationMode.Legacy)}'");
+                $"'{nameof(AuthenticationMode.Local)}', '{nameof(AuthenticationMode.Entra)}', '{nameof(AuthenticationMode.Oidc)}', '{nameof(AuthenticationMode.Hybrid)}' or '{nameof(AuthenticationMode.Legacy)}'");
             return;
         }
 
@@ -225,7 +264,16 @@ public class ValidatePaGettoOptions
         if (mode == AuthenticationMode.Legacy)
             return;
 
-        if (mode is AuthenticationMode.Entra or AuthenticationMode.Hybrid)
+        if (mode == AuthenticationMode.Hybrid && auth.Entra != null && auth.Oidc != null)
+        {
+            failures.Add($"The '{nameof(NugetAuthenticationOptions.Entra)}' and '{nameof(NugetAuthenticationOptions.Oidc)}' configs can't both be set in Hybrid mode: " +
+                "single sign-on goes through one provider");
+        }
+        else if (auth.SingleSignOnProvider == Core.Entities.AuthProvider.Oidc)
+        {
+            ValidateOidc(auth, failures);
+        }
+        else if (auth.SingleSignOnProvider == Core.Entities.AuthProvider.Entra)
         {
             if (auth.Entra == null)
             {

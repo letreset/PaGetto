@@ -91,12 +91,12 @@ public class UserServiceTests
         }
     }
 
-    public class FindByEntraObjectIdAsync : FactsBase
+    public class FindByExternalIdAsync : FactsBase
     {
         [Fact]
         public async Task ReturnsNullWhenNotFound()
         {
-            var result = await Target.FindByEntraObjectIdAsync("not-an-oid", Ct);
+            var result = await Target.FindByExternalIdAsync(AuthProvider.Entra, "not-an-oid", Ct);
 
             Assert.Null(result);
         }
@@ -104,24 +104,35 @@ public class UserServiceTests
         [Fact]
         public async Task ReturnsEntraUser()
         {
-            var user = await Target.CreateEntraUserAsync(
-                "oid-123", "entrauser", "Entra User", "entrauser@test.com", Ct);
+            var user = await Target.CreateExternalUserAsync(
+                AuthProvider.Entra, "oid-123", "entrauser", "Entra User", "entrauser@test.com", Ct);
 
-            var result = await Target.FindByEntraObjectIdAsync("oid-123", Ct);
+            var result = await Target.FindByExternalIdAsync(AuthProvider.Entra, "oid-123", Ct);
 
             Assert.NotNull(result);
             Assert.Equal(user.Id, result.Id);
             Assert.Equal(AuthProvider.Entra, result.AuthProvider);
         }
+
+        [Fact]
+        public async Task DoesNotReturnUserOfAnotherProvider()
+        {
+            await Target.CreateExternalUserAsync(
+                AuthProvider.Entra, "shared-id", "entrauser", "Entra User", null, Ct);
+
+            var result = await Target.FindByExternalIdAsync(AuthProvider.Oidc, "shared-id", Ct);
+
+            Assert.Null(result);
+        }
     }
 
-    public class CreateEntraUserAsync : FactsBase
+    public class CreateExternalUserAsync : FactsBase
     {
         [Fact]
         public async Task CreatesEntraUserWithCorrectProperties()
         {
-            var result = await Target.CreateEntraUserAsync(
-                "oid-abc", "entrauser", "Entra Display", "entra@test.com", Ct);
+            var result = await Target.CreateExternalUserAsync(
+                AuthProvider.Entra, "oid-abc", "entrauser", "Entra Display", "entra@test.com", Ct);
 
             Assert.NotEqual(Guid.Empty, result.Id);
             Assert.Equal("entrauser", result.Username);
@@ -131,6 +142,17 @@ public class UserServiceTests
             Assert.Equal("entra@test.com", result.Email);
             Assert.True(result.IsEnabled);
             Assert.True(result.CanLoginToUI);
+            Assert.Null(result.PasswordHash);
+        }
+
+        [Fact]
+        public async Task CreatesOidcUser()
+        {
+            var result = await Target.CreateExternalUserAsync(
+                AuthProvider.Oidc, "sub-abc", "oidcuser", "OIDC User", null, Ct);
+
+            Assert.Equal(AuthProvider.Oidc, result.AuthProvider);
+            Assert.Equal("sub-abc", result.EntraObjectId);
             Assert.Null(result.PasswordHash);
         }
     }
@@ -199,8 +221,8 @@ public class UserServiceTests
         [Fact]
         public async Task ReturnsFalseWhenNoPasswordHashSet()
         {
-            var user = await Target.CreateEntraUserAsync(
-                "oid-1", "entrauser", "Entra", "entra@test.com", Ct);
+            var user = await Target.CreateExternalUserAsync(
+                AuthProvider.Entra, "oid-1", "entrauser", "Entra", "entra@test.com", Ct);
 
             var result = await Target.VerifyPasswordAsync(user, "anything");
 

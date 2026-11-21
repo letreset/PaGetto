@@ -56,15 +56,15 @@ internal static partial class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers Entra ID (OIDC) authentication with cookie-based session when the
-    /// authentication mode includes Entra (Entra or Hybrid).
+    /// Registers the cookie-based web session, and single sign-on through Entra ID or another
+    /// OpenID Connect provider when the authentication mode includes it (Entra, Oidc or Hybrid).
     /// </summary>
-    internal static PaGettoApplication AddEntraAuthentication(
+    internal static PaGettoApplication AddWebUiAuthentication(
         this PaGettoApplication app,
         Microsoft.Extensions.Configuration.IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        // Read the authentication mode from configuration to decide whether to register Entra
+        // Read the authentication mode from configuration to decide whether to register single sign-on
         var authSection = configuration.GetSection("Authentication");
         var modeString = authSection?.GetValue<string>("Mode");
 
@@ -75,8 +75,11 @@ internal static partial class ServiceCollectionExtensions
             return app;
 
         var sessionTimeoutMinutes = authSection.GetValue(nameof(NugetAuthenticationOptions.SessionTimeoutMinutes), new NugetAuthenticationOptions().SessionTimeoutMinutes);
-        var entraSection = authSection.GetSection("Entra");
+        var entraSection = authSection.GetSection(nameof(NugetAuthenticationOptions.Entra));
         var entraOptions = entraSection.Get<EntraOptions>() ?? new EntraOptions();
+        var oidcOptions = authSection.GetSection(nameof(NugetAuthenticationOptions.Oidc)).Get<OidcOptions>();
+        var singleSignOnProvider = new NugetAuthenticationOptions { Mode = mode, Oidc = oidcOptions }.SingleSignOnProvider;
+        oidcOptions ??= new OidcOptions();
 
         var authBuilder = app.Services.AddAuthentication(options =>
             {
@@ -85,10 +88,34 @@ internal static partial class ServiceCollectionExtensions
                 options.DefaultScheme = AuthenticationConstants.NugetBasicAuthenticationScheme;
             });
 
-        if (mode is AuthenticationMode.Entra or AuthenticationMode.Hybrid)
-            authBuilder.AddMicrosoftIdentityWebApp(entraSection, AuthenticationConstants.EntraOidcScheme, AuthenticationConstants.CookieScheme);
+        string oidcScheme = null;
+        if (singleSignOnProvider == AuthProvider.Entra)
+        {
+            oidcScheme = AuthenticationConstants.EntraOidcScheme;
+            authBuilder.AddMicrosoftIdentityWebApp(entraSection, oidcScheme, AuthenticationConstants.CookieScheme);
+        }
+        else if (singleSignOnProvider == AuthProvider.Oidc)
+        {
+            oidcScheme = AuthenticationConstants.OidcScheme;
+            authBuilder
+                .AddCookie(AuthenticationConstants.CookieScheme)
+                .AddOpenIdConnect(oidcScheme, options =>
+                {
+                    options.SignInScheme = AuthenticationConstants.CookieScheme;
+                    options.Authority = oidcOptions.Authority;
+                    options.ClientId = oidcOptions.ClientId;
+                    options.ClientSecret = oidcOptions.ClientSecret;
+                    options.CallbackPath = oidcOptions.CallbackPath;
+                    options.RequireHttpsMetadata = oidcOptions.RequireHttpsMetadata;
+                    options.Scope.Clear();
+                    foreach (var scope in (oidcOptions.Scopes ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        options.Scope.Add(scope);
+                });
+        }
         else
+        {
             authBuilder.AddCookie(AuthenticationConstants.CookieScheme);
+        }
 
         // When a request has the session cookie but no Authorization header (i.e. a browser
         // session after OIDC sign-in), forward authentication to the cookie scheme so the
@@ -112,7 +139,7 @@ internal static partial class ServiceCollectionExtensions
             options.ForwardForbid = AuthenticationConstants.NugetBasicAuthenticationScheme;
         });
 
-        // Configure the cookie scheme registered by AddMicrosoftIdentityWebApp
+        // Configure the cookie scheme
         app.Services.Configure<CookieAuthenticationOptions>(AuthenticationConstants.CookieScheme, options =>
         {
             options.LoginPath = "/Login";
@@ -175,8 +202,13 @@ internal static partial class ServiceCollectionExtensions
             };
         });
 
-        // Configure the OIDC options for App Role-based authentication
-        app.Services.Configure<OpenIdConnectOptions>(AuthenticationConstants.EntraOidcScheme, options =>
+        app.Services.AddScoped<SingleSignOnSyncService>();
+
+        if (oidcScheme == null)
+            return app;
+
+        // Configure the OIDC options for role-based authentication
+        app.Services.Configure<OpenIdConnectOptions>(oidcScheme, options =>
         {
             // Use authorization code flow instead of implicit flow so that
             // "ID tokens" does not need to be enabled under Implicit grant
@@ -185,7 +217,9 @@ internal static partial class ServiceCollectionExtensions
             options.MapInboundClaims = false; // Don't map claims to Microsoft-specific claim types, keep the original claim types from the token.
 
             options.TokenValidationParameters.NameClaimType = "name";
-            options.TokenValidationParameters.RoleClaimType = entraOptions.RoleClaim;
+            options.TokenValidationParameters.RoleClaimType = singleSignOnProvider == AuthProvider.Entra
+                ? entraOptions.RoleClaim
+                : oidcOptions.RoleClaim;
 
             options.Events.OnRemoteFailure = context =>
             {
@@ -206,10 +240,10 @@ internal static partial class ServiceCollectionExtensions
                 if (existingOnTokenValidated != null)
                     await existingOnTokenValidated(context);
 
-                var syncService = context.HttpContext.RequestServices.GetRequiredService<EntraRoleSyncService>();
+                var syncService = context.HttpContext.RequestServices.GetRequiredService<SingleSignOnSyncService>();
                 try
                 {
-                    await syncService.OnTokenValidatedAsync(context.Principal, context.HttpContext.RequestAborted);
+                    await syncService.OnTokenValidatedAsync(context.Principal, singleSignOnProvider.Value, context.HttpContext.RequestAborted);
                 }
                 catch (UnauthorizedAccessException ex)
                 {
@@ -217,8 +251,6 @@ internal static partial class ServiceCollectionExtensions
                 }
             };
         });
-
-        app.Services.AddScoped<EntraRoleSyncService>();
 
         return app;
     }
@@ -231,6 +263,6 @@ internal static partial class ServiceCollectionExtensions
         identity.AddClaim(new Claim(type, value));
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Entra authentication remote failure.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Single sign-on remote failure.")]
     private static partial void LogRemoteFailure(ILogger logger, Exception exception);
 }

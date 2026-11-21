@@ -243,8 +243,8 @@ public class AccountsModel : PageModel
     }
 
     /// <summary>
-    /// Makes a local account an administrator or removes its admin rights. Entra accounts follow
-    /// the Admin app role on every sign-in, so they can't be changed here.
+    /// Makes a local account an administrator or removes its admin rights. Single sign-on accounts
+    /// follow the Admin role on every sign-in, so they can't be changed here.
     /// </summary>
     public async Task<IActionResult> OnPostToggleAdminAsync(
         Guid userId, bool isAdmin, CancellationToken cancellationToken)
@@ -275,8 +275,8 @@ public class AccountsModel : PageModel
     }
 
     /// <summary>
-    /// Changes the username, display name and email of a local account. Entra accounts take these
-    /// from the directory, so they can't be changed here.
+    /// Changes the username, display name and email of a local account. Single sign-on accounts
+    /// take these from the provider, so they can't be changed here.
     /// </summary>
     public async Task<IActionResult> OnPostEditAsync(
         Guid userId, string username, string displayName, string email, CancellationToken cancellationToken)
@@ -323,7 +323,7 @@ public class AccountsModel : PageModel
     private static string ValidateAccountEdit(User user, string username, string displayName, string email)
     {
         if (user == null || user.AuthProvider != AuthProvider.Local)
-            return "Only local accounts can be edited here. Entra ID accounts take their name and email from the directory.";
+            return "Only local accounts can be edited here. Single sign-on accounts take their name and email from the sign-in provider.";
 
         if (string.IsNullOrEmpty(username))
             return "Username is required.";
