@@ -78,8 +78,10 @@ internal static partial class ServiceCollectionExtensions
         var entraSection = authSection.GetSection(nameof(NugetAuthenticationOptions.Entra));
         var entraOptions = entraSection.Get<EntraOptions>() ?? new EntraOptions();
         var oidcOptions = authSection.GetSection(nameof(NugetAuthenticationOptions.Oidc)).Get<OidcOptions>();
-        var singleSignOnProvider = new NugetAuthenticationOptions { Mode = mode, Oidc = oidcOptions }.SingleSignOnProvider;
+        var samlOptions = authSection.GetSection(nameof(NugetAuthenticationOptions.Saml)).Get<SamlOptions>();
+        var singleSignOnProvider = new NugetAuthenticationOptions { Mode = mode, Oidc = oidcOptions, Saml = samlOptions }.SingleSignOnProvider;
         oidcOptions ??= new OidcOptions();
+        samlOptions ??= new SamlOptions();
 
         var authBuilder = app.Services.AddAuthentication(options =>
             {
@@ -111,6 +113,22 @@ internal static partial class ServiceCollectionExtensions
                     foreach (var scope in (oidcOptions.Scopes ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries))
                         options.Scope.Add(scope);
                 });
+        }
+        else if (singleSignOnProvider == AuthProvider.Saml)
+        {
+            app.Services.AddSingleton<SamlConfigurationProvider>();
+            app.Services.AddHttpClient(SamlConfigurationProvider.HttpClientName, client => client.Timeout = SamlConfigurationProvider.MetadataTimeout);
+            authBuilder
+                .AddCookie(AuthenticationConstants.CookieScheme)
+                .AddRemoteScheme<SamlAuthenticationOptions, SamlAuthenticationHandler>(
+                    AuthenticationConstants.SamlScheme,
+                    samlOptions.DisplayName,
+                    options =>
+                    {
+                        options.SignInScheme = AuthenticationConstants.CookieScheme;
+                        options.CallbackPath = samlOptions.CallbackPath;
+                        options.Events.OnRemoteFailure = HandleRemoteFailureAsync;
+                    });
         }
         else
         {
@@ -221,17 +239,7 @@ internal static partial class ServiceCollectionExtensions
                 ? entraOptions.RoleClaim
                 : oidcOptions.RoleClaim;
 
-            options.Events.OnRemoteFailure = context =>
-            {
-                var logger = context.HttpContext.RequestServices
-                    .GetRequiredService<ILoggerFactory>()
-                    .CreateLogger(nameof(ServiceCollectionExtensions));
-                LogRemoteFailure(logger, context.Failure);
-
-                context.Response.Redirect("/Login?error=authentication_failed");
-                context.HandleResponse();
-                return Task.CompletedTask;
-            };
+            options.Events.OnRemoteFailure = HandleRemoteFailureAsync;
 
             var existingOnTokenValidated = options.Events.OnTokenValidated;
 
@@ -253,6 +261,19 @@ internal static partial class ServiceCollectionExtensions
         });
 
         return app;
+    }
+
+    // A failed or refused single sign-on goes back to the sign-in page instead of an error page.
+    private static Task HandleRemoteFailureAsync(RemoteFailureContext context)
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger(nameof(ServiceCollectionExtensions));
+        LogRemoteFailure(logger, context.Failure);
+
+        context.Response.Redirect("/Login?error=authentication_failed");
+        context.HandleResponse();
+        return Task.CompletedTask;
     }
 
     private static void ReplaceClaim(ClaimsIdentity identity, string type, string value)

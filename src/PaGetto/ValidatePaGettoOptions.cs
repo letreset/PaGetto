@@ -210,6 +210,89 @@ public class ValidatePaGettoOptions
             failures.Add($"The '{section}:{nameof(RequestRateLimitOptions.QueueLimit)}' config must not be negative");
     }
 
+    private static void ValidateSaml(NugetAuthenticationOptions auth, List<string> failures)
+    {
+        const string section = $"{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Saml)}";
+        var saml = auth.Saml;
+        if (saml == null)
+        {
+            failures.Add($"The '{section}' config is required when Authentication Mode is '{auth.Mode}'");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(saml.MetadataUrl))
+        {
+            failures.Add($"The '{section}:{nameof(SamlOptions.MetadataUrl)}' config is required");
+        }
+        else if (!Uri.TryCreate(saml.MetadataUrl, UriKind.Absolute, out var metadataUrl)
+            || (metadataUrl.Scheme != Uri.UriSchemeHttps && metadataUrl.Scheme != Uri.UriSchemeHttp))
+        {
+            failures.Add($"The '{section}:{nameof(SamlOptions.MetadataUrl)}' config must be an absolute http or https URL");
+        }
+        else if (metadataUrl.Scheme != Uri.UriSchemeHttps && saml.RequireHttpsMetadata)
+        {
+            failures.Add($"The '{section}:{nameof(SamlOptions.MetadataUrl)}' config must use https unless " +
+                $"'{section}:{nameof(SamlOptions.RequireHttpsMetadata)}' is false");
+        }
+
+        if (string.IsNullOrEmpty(saml.EntityId))
+            failures.Add($"The '{section}:{nameof(SamlOptions.EntityId)}' config is required");
+
+        if (string.IsNullOrEmpty(saml.CallbackPath) || !saml.CallbackPath.StartsWith('/'))
+            failures.Add($"The '{section}:{nameof(SamlOptions.CallbackPath)}' config must start with '/'");
+
+        if (string.IsNullOrEmpty(saml.RoleAttribute))
+            failures.Add($"The '{section}:{nameof(SamlOptions.RoleAttribute)}' config is required");
+    }
+
+    private static void ValidateLdap(NugetAuthenticationOptions auth, List<string> failures)
+    {
+        const string section = $"{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Ldap)}";
+        var ldap = auth.Ldap;
+        if (ldap == null)
+            return;
+
+        if (!auth.IsLocalEnabled)
+        {
+            failures.Add($"The '{section}' config is only used in '{nameof(AuthenticationMode.Local)}' and '{nameof(AuthenticationMode.Hybrid)}' mode, " +
+                $"not in '{auth.Mode}' mode");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(ldap.Server))
+            failures.Add($"The '{section}:{nameof(LdapOptions.Server)}' config is required");
+
+        if (ldap.Port is < 0 or > 65535)
+            failures.Add($"The '{section}:{nameof(LdapOptions.Port)}' config must be between 0 and 65535");
+
+        if (!Enum.IsDefined(ldap.Security))
+        {
+            failures.Add($"The '{section}:{nameof(LdapOptions.Security)}' config must be " +
+                $"'{nameof(LdapSecurity.Ssl)}', '{nameof(LdapSecurity.StartTls)}' or '{nameof(LdapSecurity.None)}'");
+        }
+
+        if (string.IsNullOrEmpty(ldap.SearchBase))
+            failures.Add($"The '{section}:{nameof(LdapOptions.SearchBase)}' config is required");
+
+        if (ldap.UserFilter?.Contains("{0}", StringComparison.Ordinal) != true)
+            failures.Add($"The '{section}:{nameof(LdapOptions.UserFilter)}' config must contain '{{0}}', which is replaced with the username");
+
+        if (!string.IsNullOrEmpty(ldap.GroupSearchFilter) && !ldap.GroupSearchFilter.Contains("{0}", StringComparison.Ordinal))
+            failures.Add($"The '{section}:{nameof(LdapOptions.GroupSearchFilter)}' config must contain '{{0}}', which is replaced with the user's DN");
+
+        if (string.IsNullOrEmpty(ldap.UsernameAttribute))
+            failures.Add($"The '{section}:{nameof(LdapOptions.UsernameAttribute)}' config is required");
+
+        if (string.IsNullOrEmpty(ldap.IdAttribute))
+            failures.Add($"The '{section}:{nameof(LdapOptions.IdAttribute)}' config is required");
+
+        if (ldap.CacheSeconds < 0)
+            failures.Add($"The '{section}:{nameof(LdapOptions.CacheSeconds)}' config must not be negative");
+
+        if (ldap.TimeoutSeconds < 1)
+            failures.Add($"The '{section}:{nameof(LdapOptions.TimeoutSeconds)}' config must be at least 1");
+    }
+
     private static void ValidateOidc(NugetAuthenticationOptions auth, List<string> failures)
     {
         const string section = $"{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Oidc)}";
@@ -255,7 +338,7 @@ public class ValidatePaGettoOptions
         if (auth == null || !Enum.IsDefined(auth.Mode))
         {
             failures.Add($"The '{nameof(PaGettoOptions.Authentication)}:{nameof(NugetAuthenticationOptions.Mode)}' config is required: " +
-                $"'{nameof(AuthenticationMode.Local)}', '{nameof(AuthenticationMode.Entra)}', '{nameof(AuthenticationMode.Oidc)}', '{nameof(AuthenticationMode.Hybrid)}' or '{nameof(AuthenticationMode.Legacy)}'");
+                $"'{nameof(AuthenticationMode.Local)}', '{nameof(AuthenticationMode.Entra)}', '{nameof(AuthenticationMode.Oidc)}', '{nameof(AuthenticationMode.Saml)}', '{nameof(AuthenticationMode.Hybrid)}' or '{nameof(AuthenticationMode.Legacy)}'");
             return;
         }
 
@@ -264,14 +347,18 @@ public class ValidatePaGettoOptions
         if (mode == AuthenticationMode.Legacy)
             return;
 
-        if (mode == AuthenticationMode.Hybrid && auth.Entra != null && auth.Oidc != null)
+        if (mode == AuthenticationMode.Hybrid && new object[] { auth.Entra, auth.Oidc, auth.Saml }.Count(section => section != null) > 1)
         {
-            failures.Add($"The '{nameof(NugetAuthenticationOptions.Entra)}' and '{nameof(NugetAuthenticationOptions.Oidc)}' configs can't both be set in Hybrid mode: " +
-                "single sign-on goes through one provider");
+            failures.Add($"Only one of the '{nameof(NugetAuthenticationOptions.Entra)}', '{nameof(NugetAuthenticationOptions.Oidc)}' and " +
+                $"'{nameof(NugetAuthenticationOptions.Saml)}' configs can be set in Hybrid mode: single sign-on goes through one provider");
         }
         else if (auth.SingleSignOnProvider == Core.Entities.AuthProvider.Oidc)
         {
             ValidateOidc(auth, failures);
+        }
+        else if (auth.SingleSignOnProvider == Core.Entities.AuthProvider.Saml)
+        {
+            ValidateSaml(auth, failures);
         }
         else if (auth.SingleSignOnProvider == Core.Entities.AuthProvider.Entra)
         {
@@ -291,6 +378,8 @@ public class ValidatePaGettoOptions
                     failures.Add($"The '{nameof(EntraOptions.Instance)}' config is required for Entra authentication");
             }
         }
+
+        ValidateLdap(auth, failures);
 
         if (auth.MaxTokenExpiryDays < 1)
             failures.Add($"The '{nameof(NugetAuthenticationOptions.MaxTokenExpiryDays)}' config must be at least 1");

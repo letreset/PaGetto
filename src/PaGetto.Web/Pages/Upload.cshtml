@@ -19,6 +19,7 @@
     var ssoName = AuthOptions.Value.SingleSignOnName;
     var hasSso = ssoName != null;
     var hasLocal = authMode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
+    var passwordAccounts = AuthOptions.Value.IsLdapEnabled ? $"Local and {AuthOptions.Value.Ldap.DisplayName} accounts" : "Local accounts";
     var requiresAuth = authMode != AuthenticationMode.Legacy;
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
@@ -157,7 +158,7 @@
                     @if (hasSso && hasLocal)
                     {
                         <p>@ssoName users: sign in to the web UI to generate a personal access token (PAT), then use it as the API key.</p>
-                        <p>Local accounts: use your username and password with basic authentication.</p>
+                        <p>@passwordAccounts: use your username and password with basic authentication.</p>
                     }
                     else if (hasSso)
                     {

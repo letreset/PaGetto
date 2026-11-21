@@ -6,13 +6,13 @@ public sealed class NugetAuthenticationOptions
 {
     /// <summary>
     /// Controls which authentication mechanisms are active.
-    /// Required: <c>Legacy</c>, <c>Local</c>, <c>Entra</c>, <c>Oidc</c> or <c>Hybrid</c>.
+    /// Required: <c>Legacy</c>, <c>Local</c>, <c>Entra</c>, <c>Oidc</c>, <c>Saml</c> or <c>Hybrid</c>.
     /// </summary>
     public AuthenticationMode Mode { get; set; }
 
     /// <summary>
     /// Azure Entra ID (OIDC) configuration. Required when Mode is Entra, or Hybrid without
-    /// <see cref="Oidc"/>.
+    /// <see cref="Oidc"/> or <see cref="Saml"/>.
     /// </summary>
     public EntraOptions Entra { get; set; }
 
@@ -23,6 +23,18 @@ public sealed class NugetAuthenticationOptions
     public OidcOptions Oidc { get; set; }
 
     /// <summary>
+    /// SAML 2.0 identity provider configuration. Required when Mode is Saml; in Hybrid mode it
+    /// replaces Entra ID.
+    /// </summary>
+    public SamlOptions Saml { get; set; }
+
+    /// <summary>
+    /// LDAP directory configuration. In Local and Hybrid mode, directory users sign in with their
+    /// directory username and password next to local accounts.
+    /// </summary>
+    public LdapOptions Ldap { get; set; }
+
+    /// <summary>
     /// The provider users sign in with besides local accounts, or null when there is none
     /// (<c>Local</c> and <c>Legacy</c>).
     /// </summary>
@@ -30,7 +42,10 @@ public sealed class NugetAuthenticationOptions
     {
         AuthenticationMode.Entra => AuthProvider.Entra,
         AuthenticationMode.Oidc => AuthProvider.Oidc,
-        AuthenticationMode.Hybrid => Oidc != null ? AuthProvider.Oidc : AuthProvider.Entra,
+        AuthenticationMode.Saml => AuthProvider.Saml,
+        AuthenticationMode.Hybrid when Oidc != null => AuthProvider.Oidc,
+        AuthenticationMode.Hybrid when Saml != null => AuthProvider.Saml,
+        AuthenticationMode.Hybrid => AuthProvider.Entra,
         _ => null,
     };
 
@@ -42,8 +57,20 @@ public sealed class NugetAuthenticationOptions
     {
         AuthProvider.Entra => "Microsoft",
         AuthProvider.Oidc => Oidc?.DisplayName ?? "SSO",
+        AuthProvider.Saml => Saml?.DisplayName ?? "SSO",
         _ => null,
     };
+
+    /// <summary>
+    /// Whether local accounts can sign in (<c>Local</c> and <c>Hybrid</c>).
+    /// </summary>
+    public bool IsLocalEnabled => Mode is AuthenticationMode.Local or AuthenticationMode.Hybrid;
+
+    /// <summary>
+    /// Whether directory users sign in through <see cref="Ldap"/>: it is set, and the mode accepts
+    /// local accounts, next to which the directory works.
+    /// </summary>
+    public bool IsLdapEnabled => Ldap != null && IsLocalEnabled;
 
     /// <summary>
     /// Maximum number of days a personal access token can be valid.

@@ -13,42 +13,42 @@ namespace PaGetto.Authentication;
 
 /// <summary>
 /// Handles user provisioning and role-based group synchronization when a user signs in through
-/// Entra ID or another OpenID Connect provider.
+/// Entra ID, another OpenID Connect provider or a SAML identity provider.
 /// </summary>
 public partial class SingleSignOnSyncService
 {
-    private const string AdminRoleValue = "Admin";
     private const string DefaultEntraRoleClaim = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
     private const string DefaultOidcRoleClaim = "groups";
 
-    private readonly IUserService _userService;
-    private readonly IGroupService _groupService;
+    private readonly ExternalAccountService _accounts;
     private readonly IOptions<PaGettoOptions> _options;
     private readonly ILogger<SingleSignOnSyncService> _logger;
 
     public SingleSignOnSyncService(
-        IUserService userService,
-        IGroupService groupService,
+        ExternalAccountService accounts,
         IOptions<PaGettoOptions> options,
         ILogger<SingleSignOnSyncService> logger)
     {
-        _userService = userService;
-        _groupService = groupService;
+        _accounts = accounts;
         _options = options;
         _logger = logger;
     }
 
     /// <summary>
     /// Provisions or updates a user from the provider's claims, syncs admin status and
-    /// group memberships based on the roles in the token.
-    /// Called from the OnTokenValidated OIDC event.
+    /// group memberships based on the roles in the token or assertion.
+    /// Called once the provider's response has been validated.
     /// </summary>
     public async Task OnTokenValidatedAsync(ClaimsPrincipal principal, AuthProvider provider, CancellationToken cancellationToken)
     {
-        var externalId = provider == AuthProvider.Entra
-            ? principal.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")
-              ?? principal.FindFirstValue("oid")
-            : principal.FindFirstValue("sub");
+        var externalId = provider switch
+        {
+            AuthProvider.Entra => principal.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")
+                                  ?? principal.FindFirstValue("oid"),
+            // The NameID of the SAML assertion.
+            AuthProvider.Saml => principal.FindFirstValue(ClaimTypes.NameIdentifier),
+            _ => principal.FindFirstValue("sub"),
+        };
 
         if (string.IsNullOrEmpty(externalId))
         {
@@ -75,36 +75,7 @@ public partial class SingleSignOnSyncService
             ? $"{given} {surname}"
             : principal.FindFirstValue("name") ?? username;
 
-        // Upsert the user
-        var user = await _userService.FindByExternalIdAsync(provider, externalId, cancellationToken);
-        if (user == null)
-        {
-            if (await IsUsernameTakenAsync(username, null, cancellationToken))
-            {
-                LogUsernameTaken(provider, username);
-                throw new UnauthorizedAccessException($"The username '{username}' is already used by another account.");
-            }
-
-            LogProvisioningUser(provider, username, externalId);
-            user = await _userService.CreateExternalUserAsync(provider, externalId, username, displayName, email, cancellationToken);
-        }
-        else
-        {
-            var changed = false;
-            if (user.DisplayName != displayName) { user.DisplayName = displayName; changed = true; }
-            if (user.Username != username && !await IsUsernameTakenAsync(username, user.Id, cancellationToken))
-            {
-                user.Username = username;
-                changed = true;
-            }
-            if (!string.IsNullOrEmpty(email) && user.Email != email) { user.Email = email; changed = true; }
-
-            if (changed)
-            {
-                user.UpdatedAtUtc = DateTime.UtcNow;
-                await _userService.UpdateUserAsync(user, cancellationToken);
-            }
-        }
+        var user = await _accounts.UpsertAsync(provider, externalId, username, displayName, email, cancellationToken);
 
         if (!user.IsEnabled)
         {
@@ -120,21 +91,16 @@ public partial class SingleSignOnSyncService
 
         // Read roles claim from the token
         var auth = _options.Value.Authentication;
-        var roleClaim = provider == AuthProvider.Entra
-            ? auth?.Entra?.RoleClaim ?? DefaultEntraRoleClaim
-            : auth?.Oidc?.RoleClaim ?? DefaultOidcRoleClaim;
+        var roleClaim = provider switch
+        {
+            AuthProvider.Entra => auth?.Entra?.RoleClaim ?? DefaultEntraRoleClaim,
+            AuthProvider.Saml => auth?.Saml?.RoleAttribute ?? DefaultOidcRoleClaim,
+            _ => auth?.Oidc?.RoleClaim ?? DefaultOidcRoleClaim,
+        };
         var roles = principal.FindAll(roleClaim).Select(c => c.Value).ToList();
 
-        // Bidirectional admin sync: grant or revoke based on token
-        var hasAdminRole = roles.Contains(AdminRoleValue, StringComparer.OrdinalIgnoreCase);
-        if (hasAdminRole != user.IsAdmin)
-        {
-            LogAdminRoleSync(hasAdminRole ? "Granting" : "Revoking", provider, user.Username);
-            await _userService.SetAdminAsync(user.Id, hasAdminRole, cancellationToken);
-        }
-
-        // Sync group memberships from the roles (full bidirectional reconciliation)
-        await _groupService.SyncAppRoleMembershipsAsync(user.Id, roles, cancellationToken);
+        // Bidirectional admin and group sync (full reconciliation with the token)
+        await _accounts.SyncRolesAsync(user, roles, cancellationToken);
 
         // Add PaGetto-specific claims to the principal
         var identity = principal.Identity as ClaimsIdentity;
@@ -147,30 +113,21 @@ public partial class SingleSignOnSyncService
             identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
             identity.AddClaim(new Claim("auth_provider", provider.ToString()));
             identity.AddClaim(new Claim(AuthenticationConstants.IsAdminClaim, user.IsAdmin ? "true" : "false"));
-        }
-    }
 
-    private async Task<bool> IsUsernameTakenAsync(string username, Guid? userId, CancellationToken cancellationToken)
-    {
-        var existing = await _userService.FindByUsernameAsync(username, cancellationToken);
-        return existing != null && existing.Id != userId;
+            // SAML assertions often carry no name, which the web UI shows.
+            if (identity.Name == null)
+                identity.AddClaim(new Claim(identity.NameClaimType, user.Username));
+            if (identity.FindFirst("DisplayName") == null && identity.FindFirst("name") == null)
+                identity.AddClaim(new Claim("DisplayName", user.DisplayName ?? user.Username));
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{AuthProvider} token is missing the user id claim")]
     private partial void LogMissingExternalId(AuthProvider authProvider);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Provisioning new {AuthProvider} user: {Username} (ID: {ExternalId})")]
-    private partial void LogProvisioningUser(AuthProvider authProvider, string username, string externalId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Login denied: the username {Username} of the new {AuthProvider} user is already used by another account")]
-    private partial void LogUsernameTaken(AuthProvider authProvider, string username);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login denied: {AuthProvider} user {Username} is disabled")]
     private partial void LogLoginDeniedDisabled(AuthProvider authProvider, string username);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login denied: {AuthProvider} user {Username} does not have UI login permission")]
     private partial void LogLoginDeniedNoUIPermission(AuthProvider authProvider, string username);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Action} admin for {AuthProvider} user {Username} based on its roles")]
-    private partial void LogAdminRoleSync(string action, AuthProvider authProvider, string username);
 }

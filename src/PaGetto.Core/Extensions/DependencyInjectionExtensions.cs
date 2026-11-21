@@ -8,6 +8,7 @@ using PaGetto.Core.Artifacts;
 using PaGetto.Core.Audit;
 using PaGetto.Core.Quarantine;
 using PaGetto.Core.Authentication;
+using PaGetto.Core.Authentication.Ldap;
 using PaGetto.Core.Cargo;
 using PaGetto.Core.CocoaPods;
 using PaGetto.Core.Composer;
@@ -164,6 +165,10 @@ public static partial class DependencyInjectionExtensions
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();
+        services.TryAddTransient<ExternalAccountService>();
+        services.TryAddTransient<ILdapAuthenticationService, LdapAuthenticationService>();
+        services.TryAddSingleton<ILdapDirectory, LdapDirectory>();
+        services.TryAddSingleton<LdapSignInCache>();
         services.TryAddTransient<IPackageContentService, DefaultPackageContentService>();
         services.TryAddTransient<IPackageDeletionService, PackageDeletionService>();
         services.TryAddTransient<IPackageIndexingService, PackageIndexingService>();

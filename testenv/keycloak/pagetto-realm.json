@@ -89,6 +89,45 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "http://localhost:5000",
+      "name": "PaGetto (SAML)",
+      "enabled": true,
+      "protocol": "saml",
+      "redirectUris": [
+        "http://localhost:5000/signin-saml"
+      ],
+      "attributes": {
+        "saml_name_id_format": "username",
+        "saml_force_name_id_format": "true",
+        "saml.client.signature": "false",
+        "saml.server.signature": "true",
+        "saml.assertion.signature": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "user.attribute": "email",
+            "attribute.name": "email",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "groups",
+          "protocol": "saml",
+          "protocolMapper": "saml-group-membership-mapper",
+          "config": {
+            "attribute.name": "groups",
+            "attribute.nameformat": "Basic",
+            "full.path": "false",
+            "single": "false"
+          }
+        }
+      ]
     }
   ],
   "requiredActions": [

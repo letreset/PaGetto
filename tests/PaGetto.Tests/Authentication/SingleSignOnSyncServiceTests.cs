@@ -340,6 +340,35 @@ public class SingleSignOnSyncServiceTests
 
             Assert.Equal("erin", user.Username);
         }
+
+        [Fact]
+        public async Task ProvisionsSamlUserFromTheNameIdAndSyncsTheRoleAttribute()
+        {
+            Options.Value.Authentication.Saml = new SamlOptions { RoleAttribute = "Role" };
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, "frank"),
+                new Claim("email", "frank@test.com"),
+                new Claim("Role", "Admin"),
+                new Claim("Role", "developers"),
+                new Claim("groups", "ignored"),
+            ], "Saml"));
+            var user = CreateUserEntity("frank", "frank@test.com", provider: AuthProvider.Saml);
+            UserService.Setup(s => s.FindByExternalIdAsync(AuthProvider.Saml, "frank", Ct)).ReturnsAsync((User)null);
+            UserService.Setup(s => s.CreateExternalUserAsync(AuthProvider.Saml, "frank", "frank@test.com", "frank@test.com", "frank@test.com", Ct))
+                .ReturnsAsync(user);
+
+            await Target.OnTokenValidatedAsync(principal, AuthProvider.Saml, Ct);
+
+            UserService.Verify(s => s.SetAdminAsync(user.Id, true, Ct));
+            GroupService.Verify(s => s.SyncAppRoleMembershipsAsync(
+                user.Id,
+                It.Is<IReadOnlyList<string>>(r => r.Count == 2 && r.Contains("developers") && !r.Contains("ignored")),
+                Ct));
+            var identity = (ClaimsIdentity)principal.Identity;
+            Assert.Equal(user.Id.ToString(), identity.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            Assert.Equal("frank@test.com", identity.Name);
+        }
     }
 
     public class FactsBase
@@ -369,8 +398,7 @@ public class SingleSignOnSyncServiceTests
             Options = Microsoft.Extensions.Options.Options.Create(opts);
 
             Target = new SingleSignOnSyncService(
-                UserService.Object,
-                GroupService.Object,
+                new ExternalAccountService(UserService.Object, GroupService.Object, Mock.Of<ILogger<ExternalAccountService>>()),
                 Options,
                 Mock.Of<ILogger<SingleSignOnSyncService>>());
         }
