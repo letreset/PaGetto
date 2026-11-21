@@ -38,6 +38,7 @@ using PaGetto.Core.Storage;
 using PaGetto.Core.Swift;
 using PaGetto.Core.Upstream;
 using PaGetto.Core.Webhooks;
+using PaGetto.Core.Updates;
 using PaGetto.Core.Upstream.Clients;
 using PaGetto.Core.Validation;
 using PaGetto.Core.VsCode;
@@ -117,6 +118,7 @@ public static partial class DependencyInjectionExtensions
         services.AddPaGettoOptions<AuditOptions>(nameof(PaGettoOptions.Audit));
         services.AddPaGettoOptions<VulnerabilityScanningOptions>(nameof(PaGettoOptions.VulnerabilityScanning));
         services.AddPaGettoOptions<MaliciousPackageOptions>(nameof(PaGettoOptions.MaliciousPackages));
+        services.AddPaGettoOptions<UpdateCheckOptions>(nameof(PaGettoOptions.UpdateCheck));
     }
 
     private static void AddPaGettoServices(this IServiceCollection services)
@@ -162,6 +164,8 @@ public static partial class DependencyInjectionExtensions
         services.TryAddScoped<PromotionService>();
         services.TryAddScoped<SbomService>();
         services.TryAddScoped<MaliciousPackageService>();
+        services.TryAddSingleton<GitHubReleaseClient>();
+        services.TryAddSingleton<ReleaseChecker>();
         services.TryAddTransient<IAuditEventService, AuditEventService>();
         services.TryAddTransient<ITokenService, TokenService>();
         services.TryAddTransient<IFeedAuthenticationService, FeedAuthenticationService>();

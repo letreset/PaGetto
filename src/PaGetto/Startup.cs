@@ -15,6 +15,7 @@ using PaGetto.Core.Notifications;
 using PaGetto.Core.Retention;
 using PaGetto.Core.Search;
 using PaGetto.Core.Storage;
+using PaGetto.Core.Updates;
 using PaGetto.Core.MaliciousPackages;
 using PaGetto.Core.Vulnerabilities;
 using PaGetto.Core.Webhooks;
@@ -89,6 +90,9 @@ public class Startup
         // Matches stored versions against the OSV vulnerability database.
         services.AddHostedService<VulnerabilityScanService>();
         services.AddHostedService<MaliciousPackageRefreshService>();
+
+        // Looks up the latest PaGetto release for the notice on the admin pages.
+        services.AddHostedService<ReleaseCheckService>();
 
         services.AddHealthChecks();
 
